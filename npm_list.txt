@@ -1,0 +1,19 @@
+(node:21776) ExperimentalWarning: CommonJS module C:\Program Files\nodejs\node_modules\npm\node_modules\debug\src\node.js is loading ES Module C:\Program Files\nodejs\node_modules\npm\node_modules\supports-color\index.js using require().
+Support for loading ES Module in require() is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+vignan-university-portal@1.0.0 C:\Users\rajub\OneDrive\Desktop\aiXfn
+├── @emotion/react@11.14.0
+├── @emotion/styled@11.14.1
+├── @mui/icons-material@5.18.0
+├── @mui/material@5.18.0
+├── axios@1.13.2
+├── bootstrap@5.3.8
+├── react-bootstrap@2.10.10
+├── react-dom@18.3.1
+├── react-icons@5.5.0
+├── react-router-dom@6.30.2
+├── react-scripts@5.0.1
+├── react-toastify@10.0.6
+├── react@18.3.1
+└── web-vitals@2.1.4
+

@@ -1,0 +1,175 @@
+/* Advanced Learning Premium UI */
+
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+/* Global Container Override */
+.advanced-notes-container,
+.advanced-learning-container {
+    padding: 3rem 2rem;
+    min-height: 100vh;
+    background: radial-gradient(circle at top right, #f8fafc, #e2e8f0);
+    font-family: 'Outfit', sans-serif;
+    color: #1e293b;
+}
+
+/* Page Header */
+.page-header h1,
+.advanced-notes-container h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+}
+
+/* Sections Layout */
+.section-container {
+    margin-bottom: 4rem;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 2.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.section-title,
+.section-header {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 2rem;
+    position: relative;
+    padding-left: 1rem;
+    border-left: 5px solid #3b82f6;
+    display: flex;
+    align-items: center;
+}
+
+/* Chapter Box Design (Side-by-Side) */
+.chapter-box {
+    background: #ffffff !important;
+    border-radius: 16px !important;
+    border: none !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02) !important;
+    transition: all 0.3s ease !important;
+    overflow: hidden;
+    position: relative;
+    height: 100%;
+}
+
+.chapter-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.chapter-box::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+/* Card Styling Inside Chapters */
+.topic-card,
+.card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.topic-card:hover,
+.card:hover {
+    border-color: #3b82f6;
+    background: #f8fafc;
+}
+
+/* Buttons */
+.action-btn,
+.btn-primary,
+.btn-success,
+.btn-info,
+.btn-secondary {
+    border-radius: 8px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+    border: none;
+    text-transform: capitalize;
+}
+
+.btn-primary {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+    color: white;
+}
+
+.btn-success {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.btn-success:hover {
+    background: #15803d;
+    color: white;
+}
+
+.btn-info {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.btn-info:hover {
+    background: #c2410c;
+    color: white;
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.btn-secondary:hover {
+    background: #475569;
+    color: white;
+}
+
+/* Tabs for Notes/Videos/Interview */
+.advanced-notes-container .btn-group {
+    background: white;
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
+}
+
+.advanced-notes-container .btn-outline-primary,
+.advanced-notes-container .btn-outline-success,
+.advanced-notes-container .btn-outline-info {
+    border: none;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.advanced-notes-container .btn-primary,
+.advanced-notes-container .btn-success,
+.advanced-notes-container .btn-info {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Back Button */
+.back-button {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 500;
+}

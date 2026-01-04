@@ -1,0 +1,10 @@
+
+> vignan-university-portal@1.0.0 build
+> react-scripts build
+
+Creating an optimized production build...
+Failed to compile.
+
+Unexpected end of JSON input
+
+

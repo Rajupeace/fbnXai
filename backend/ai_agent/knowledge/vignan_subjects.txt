@@ -1,0 +1,24 @@
+
+VIGNAN UNIVERSITY (VFSTR) - B.TECH BRANCH CURRICULUM & SUBJECTS
+
+1. Computer Science and Engineering (CSE):
+   - Core Subjects: Data Structures (DS), Design and Analysis of Algorithms (DAA), Database Management Systems (DBMS), Operating Systems (OS), Computer Networks (CN), Software Engineering (SE), Compiler Design (CD), Web Technologies (WT), Object Oriented Programming (Java/Python).
+   - Labs: Java Lab, DBMS Lab, OS Lab, Web Tech Lab.
+   - Emerging Tech: Cloud Computing, Cyber Security, Artificial Intelligence.
+
+2. Electronics and Communication Engineering (ECE):
+   - Core Subjects: Electronic Devices and Circuits (EDC), Digital Logic Design (DLD), Signals and Systems (SS), Analog Communications (AC), Digital Communications (DC), Microprocessors and Microcontrollers (MPMC), VLSI Design, Digital Signal Processing (DSP).
+   - Labs: EDC Lab, Digital Electronics Lab, Analog/Digital Comm Lab.
+
+3. Information Technology (IT):
+   - Core Subjects: Problem Solving with C, Data Structures, OOPs through Java, Database Systems, Computer Organization, Web Development, Software Engineering, Cryptography and Network Security.
+   - Focus: Application Development, System Administration.
+
+4. Artificial Intelligence and Machine Learning (AIML/AIMI):
+   - Core Subjects: Mathematics for Machine Learning (Linear Algebra, Probability), Python for Data Science, Introduction to Artificial Intelligence, Machine Learning Algorithms, Deep Learning, Natural Language Processing (NLP), Computer Vision, Big Data Analytics.
+   - Labs: Python AI Lab, Machine Learning Lab, Deep Learning Lab.
+
+5. General Engineering (First Year - Common):
+   - Engineering Mathematics, Engineering Physics, Engineering Chemistry, C Programming, Basic Electrical and Electronics Engineering (BEEE), English for Communication.
+
+Note: Detailed Syllabus copies are available in the 'Semester Notes' section or the Admin Office.
