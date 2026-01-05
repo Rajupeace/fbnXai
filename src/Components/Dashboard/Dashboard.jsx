@@ -1,12 +1,165 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiGet } from '../../utils/apiClient';
 import './Dashboard.css';
 
 const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('notes');
+  const [dashboardData, setDashboardData] = useState({
+    materials: [],
+    attendance: {},
+    overview: {}
+  });
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const eventSourceRef = useRef(null);
+  const refreshIntervalRef = useRef(null);
 
   console.log('Dashboard Component - Student Data:', studentData); // Debug log
+
+  // Real-time SSE connection for live updates
+  useEffect(() => {
+    if (!studentData?.sid) return;
+
+    const connectSSE = () => {
+      try {
+        const eventSource = new EventSource(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/stream`);
+        eventSourceRef.current = eventSource;
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('🔄 Real-time update received:', data);
+
+            // Handle different types of updates
+            if (data.resource === 'materials' || data.action === 'create') {
+              // Refresh materials when new content is added
+              fetchDashboardData();
+            }
+            if (data.resource === 'attendance' && data.action === 'create') {
+              // Refresh attendance data when attendance is updated
+              fetchDashboardData();
+            }
+            if (data.resource === 'student' && data.action === 'update') {
+              // Refresh student overview when student data changes
+              fetchDashboardData();
+            }
+
+            setLastUpdate(Date.now());
+          } catch (error) {
+            console.error('Error parsing SSE data:', error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.warn('SSE connection error, reconnecting...', error);
+          eventSource.close();
+          setTimeout(connectSSE, 5000); // Reconnect after 5 seconds
+        };
+
+        eventSource.onopen = () => {
+          console.log('✅ SSE connected for real-time updates');
+        };
+
+      } catch (error) {
+        console.error('Failed to establish SSE connection:', error);
+        // Fallback to polling
+        startPolling();
+      }
+    };
+
+    connectSSE();
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [studentData?.sid, fetchDashboardData, startPolling]);
+
+  // Fallback polling for automatic updates
+  const startPolling = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+    }
+    
+    refreshIntervalRef.current = setInterval(() => {
+      fetchDashboardData();
+    }, 30000); // Refresh every 30 seconds
+  }, [fetchDashboardData]);
+
+  // Fetch dashboard data from backend
+  const fetchDashboardData = useCallback(async () => {
+    if (!studentData?.sid) return;
+    
+    try {
+      setLoading(true);
+      
+      // Fetch student overview data
+      const overview = await apiGet(`/api/students/${studentData.sid}/overview`);
+      
+      // Fetch student courses and materials
+      const courses = await apiGet(`/api/students/${studentData.sid}/courses`);
+      
+      // Fetch all course materials
+      const materialsData = await Promise.all(
+        courses.map(async (course) => {
+          try {
+            const courseDetails = await apiGet(`/api/students/${studentData.sid}/courses/${course.id || course.courseCode}`);
+            return courseDetails.materials || [];
+          } catch (err) {
+            console.warn(`Failed to fetch materials for course ${course.id}:`, err);
+            return [];
+          }
+        })
+      );
+      
+      // Flatten all materials
+      const allMaterials = materialsData.flat();
+      
+      setDashboardData({
+        overview,
+        courses,
+        materials: allMaterials,
+        attendance: overview.attendance || {}
+      });
+      
+      setLastUpdate(Date.now());
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error);
+      // Set fallback data
+      setDashboardData({
+        overview: {
+          student: studentData,
+          attendance: { overall: 75, totalClasses: 20, totalPresent: 15 },
+          academics: { overallPercentage: 80, totalExamsTaken: 3 }
+        },
+        courses: [],
+        materials: [],
+        attendance: {}
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [studentData?.sid]);
+
+  // Initial data fetch and periodic refresh
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Set up periodic refresh as backup
+    startPolling();
+    
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
+    };
+  }, [studentData?.sid, fetchDashboardData, startPolling]);
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -18,165 +171,95 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
     navigate('/home');
   };
 
-  // Load admin-added content from localStorage
-  const getAdminContent = () => {
-    const savedContent = localStorage.getItem('adminContent');
-    return savedContent ? JSON.parse(savedContent) : {
-      '1': { notes: [], videos: [], subjects: [], syllabus: [], previousQuestions: [] },
-      '2': { notes: [], videos: [], subjects: [], syllabus: [], previousQuestions: [] },
-      '3': { notes: [], videos: [], subjects: [], syllabus: [], previousQuestions: [] },
-      '4': { notes: [], videos: [], subjects: [], syllabus: [], previousQuestions: [] }
+  // Process materials for display
+  const getProcessedContent = () => {
+    const { materials } = dashboardData;
+    
+    // Group materials by type
+    const notes = materials.filter(m => m.type === 'notes' || m.type?.toLowerCase().includes('note')).map(m => ({
+      title: m.title || 'Untitled Note',
+      subject: m.subject || 'General',
+      semester: `Semester ${studentData?.year || '1'}`,
+      size: m.fileSize || '2.5 MB',
+      url: m.url,
+      id: m.id
+    }));
+
+    const videos = materials.filter(m => m.type === 'video' || m.type?.toLowerCase().includes('video')).map(m => ({
+      title: m.title || 'Untitled Video',
+      subject: m.subject || 'General',
+      duration: m.duration || '45 min',
+      views: m.views || '1K',
+      url: m.url,
+      id: m.id
+    }));
+
+    const previousQuestions = materials.filter(m => m.type === 'exam' || m.type?.toLowerCase().includes('question') || m.type?.toLowerCase().includes('exam')).map(m => ({
+      title: m.title || 'Previous Question',
+      subject: m.subject || 'General',
+      examYear: '2023',
+      type: 'Exam',
+      semester: `Semester ${studentData?.year || '1'}`,
+      url: m.url,
+      solutionUrl: m.solutionUrl,
+      id: m.id
+    }));
+
+    return {
+      notes,
+      videos,
+      previousQuestions,
+      subjects: getCurrentSubjects(),
+      semesters: [`Semester 1`, `Semester 2`]
     };
   };
 
-  // Load faculty-added content from localStorage
-  const getFacultyContent = (year, section) => {
-    const savedContent = localStorage.getItem('courseMaterials');
-    if (!savedContent) return { notes: [], videos: [], files: [], previousQuestions: [] };
+  const getCurrentSubjects = () => {
+    const { courses } = dashboardData;
+    if (courses && courses.length > 0) {
+      return courses.map(course => course.courseName || course.subject || course.courseCode || 'General Subject');
+    }
     
-    const courseMaterials = JSON.parse(savedContent);
-    return courseMaterials[year]?.[section] || { notes: [], videos: [], files: [], previousQuestions: [] };
-  };
-
-  // Year-wise content configuration
-  const getYearContent = (year, section) => {
-    const adminContent = getAdminContent();
-    const facultyContent = getFacultyContent(year, section);
-    
-    const yearContent = {
-      '1': {
-        yearName: '1st Year',
-        subjects: ['Mathematics-I', 'Physics', 'Chemistry', 'English', 'Programming in C', 'Engineering Drawing', ...adminContent['1'].subjects.map(s => s.subject)],
-        semesters: ['Semester 1', 'Semester 2'],
-        previousQuestions: [
-          { title: 'Mathematics-I Mid Term Exam', examYear: '2023', subject: 'Mathematics-I', type: 'Mid Term', semester: 'Semester 1', url: '#', solutionUrl: '#' },
-          { title: 'Physics Final Exam', examYear: '2023', subject: 'Physics', type: 'Final Exam', semester: 'Semester 1', url: '#' },
-          { title: 'Chemistry Mid Term Exam', examYear: '2022', subject: 'Chemistry', type: 'Mid Term', semester: 'Semester 2', url: '#', solutionUrl: '#' },
-          { title: 'Programming in C Final Exam', examYear: '2023', subject: 'Programming in C', type: 'Final Exam', semester: 'Semester 2', url: '#' },
-          { title: 'English Communication Test', examYear: '2022', subject: 'English', type: 'Unit Test', semester: 'Semester 1', url: '#' },
-          ...adminContent['1'].previousQuestions || [], ...facultyContent.previousQuestions
-        ],
-        notes: [
-          { title: 'Calculus and Differential Equations', subject: 'Mathematics-I', semester: 'Semester 1', size: '2.5 MB' },
-          { title: 'Mechanics and Thermodynamics', subject: 'Physics', semester: 'Semester 1', size: '3.2 MB' },
-          { title: 'Organic Chemistry Basics', subject: 'Chemistry', semester: 'Semester 2', size: '1.8 MB' },
-          { title: 'C Programming Fundamentals', subject: 'Programming in C', semester: 'Semester 2', size: '4.1 MB' },
-          { title: 'Technical English', subject: 'English', semester: 'Semester 1', size: '1.2 MB' },
-          ...adminContent['1'].notes, ...facultyContent.notes
-        ],
-        videos: [
-          { title: 'Introduction to Calculus', subject: 'Mathematics-I', duration: '45 min', views: '1.2K' },
-          { title: 'Physics Lab Experiments', subject: 'Physics', duration: '30 min', views: '856' },
-          { title: 'C Programming Tutorial Series', subject: 'Programming in C', duration: '60 min', views: '2.1K' },
-          { title: 'Chemistry Practical Demo', subject: 'Chemistry', duration: '25 min', views: '743' },
-          ...adminContent['1'].videos, ...facultyContent.videos
-        ]
-      },
-      '2': {
-        yearName: '2nd Year',
-        subjects: ['Mathematics-II', 'Data Structures', 'Digital Logic Design', 'Object Oriented Programming', 'Database Management', ...adminContent['2'].subjects.map(s => s.subject)],
-        semesters: ['Semester 3', 'Semester 4'],
-        previousQuestions: [
-          { title: 'Data Structures Final Exam', examYear: '2023', subject: 'Data Structures', type: 'Final Exam', semester: 'Semester 3', url: '#', solutionUrl: '#' },
-          { title: 'Digital Logic Design Mid Term', examYear: '2023', subject: 'Digital Logic Design', type: 'Mid Term', semester: 'Semester 3', url: '#' },
-          { title: 'OOP Final Exam', examYear: '2022', subject: 'Object Oriented Programming', type: 'Final Exam', semester: 'Semester 4', url: '#', solutionUrl: '#' },
-          { title: 'Database Management Quiz', examYear: '2023', subject: 'Database Management', type: 'Quiz', semester: 'Semester 4', url: '#' },
-          { title: 'Mathematics-II Internal Assessment', examYear: '2022', subject: 'Mathematics-II', type: 'Internal', semester: 'Semester 3', url: '#' },
-          ...adminContent['2'].previousQuestions || [], ...facultyContent.previousQuestions
-        ],
-        notes: [
-          { title: 'Advanced Mathematics', subject: 'Mathematics-II', semester: 'Semester 3', size: '3.1 MB' },
-          { title: 'Arrays and Linked Lists', subject: 'Data Structures', semester: 'Semester 3', size: '2.8 MB' },
-          { title: 'Boolean Algebra and Logic Gates', subject: 'Digital Logic Design', semester: 'Semester 3', size: '2.2 MB' },
-          { title: 'Java OOP Concepts', subject: 'Object Oriented Programming', semester: 'Semester 4', size: '3.5 MB' },
-          { title: 'SQL and Database Design', subject: 'Database Management', semester: 'Semester 4', size: '2.9 MB' },
-          ...adminContent['2'].notes, ...facultyContent.notes
-        ],
-        videos: [
-          { title: 'Data Structures Implementation', subject: 'Data Structures', duration: '50 min', views: '1.8K' },
-          { title: 'Digital Circuit Design', subject: 'Digital Logic Design', duration: '40 min', views: '1.1K' },
-          { title: 'Java Programming Masterclass', subject: 'Object Oriented Programming', duration: '75 min', views: '2.5K' },
-          { title: 'Database Design Principles', subject: 'Database Management', duration: '55 min', views: '1.4K' },
-          ...adminContent['2'].videos, ...facultyContent.videos
-        ]
-      },
-      '3': {
-        yearName: '3rd Year',
-        subjects: ['Computer Networks', 'Data Mining Techniques', 'Compiler Design', 'AI Web Technology', 'IPD', 'ADS', ...adminContent['3'].subjects.map(s => s.subject)],
-        semesters: ['Semester 5', 'Semester 6'],
-        previousQuestions: [
-          { title: 'Computer Networks Final Exam', examYear: '2023', subject: 'Computer Networks', type: 'Final Exam', semester: 'Semester 5', url: '#', solutionUrl: '#' },
-          { title: 'Data Mining Mid Term', examYear: '2023', subject: 'Data Mining Techniques', type: 'Mid Term', semester: 'Semester 5', url: '#' },
-          { title: 'Compiler Design Final Exam', examYear: '2022', subject: 'Compiler Design', type: 'Final Exam', semester: 'Semester 6', url: '#', solutionUrl: '#' },
-          { title: 'AI Web Technology Project Exam', examYear: '2023', subject: 'AI Web Technology', type: 'Project Exam', semester: 'Semester 6', url: '#' },
-          { title: 'IPD Internal Assessment', examYear: '2022', subject: 'IPD', type: 'Internal', semester: 'Semester 5', url: '#' },
-          { title: 'ADS Final Exam', examYear: '2023', subject: 'ADS', type: 'Final Exam', semester: 'Semester 6', url: '#', solutionUrl: '#' },
-          ...adminContent['3'].previousQuestions || [], ...facultyContent.previousQuestions
-        ],
-        notes: [
-          { title: 'Network Protocols and Architecture', subject: 'Computer Networks', semester: 'Semester 5', size: '4.2 MB' },
-          { title: 'Data Mining Algorithms and Techniques', subject: 'Data Mining Techniques', semester: 'Semester 5', size: '3.8 MB' },
-          { title: 'Lexical Analysis and Parsing', subject: 'Compiler Design', semester: 'Semester 6', size: '3.1 MB' },
-          { title: 'AI-Powered Web Applications', subject: 'AI Web Technology', semester: 'Semester 6', size: '5.2 MB' },
-          { title: 'Integrated Product Development', subject: 'IPD', semester: 'Semester 5', size: '2.7 MB' },
-          { title: 'Advanced Data Structures', subject: 'ADS', semester: 'Semester 6', size: '4.1 MB' },
-          ...adminContent['3'].notes, ...facultyContent.notes
-        ],
-        videos: [
-          { title: 'TCP/IP Protocol Deep Dive', subject: 'Computer Networks', duration: '65 min', views: '2.3K', url: 'https://youtu.be/UdxiqHt-DCg?si=IdSU_gmizhAC780-' },
-          { title: 'Data Mining with Python', subject: 'Data Mining Techniques', duration: '75 min', views: '1.9K', url: 'https://youtu.be/xEmrFePGjEg?si=QethB5XxqUNvhIUS' },
-          { title: 'Compiler Construction Fundamentals', subject: 'Compiler Design', duration: '80 min', views: '1.5K', url: 'https://youtu.be/4mAxMWz8p6g?si=JRaLHHSl-xNjIixB' },
-          { title: 'AI Integration in Web Development', subject: 'AI Web Technology', duration: '90 min', views: '3.2K', url: 'https://youtu.be/QpCsL7oEles?si=4EnjY6A4ekiNyMKw' },
-          { title: 'Web Technology Fundamentals', subject: 'Web Technology', duration: '85 min', views: '2.7K', url: 'https://youtu.be/JsbxB2l7QGY?si=0-EgJl0C_Ja1PqIU' },
-          { title: 'Product Development Lifecycle', subject: 'IPD', duration: '55 min', views: '1.6K' },
-          { title: 'Advanced Trees and Graphs', subject: 'ADS', duration: '70 min', views: '2.1K' },
-          ...adminContent['3'].videos, ...facultyContent.videos
-        ]
-      },
-      '4': {
-        yearName: '4th Year',
-        subjects: ['Machine Learning', 'Cloud Computing', 'Cyber Security', 'Project Management', 'Advanced Database Systems', ...adminContent['4'].subjects.map(s => s.subject)],
-        semesters: ['Semester 7', 'Semester 8'],
-        previousQuestions: [
-          { title: 'Machine Learning Final Exam', examYear: '2023', subject: 'Machine Learning', type: 'Final Exam', semester: 'Semester 7', url: '#', solutionUrl: '#' },
-          { title: 'Cloud Computing Mid Term', examYear: '2023', subject: 'Cloud Computing', type: 'Mid Term', semester: 'Semester 7', url: '#' },
-          { title: 'Cyber Security Final Exam', examYear: '2022', subject: 'Cyber Security', type: 'Final Exam', semester: 'Semester 8', url: '#', solutionUrl: '#' },
-          { title: 'Project Management Case Study', examYear: '2023', subject: 'Project Management', type: 'Case Study', semester: 'Semester 8', url: '#' },
-          { title: 'Advanced Database Systems Final', examYear: '2022', subject: 'Advanced Database Systems', type: 'Final Exam', semester: 'Semester 7', url: '#', solutionUrl: '#' },
-          ...adminContent['4'].previousQuestions || [], ...facultyContent.previousQuestions
-        ],
-        notes: [
-          { title: 'ML Algorithms and Applications', subject: 'Machine Learning', semester: 'Semester 7', size: '6.1 MB' },
-          { title: 'AWS Cloud Architecture', subject: 'Cloud Computing', semester: 'Semester 7', size: '4.8 MB' },
-          { title: 'Network Security Protocols', subject: 'Cyber Security', semester: 'Semester 8', size: '3.9 MB' },
-          { title: 'Agile Project Management', subject: 'Project Management', semester: 'Semester 8', size: '2.4 MB' },
-          { title: 'NoSQL and Big Data', subject: 'Advanced Database Systems', semester: 'Semester 7', size: '5.3 MB' },
-          ...adminContent['4'].notes, ...facultyContent.notes
-        ],
-        videos: [
-          { title: 'Deep Learning Fundamentals', subject: 'Machine Learning', duration: '95 min', views: '4.1K' },
-          { title: 'Docker and Kubernetes', subject: 'Cloud Computing', duration: '85 min', views: '3.5K' },
-          { title: 'Ethical Hacking Basics', subject: 'Cyber Security', duration: '70 min', views: '2.8K' },
-          { title: 'Scrum and Kanban Methods', subject: 'Project Management', duration: '60 min', views: '2.2K' },
-          { title: 'MongoDB and Cassandra', subject: 'Advanced Database Systems', duration: '75 min', views: '1.9K' },
-          ...adminContent['4'].videos, ...facultyContent.videos
-        ]
-      }
+    // Fallback subjects based on year
+    const yearSubjects = {
+      '1': ['Mathematics-I', 'Physics', 'Chemistry', 'English', 'Programming in C'],
+      '2': ['Mathematics-II', 'Data Structures', 'Digital Logic Design', 'Object Oriented Programming'],
+      '3': ['Computer Networks', 'Data Mining Techniques', 'Compiler Design', 'AI Web Technology'],
+      '4': ['Machine Learning', 'Cloud Computing', 'Cyber Security', 'Project Management']
     };
-    return yearContent[year] || yearContent['1'];
+    
+    return yearSubjects[studentData?.year] || yearSubjects['1'];
   };
 
-  const currentYearContent = getYearContent(studentData?.year, studentData?.section);
+  // Get current year content
+  const getCurrentYearContent = () => {
+    const processedContent = getProcessedContent();
+    const yearName = {
+      '1': '1st Year',
+      '2': '2nd Year', 
+      '3': '3rd Year',
+      '4': '4th Year'
+    }[studentData?.year] || '1st Year';
+
+    return {
+      yearName,
+      subjects: processedContent.subjects,
+      semesters: processedContent.semesters,
+      notes: processedContent.notes,
+      videos: processedContent.videos,
+      previousQuestions: processedContent.previousQuestions
+    };
+  };
+
+  const currentYearContent = getCurrentYearContent();
 
   const renderContent = () => {
-    const adminContent = getAdminContent(); // Add this line to fix the error
-    
     switch (activeTab) {
       case 'notes':
         return (
           <div className="content-grid">
             {currentYearContent.notes.map((note, index) => (
-              <div key={index} className="content-card">
+              <div key={note.id || index} className="content-card">
                 <div className="card-header">
                   <h3>{note.title}</h3>
                   <span className="semester-tag">{note.semester}</span>
@@ -185,7 +268,13 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
                 <div className="note-info">
                   <span className="file-size">📄 {note.size}</span>
                 </div>
-                <button className="download-btn" onClick={() => alert(`Downloading: ${note.title}`)}>
+                <button className="download-btn" onClick={() => {
+                  if (note.url && note.url !== '#') {
+                    window.open(note.url, '_blank');
+                  } else {
+                    alert(`Downloading: ${note.title}`);
+                  }
+                }}>
                   📥 Download PDF
                 </button>
               </div>
@@ -225,7 +314,7 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
                 
                 <div className="playlist-videos">
                   {videos.map((video, index) => (
-                    <div key={index} className="playlist-video-item">
+                    <div key={video.id || index} className="playlist-video-item">
                       <div className="video-index">{index + 1}</div>
                       <div className="video-thumbnail-small">
                         <div className="play-icon-small">▶</div>
@@ -240,7 +329,7 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
                       <button 
                         className="play-video-btn"
                         onClick={() => {
-                          if (video.url) {
+                          if (video.url && video.url !== '#') {
                             window.open(video.url, '_blank');
                           } else {
                             alert(`Playing: ${video.title}`);
@@ -257,7 +346,7 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
                   <button 
                     className="play-all-btn"
                     onClick={() => {
-                      const firstVideoWithUrl = videos.find(v => v.url);
+                      const firstVideoWithUrl = videos.find(v => v.url && v.url !== '#');
                       if (firstVideoWithUrl) {
                         window.open(firstVideoWithUrl.url, '_blank');
                       } else {
@@ -360,27 +449,21 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
         );
       
       case 'previousQuestions':
-        const currentYear = studentData?.year || '1';
-        const allQuestions = [
-          ...currentYearContent.previousQuestions,
-          ...(adminContent[currentYear]?.previousQuestions || []).map(q => ({
-            title: q.title,
-            examYear: q.examYear || 'N/A',
-            subject: q.subject,
-            type: q.examType || 'Exam',
-            semester: q.semester,
-            url: q.questionFileData || q.url || '#',
-            solutionUrl: q.solutionFileData || q.solutionUrl,
-            questionFileName: q.questionFileName,
-            solutionFileName: q.solutionFileName,
-            isFileUpload: !!(q.questionFileData || q.solutionFileData)
-          }))
-        ];
+        const allQuestions = currentYearContent.previousQuestions.map(q => ({
+          title: q.title,
+          examYear: q.examYear || '2023',
+          subject: q.subject,
+          type: q.type || 'Exam',
+          semester: q.semester,
+          url: q.url || '#',
+          solutionUrl: q.solutionUrl,
+          id: q.id
+        }));
 
         return (
           <div className="previous-questions-grid">
             {allQuestions.map((question, index) => (
-              <div key={index} className="previous-question-card">
+              <div key={question.id || index} className="previous-question-card">
                 <div className="question-icon">📝</div>
                 <h3>{question.title}</h3>
                 <div className="question-stats">
@@ -393,17 +476,7 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
                     className="view-question-btn"
                     onClick={() => {
                       if (question.url && question.url !== '#') {
-                        if (question.isFileUpload && question.url.startsWith('data:')) {
-                          // Create a downloadable link for base64 file
-                          const link = document.createElement('a');
-                          link.href = question.url;
-                          link.download = question.questionFileName || `${question.title}_question.pdf`;
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                        } else {
-                          window.open(question.url, '_blank');
-                        }
+                        window.open(question.url, '_blank');
                       } else {
                         alert(`Question paper for "${question.title}" is not available yet. Please contact your administrator.`);
                       }
@@ -411,25 +484,11 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
                   >
                     📄 View Question Paper
                   </button>
-                  {question.solutionUrl && (
+                  {question.solutionUrl && question.solutionUrl !== '#' && (
                     <button 
                       className="view-solution-btn"
                       onClick={() => {
-                        if (question.solutionUrl && question.solutionUrl !== '#') {
-                          if (question.isFileUpload && question.solutionUrl.startsWith('data:')) {
-                            // Create a downloadable link for base64 file
-                            const link = document.createElement('a');
-                            link.href = question.solutionUrl;
-                            link.download = question.solutionFileName || `${question.title}_solution.pdf`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          } else {
-                            window.open(question.solutionUrl, '_blank');
-                          }
-                        } else {
-                          alert(`Solution for "${question.title}" is not available yet.`);
-                        }
+                        window.open(question.solutionUrl, '_blank');
                       }}
                     >
                       📝 View Solution
@@ -473,7 +532,17 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
     return (
       <div className="dashboard-container">
         <div className="loading-state">
-          <p>Loading dashboard...</p>
+          <p>Loading student data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="dashboard-container">
+        <div className="loading-state">
+          <p>Loading dashboard data...</p>
         </div>
       </div>
     );
@@ -506,6 +575,53 @@ const Dashboard = ({ studentData, setIsAuthenticated, setStudentData }) => {
           </button>
         </div>
       </header>
+
+      {/* Dashboard Overview Cards */}
+      <div className="dashboard-overview">
+        <div className="overview-header">
+          <h2>📊 Your Academic Overview</h2>
+          <div className="live-indicator">
+            <span className={`live-dot ${loading ? 'loading' : 'live'}`}></span>
+            <span className="live-text">
+              {loading ? 'Loading...' : `Last updated: ${new Date(lastUpdate).toLocaleTimeString()}`}
+            </span>
+          </div>
+        </div>
+        <div className="overview-grid">
+          <div className="overview-card">
+            <div className="card-icon">📊</div>
+            <div className="card-content">
+              <h3>Attendance</h3>
+              <p className="card-value">{dashboardData.overview?.attendance?.overall || 0}%</p>
+              <span className="card-label">Overall Attendance</span>
+            </div>
+          </div>
+          <div className="overview-card">
+            <div className="card-icon">📚</div>
+            <div className="card-content">
+              <h3>Academics</h3>
+              <p className="card-value">{dashboardData.overview?.academics?.overallPercentage || 0}%</p>
+              <span className="card-label">Overall Score</span>
+            </div>
+          </div>
+          <div className="overview-card">
+            <div className="card-icon">📝</div>
+            <div className="card-content">
+              <h3>Materials</h3>
+              <p className="card-value">{dashboardData.materials?.length || 0}</p>
+              <span className="card-label">Available Resources</span>
+            </div>
+          </div>
+          <div className="overview-card">
+            <div className="card-icon">🎯</div>
+            <div className="card-content">
+              <h3>Activity</h3>
+              <p className="card-value">{dashboardData.overview?.activity?.streak || 0}</p>
+              <span className="card-label">Day Streak</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Navigation Tabs */}
       <nav className="dashboard-nav">

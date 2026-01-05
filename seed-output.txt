@@ -1,0 +1,18 @@
+≡ƒÅá Detected local MongoDB connection (auto-correcting localhost to 127.0.0.1)
+≡ƒöî Will attempt to connect to MongoDB: mongodb://localhost:27017/friendly_notebook (up to 5 attempts)
+ΓÅ│ Retrying in 2000ms...
+Γ¥î MongoDB Connection Error (attempt 1): connect ECONNREFUSED ::1:27017
+≡ƒÆí Local MongoDB likely not running. Start MongoDB or set MONGO_URI to a reachable server.
+Γ¥î MongoDB Connection Error (attempt 2): connect ECONNREFUSED ::1:27017
+≡ƒÆí Local MongoDB likely not running. Start MongoDB or set MONGO_URI to a reachable server.
+ΓÅ│ Retrying in 4000ms...
+Γ¥î MongoDB Connection Error (attempt 3): connect ECONNREFUSED ::1:27017
+≡ƒÆí Local MongoDB likely not running. Start MongoDB or set MONGO_URI to a reachable server.
+ΓÅ│ Retrying in 6000ms...
+Γ¥î MongoDB Connection Error (attempt 4): connect ECONNREFUSED ::1:27017
+ΓÅ│ Retrying in 8000ms...
+≡ƒÆí Local MongoDB likely not running. Start MongoDB or set MONGO_URI to a reachable server.
+Γ¥î MongoDB Connection Error (attempt 5): connect ECONNREFUSED ::1:27017
+≡ƒÆí Local MongoDB likely not running. Start MongoDB or set MONGO_URI to a reachable server.
+Γ¥î All MongoDB connection attempts failed.
+MongoDB connection failed. Aborting seed.

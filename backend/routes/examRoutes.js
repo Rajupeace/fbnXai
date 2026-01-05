@@ -149,6 +149,8 @@ router.get('/results/student/:studentId', protect, async (req, res) => {
 
 // --- ADMIN ENDPOINTS ---
 
+const dbFile = require('../dbHelper');
+
 // Get Analytics (All results)
 router.get('/analytics', protect, admin, async (req, res) => {
     try {
@@ -158,7 +160,16 @@ router.get('/analytics', protect, admin, async (req, res) => {
             .sort({ submittedAt: -1 });
         res.json(results);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('MongoDB Analytics fetch failed, trying file DB:', err.message);
+        try {
+            // Fallback to file db
+            // In a real app we'd need to manually "populate" by reading student/exam files
+            // For now, we return the raw results or a simplified version
+            const results = dbFile('examResults').read() || [];
+            res.json(results);
+        } catch (fileErr) {
+            res.status(500).json({ message: err.message });
+        }
     }
 });
 

@@ -20,11 +20,97 @@ const materialController = require('./controllers/materialController');
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Global request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} | originalUrl=${req.originalUrl} baseUrl=${req.baseUrl} path=${req.path}`);
+  next();
+});
+
+app.get('/api/test', async (req, res) => {
+  console.log('Test endpoint called');
+  res.send('test');
+});
+
+app.get('/api/faculty/teaching', async (req, res) => {
+  try {
+    const { year, section, branch } = req.query;
+    if (!year || !section || !branch) {
+      return res.status(400).json({ error: 'Missing required query parameters: year, section, branch' });
+    }
+
+    // Require MongoDB as single source-of-truth for teaching assignments
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Teaching data unavailable.' });
+    }
+
+    try {
+      const mongoFaculty = await Faculty.find({
+        assignments: {
+          $elemMatch: {
+            year: year,
+            section: section,
+            branch: branch
+          }
+        }
+      }).select('-password -facultyToken').lean();
+
+      const filteredFaculty = mongoFaculty.map(f => ({
+        ...f,
+        id: f.facultyId || f._id?.toString(),
+        _id: f._id?.toString(),
+        source: 'mongodb'
+      }));
+
+      return res.json(filteredFaculty);
+    } catch (err) {
+      console.error('Mongo Faculty Teaching Fetch Error:', err);
+      return res.status(500).json({ error: 'Failed to fetch teaching faculty' });
+    }
+  } catch (err) {
+    console.error('Error fetching teaching faculty:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Simple Server-Sent Events (SSE) broadcaster for live frontend updates
+const sseClients = [];
+
+function broadcastEvent(payload) {
+  const str = JSON.stringify(payload);
+  sseClients.forEach((res) => {
+    try {
+      res.write(`data: ${str}\n\n`);
+    } catch (e) {
+      // ignore broken pipes
+    }
+  });
+}
+
+// Expose broadcaster to other modules/routes
+global.broadcastEvent = broadcastEvent;
+
+app.get('/api/stream', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive'
+  });
+  res.flushHeaders && res.flushHeaders();
+  // Send initial ping
+  res.write('retry: 2000\n\n');
+  sseClients.push(res);
+  req.on('close', () => {
+    const idx = sseClients.indexOf(res);
+    if (idx !== -1) sseClients.splice(idx, 1);
+  });
+});
 // Serve uploads statically
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check route - Early registration
 app.get('/api/health', (req, res) => {
+  console.log('Health endpoint called');
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
@@ -79,6 +165,8 @@ app.post('/api/todos', (req, res) => {
   };
   all.push(item);
   todosDB.write(all);
+  // Notify clients
+  try { broadcastEvent({ resource: 'todos', action: 'create', data: item }); } catch (e) { }
   res.status(201).json(item);
 });
 
@@ -89,6 +177,7 @@ app.put('/api/todos/:id', (req, res) => {
   if (idx !== -1) {
     all[idx] = { ...all[idx], ...req.body };
     todosDB.write(all);
+    try { broadcastEvent({ resource: 'todos', action: 'update', data: all[idx] }); } catch (e) { }
     res.json(all[idx]);
   } else {
     res.status(404).json({ error: 'not found' });
@@ -100,6 +189,7 @@ app.delete('/api/todos/:id', (req, res) => {
   const all = todosDB.read();
   const next = all.filter(t => t.id !== id);
   todosDB.write(next);
+  try { broadcastEvent({ resource: 'todos', action: 'delete', data: { id } }); } catch (e) { }
   res.json({ ok: true });
 });
 
@@ -116,6 +206,54 @@ app.use('/api/students', studentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/chat', chatRoutes);
+app.get('/api/labs/schedule', async (req, res) => {
+  try {
+    const { year, section, branch } = req.query;
+    let schedules = [];
+
+    // 1. Try MongoDB
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const Schedule = require('./models/Schedule');
+        schedules = await Schedule.find({
+          year,
+          section,
+          branch,
+          type: { $regex: /lab|practical/i }
+        }).sort({ day: 1, time: 1 });
+      } catch (e) { }
+    }
+
+    // 2. Fallback to File
+    if (schedules.length === 0) {
+      const all = require('./dbHelper')('schedule').read() || [];
+      schedules = all.filter(s =>
+        s.year === year &&
+        s.section === section &&
+        s.branch === branch &&
+        /lab|practical/i.test(s.type || '')
+      );
+    }
+
+    // Transform to frontend format if needed (though frontend seems to match DB schema closely)
+    // Mapping DB fields to Frontend fields if they differ
+    const mapped = schedules.map(s => ({
+      labName: s.subject,
+      day: s.day,
+      time: s.time,
+      faculty: s.faculty,
+      room: s.room,
+      batch: s.batch || 'Batch A',
+      tools: s.tools || [],
+      description: s.description || 'Lab Session'
+    }));
+
+    res.json(mapped);
+  } catch (err) {
+    console.error('Lab schedule fetch error:', err);
+    res.json([]);
+  }
+});
 app.use('/api/exams', examRoutes);
 
 // Multer setup for file uploads (MongoDB) - Organized by role
@@ -413,6 +551,7 @@ const handleFileBasedUpload = async (req, res) => {
 
     all.push(item);
     materialsDB.write(all);
+    try { broadcastEvent({ resource: 'materials', action: 'create', data: item }); } catch (e) { }
     res.status(201).json(item);
   } catch (err) {
     console.error('File-based upload error:', err);
@@ -692,11 +831,25 @@ function requireAdmin(req, res, next) {
       req.user = { id: admin.adminId, _id: admin.adminId, role: 'admin', name: 'Administrator' };
       return next();
     }
-    console.warn(`[Auth] Invalid admin token attempted`);
+
+    // If token doesn't strictly match stored token, try verifying JWT payload
+    try {
+      const secret = process.env.JWT_SECRET || 'your_jwt_secret';
+      const decoded = jwt.verify(token, secret);
+      // Accept token if decoded id matches stored adminId (covers tokens issued before a file reset)
+      if (decoded && (decoded.id === admin.adminId || decoded.id === admin.id)) {
+        req.user = { id: admin.adminId, _id: admin.adminId, role: 'admin', name: 'Administrator' };
+        return next();
+      }
+    } catch (e) {
+      // Verification failed or token invalid/expired — fall through to deny
+    }
+
+    console.warn(`[Auth] Invalid admin token attempted (file)`);
     return res.status(401).json({ error: 'Session expired', message: 'Please log out and log in again' });
   };
 
-  // 1. Check MongoDB if connected
+  // Prefer MongoDB, but fall back to file-based admin token if MongoDB unavailable
   if (mongoose.connection.readyState === 1 && Admin) {
     Admin.findOne({ adminToken: token })
       .then(adminDoc => {
@@ -704,13 +857,16 @@ function requireAdmin(req, res, next) {
           req.user = { id: adminDoc.adminId, _id: adminDoc._id, role: 'admin', name: adminDoc.name };
           return next();
         }
+        // If not found in Mongo, try file fallback
         return checkFileDB();
       })
       .catch(err => {
         console.error('Admin DB findOne error:', err);
+        // On DB error, try file fallback
         return checkFileDB();
       });
   } else {
+    // MongoDB not connected: allow file-based admin auth
     return checkFileDB();
   }
 }
@@ -721,44 +877,29 @@ function requireFaculty(req, res, next) {
 
   if (!token) return res.status(401).json({ error: 'faculty token required' });
 
-  const checkFileDB = () => {
-    const faculty = facultyDB.read() || [];
-    const facultyMember = faculty.find(f => f.facultyToken === token);
-    if (facultyMember) {
-      req.facultyData = facultyMember;
-      req.user = {
-        id: facultyMember.facultyId,
-        _id: facultyMember._id || facultyMember.id, // Support both if present
-        role: 'faculty',
-        name: facultyMember.name
-      };
-      return next();
-    }
-    return res.status(401).json({ error: 'invalid faculty token' });
-  };
-
-  if (mongoose.connection.readyState === 1 && Faculty) {
-    Faculty.findOne({ facultyToken: token })
-      .then(facultyDoc => {
-        if (facultyDoc) {
-          req.facultyData = facultyDoc;
-          req.user = {
-            id: facultyDoc.facultyId,
-            _id: facultyDoc._id,
-            role: 'faculty',
-            name: facultyDoc.name
-          };
-          return next();
-        }
-        return checkFileDB();
-      })
-      .catch(err => {
-        console.error('Faculty DB findOne error:', err);
-        return checkFileDB();
-      });
-  } else {
-    return checkFileDB();
+  if (mongoose.connection.readyState !== 1 || !Faculty) {
+    console.warn('[Auth] MongoDB not connected - faculty auth unavailable');
+    return res.status(503).json({ error: 'MongoDB not connected. Faculty auth unavailable.' });
   }
+
+  Faculty.findOne({ facultyToken: token })
+    .then(facultyDoc => {
+      if (facultyDoc) {
+        req.facultyData = facultyDoc;
+        req.user = {
+          id: facultyDoc.facultyId,
+          _id: facultyDoc._id,
+          role: 'faculty',
+          name: facultyDoc.name
+        };
+        return next();
+      }
+      return res.status(401).json({ error: 'invalid faculty token' });
+    })
+    .catch(err => {
+      console.error('Faculty DB findOne error:', err);
+      return res.status(500).json({ error: 'Faculty auth error' });
+    });
 }
 
 function requireStudent(req, res, next) {
@@ -776,25 +917,25 @@ function requireStudent(req, res, next) {
     }
     return res.status(401).json({ error: 'invalid student token' });
   };
-
-  if (mongoose.connection.readyState === 1 && Student) {
-    Student.findOne({ studentToken: token })
-      .then(studentDoc => {
-        if (studentDoc) {
-          req.user = studentDoc.toObject();
-          req.user.id = studentDoc.sid;
-          req.user.role = 'student';
-          return next();
-        }
-        return checkFileDB();
-      })
-      .catch(err => {
-        console.error('Student DB findOne error:', err);
-        return checkFileDB();
-      });
-  } else {
-    return checkFileDB();
+  if (mongoose.connection.readyState !== 1 || !Student) {
+    console.warn('[Auth] MongoDB not connected - student auth unavailable');
+    return res.status(503).json({ error: 'MongoDB not connected. Student auth unavailable.' });
   }
+
+  Student.findOne({ studentToken: token })
+    .then(studentDoc => {
+      if (studentDoc) {
+        req.user = studentDoc.toObject();
+        req.user.id = studentDoc.sid;
+        req.user.role = 'student';
+        return next();
+      }
+      return res.status(401).json({ error: 'invalid student token' });
+    })
+    .catch(err => {
+      console.error('Student DB findOne error:', err);
+      return res.status(500).json({ error: 'Student auth error' });
+    });
 }
 
 // Helper: derive user from headers for file-based fallback (admin or faculty)
@@ -805,61 +946,37 @@ async function authFromHeaders(req) {
 
     const adminToken = req.headers['x-admin-token'] || bearer;
     if (adminToken) {
-      // 1. Check MongoDB
-      if (mongoose.connection.readyState === 1) {
+      if (mongoose.connection.readyState === 1 && Admin) {
         try {
-          const Admin = require('./models/Admin');
-          const adminDoc = await Admin.findOne({ adminToken });
-          if (adminDoc) {
-            return { id: adminDoc.adminId, _id: adminDoc._id, role: 'admin', name: adminDoc.name };
-          }
+          const AdminModel = require('./models/Admin');
+          const adminDoc = await AdminModel.findOne({ adminToken });
+          if (adminDoc) return { id: adminDoc.adminId, _id: adminDoc._id, role: 'admin', name: adminDoc.name };
         } catch (e) { console.error('Admin MongoDB auth error:', e); }
       }
-      // 2. Check File
-      const admin = adminDB.read() || {};
-      if (admin.adminToken && admin.adminToken === adminToken) {
-        return { id: admin.adminId, _id: admin.adminId, role: 'admin', name: 'Administrator' };
-      }
+      return null;
     }
 
     const facultyToken = req.headers['x-faculty-token'] || bearer;
     if (facultyToken) {
-      // 1. Check MongoDB
-      if (mongoose.connection.readyState === 1) {
+      if (mongoose.connection.readyState === 1 && Faculty) {
         try {
-          const Faculty = require('./models/Faculty');
-          const facultyDoc = await Faculty.findOne({ facultyToken });
-          if (facultyDoc) {
-            return {
-              id: facultyDoc.facultyId,
-              _id: facultyDoc._id,
-              role: 'faculty',
-              name: facultyDoc.name
-            };
-          }
+          const FacultyModel = require('./models/Faculty');
+          const facultyDoc = await FacultyModel.findOne({ facultyToken });
+          if (facultyDoc) return { id: facultyDoc.facultyId, _id: facultyDoc._id, role: 'faculty', name: facultyDoc.name };
         } catch (e) { console.error('Faculty MongoDB auth error:', e); }
       }
-      // 2. Check File
-      const faculties = facultyDB.read() || [];
-      const f = faculties.find(x => x.facultyToken === facultyToken);
-      if (f) return { id: f.facultyId, _id: f._id || f.id, role: 'faculty', name: f.name };
+      return null;
     }
 
     const studentToken = req.headers['x-student-token'] || bearer;
     if (studentToken) {
-      // 1. Check MongoDB
       if (mongoose.connection.readyState === 1 && Student) {
         try {
           const studentDoc = await Student.findOne({ studentToken });
-          if (studentDoc) {
-            return { id: studentDoc.sid, _id: studentDoc._id, role: 'student', name: studentDoc.studentName };
-          }
+          if (studentDoc) return { id: studentDoc.sid, _id: studentDoc._id, role: 'student', name: studentDoc.studentName };
         } catch (e) { console.error('Student MongoDB auth error:', e); }
       }
-      // 2. Check File
-      const students = studentsDB.read() || [];
-      const s = students.find(x => x.studentToken === studentToken);
-      if (s) return { id: s.sid, _id: s._id || s.id, role: 'student', name: s.studentName };
+      return null;
     }
   } catch (e) {
     console.error('authFromHeaders error', e);
@@ -948,26 +1065,38 @@ app.use('/api/students', studentRoutes);
 app.post('/api/students', async (req, res) => {
   const { studentName, sid, email, year, section, branch, password } = req.body;
   if (!sid || !studentName) return res.status(400).json({ error: 'missing required fields' });
+  // Require MongoDB as single source-of-truth
+  if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB not connected. Cannot create student.' });
 
-  // MongoDB Support
-  if (mongoose.connection.readyState === 1) {
-    try {
-      const existing = await Student.findOne({ sid });
-      if (existing) return res.status(409).json({ error: 'sid exists' });
-      const newStudent = await Student.create({ studentName, sid, email, year, section, branch, password });
-      return res.status(201).json(newStudent);
-    } catch (err) {
-      console.error('Mongo Student Create Error:', err);
-      return res.status(500).json({ error: 'Database error' });
+  try {
+    // Provide sensible defaults for optional fields to avoid schema validation errors
+    const safeEmail = email || `${sid}@example.com`;
+    const safeBranch = branch || 'CSE';
+    const safeYear = year !== undefined && year !== null ? String(year) : '1';
+    const safeSection = section || 'A';
+    const safePassword = password || sid || 'changeme';
+
+    const existing = await Student.findOne({ $or: [{ sid }, { email: safeEmail }] });
+    if (existing) {
+      if (existing.sid === sid) return res.status(409).json({ error: 'sid exists' });
+      if (existing.email === safeEmail) return res.status(409).json({ error: 'Email already exists' });
     }
+    const newStudent = await Student.create({
+      studentName,
+      sid,
+      email: safeEmail,
+      year: safeYear,
+      section: safeSection,
+      branch: safeBranch,
+      password: safePassword
+    });
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'students', action: 'create', data: newStudent }); } catch (e) { }
+    return res.status(201).json(newStudent);
+  } catch (err) {
+    console.error('Mongo Student Create Error:', err);
+    // Return basic details to help debugging in dev (avoid leaking stack in production)
+    return res.status(500).json({ error: 'Database error', details: err.message });
   }
-
-  const arr = studentsDB.read();
-  if (arr.find(s => s.sid === sid)) return res.status(409).json({ error: 'sid exists' });
-  const item = { studentName, sid, email, year, section, branch, password };
-  arr.push(item);
-  studentsDB.write(arr);
-  res.status(201).json(item);
 });
 app.put('/api/students/:id', requireAdmin, async (req, res) => {
   try {
@@ -983,6 +1112,7 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
       }
 
       if (updatedStudent) {
+        try { broadcastEvent({ resource: 'students', action: 'update', data: updatedStudent }); } catch (e) { }
         return res.json({ success: true, message: 'Student updated successfully', data: updatedStudent });
       }
       // If not found in Mongo, fall through to file DB check (hybrid mode)
@@ -1015,7 +1145,7 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
 
     // Save to database
     studentsDB.write(students);
-
+    try { broadcastEvent({ resource: 'students', action: 'update', data: updatedStudent }); } catch (e) { }
     res.json({
       success: true,
       message: 'Student updated successfully',
@@ -1032,25 +1162,25 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
 });
 app.delete('/api/students/:sid', requireAdmin, async (req, res) => {
   const sid = req.params.sid;
-
-  // MongoDB Support
-  if (mongoose.connection.readyState === 1) {
-    try {
-      await Student.findOneAndDelete({ sid });
-    } catch (err) {
-      console.error('Mongo Student Delete Error:', err);
-    }
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({ error: 'MongoDB not connected. Cannot delete student.' });
   }
 
-  const arr = studentsDB.read();
-  const next = arr.filter(s => s.sid !== sid);
-  studentsDB.write(next);
+  try {
+    await Student.findOneAndDelete({ sid });
 
-  // Clean up student-faculty relationships
-  const relationships = studentFacultyDB.read().filter(r => r.studentId !== sid);
-  studentFacultyDB.write(relationships);
+    // Clean up student-faculty relationships stored in MongoDB collection 'studentFaculty'
+    try {
+      const coll = mongoose.connection.collection('studentFaculty');
+      await coll.deleteMany({ studentId: sid });
+    } catch (e) { /* ignore cleanup errors */ }
 
-  res.json({ ok: true });
+    try { broadcastEvent({ resource: 'students', action: 'delete', data: { sid } }); } catch (e) { }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('Mongo Student Delete Error:', err);
+    return res.status(500).json({ error: 'Failed to delete student' });
+  }
 });
 
 // Student Self-Service Routes (No Admin Token Required for these specific user actions)
@@ -1137,96 +1267,107 @@ app.post('/api/relationships', requireAdmin, (req, res) => {
   if (!studentId || !facultyId) {
     return res.status(400).json({ error: 'studentId and facultyId are required' });
   }
+  if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB not connected. Relationships unavailable.' });
 
-  const students = studentsDB.read();
-  const faculties = facultyDB.read();
+  (async () => {
+    try {
+      const student = await Student.findOne({ sid: studentId });
+      const faculty = await Faculty.findOne({ facultyId: facultyId });
+      if (!student) return res.status(404).json({ error: 'Student not found' });
+      if (!faculty) return res.status(404).json({ error: 'Faculty not found' });
 
-  // Verify student and faculty exist
-  const student = students.find(s => s.sid === studentId);
-  const faculty = faculties.find(f => f.facultyId === facultyId);
+      const coll = mongoose.connection.collection('studentFaculty');
+      const existing = await coll.findOne({ studentId, facultyId });
+      if (existing) return res.status(409).json({ error: 'Relationship already exists' });
 
-  if (!student) return res.status(404).json({ error: 'Student not found' });
-  if (!faculty) return res.status(404).json({ error: 'Faculty not found' });
-
-  const relationships = studentFacultyDB.read();
-  const existing = relationships.find(r =>
-    r.studentId === studentId && r.facultyId === facultyId
-  );
-
-  if (existing) {
-    return res.status(409).json({ error: 'Relationship already exists' });
-  }
-
-  const relationship = {
-    id: uuidv4(),
-    studentId,
-    facultyId,
-    createdAt: new Date().toISOString(),
-    createdBy: 'admin' // Could be adminId if available
-  };
-
-  relationships.push(relationship);
-  studentFacultyDB.write(relationships);
-
-  res.status(201).json(relationship);
+      const now = new Date().toISOString();
+      const result = await coll.insertOne({ studentId, facultyId, createdAt: now, createdBy: 'admin' });
+      const created = { id: result.insertedId.toString(), studentId, facultyId, createdAt: now };
+      return res.status(201).json(created);
+    } catch (err) {
+      console.error('Create relationship error:', err);
+      return res.status(500).json({ error: 'Failed to create relationship' });
+    }
+  })();
 });
 
 app.get('/api/students/:studentId/faculties', (req, res) => {
   const { studentId } = req.params;
-  const relationships = studentFacultyDB.read();
-  const faculties = facultyDB.read();
-
-  const studentFaculties = relationships
-    .filter(r => r.studentId === studentId)
-    .map(r => {
-      const faculty = faculties.find(f => f.facultyId === r.facultyId);
-      return faculty ? { ...faculty, relationshipId: r.id } : null;
-    })
-    .filter(Boolean);
-
-  res.json(studentFaculties);
+  if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB not connected. Relationships unavailable.' });
+  (async () => {
+    try {
+      const coll = mongoose.connection.collection('studentFaculty');
+      const rels = await coll.find({ studentId }).toArray();
+      const facultyIds = rels.map(r => r.facultyId);
+      const faculties = await Faculty.find({ facultyId: { $in: facultyIds } }).select('-password -facultyToken').lean();
+      const out = faculties.map(f => ({ ...f, relationshipId: rels.find(r => r.facultyId === f.facultyId)?._id?.toString() || null }));
+      res.json(out);
+    } catch (err) {
+      console.error('Get student faculties error:', err);
+      res.status(500).json({ error: 'Failed to retrieve faculties' });
+    }
+  })();
 });
 
 app.get('/api/faculty/:facultyId/students', (req, res) => {
   const { facultyId } = req.params;
-  const relationships = studentFacultyDB.read();
-  const students = studentsDB.read();
-
-  const facultyStudents = relationships
-    .filter(r => r.facultyId === facultyId)
-    .map(r => {
-      const student = students.find(s => s.sid === r.studentId);
-      return student ? { ...student, relationshipId: r.id } : null;
-    })
-    .filter(Boolean);
-
-  res.json(facultyStudents);
+  if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB not connected. Relationships unavailable.' });
+  (async () => {
+    try {
+      const coll = mongoose.connection.collection('studentFaculty');
+      const rels = await coll.find({ facultyId }).toArray();
+      const studentIds = rels.map(r => r.studentId);
+      const students = await Student.find({ sid: { $in: studentIds } }).select('-password').lean();
+      const out = students.map(s => ({ ...s, relationshipId: rels.find(r => r.studentId === (s.sid || s._id))?._id?.toString() || null }));
+      res.json(out);
+    } catch (err) {
+      console.error('Get faculty students error:', err);
+      res.status(500).json({ error: 'Failed to retrieve students' });
+    }
+  })();
 });
 
 app.delete('/api/relationships/:relationshipId', requireAdmin, (req, res) => {
   const { relationshipId } = req.params;
-  const relationships = studentFacultyDB.read();
-  const updated = relationships.filter(r => r.id !== relationshipId);
-
-  if (updated.length === relationships.length) {
-    return res.status(404).json({ error: 'Relationship not found' });
-  }
-
-  studentFacultyDB.write(updated);
-  res.json({ ok: true });
+  if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB not connected. Relationships unavailable.' });
+  (async () => {
+    try {
+      const coll = mongoose.connection.collection('studentFaculty');
+      const { ObjectId } = require('mongodb');
+      let q = { _id: relationshipId };
+      try { q = { _id: new ObjectId(relationshipId) }; } catch (e) { q = { _id: relationshipId }; }
+      const result = await coll.deleteOne(q);
+      if (result.deletedCount === 0) return res.status(404).json({ error: 'Relationship not found' });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('Delete relationship error:', err);
+      res.status(500).json({ error: 'Failed to delete relationship' });
+    }
+  })();
 });
 
 // faculty routes
 app.get('/api/faculty', requireAdmin, async (req, res) => {
   try {
-    if (mongoose.connection.readyState === 1) {
-      const faculty = await Faculty.find().select('-password -facultyToken');
-      return res.json(faculty);
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Faculty data unavailable.' });
     }
-    // Fallback to file-based
-    res.json(facultyDB.read());
+
+    try {
+      const mongoFaculty = await Faculty.find().select('-password -facultyToken').lean();
+      const allFaculty = mongoFaculty.map(f => ({
+        ...f,
+        id: f.facultyId || f._id?.toString(),
+        _id: f._id?.toString(),
+        source: 'mongodb'
+      }));
+      return res.json(allFaculty);
+    } catch (err) {
+      console.error('Error fetching faculty from MongoDB:', err);
+      return res.status(500).json({ error: 'Failed to fetch faculty' });
+    }
   } catch (err) {
-    console.error('Error fetching faculty:', err);
+    console.error('Error in /api/faculty:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -1238,53 +1379,34 @@ app.post('/api/faculty', requireAdmin, async (req, res) => {
     // Ensure assignments is an array
     const assignmentsArray = Array.isArray(assignments) ? assignments : [];
 
-    // 1. MongoDB Support
-    if (mongoose.connection.readyState === 1) {
-      try {
-        const existing = await Faculty.findOne({ facultyId });
-        if (existing) return res.status(409).json({ error: 'facultyId already exists' });
-
-        const newFaculty = await Faculty.create({
-          name,
-          facultyId,
-          email: email || '',
-          password,
-          assignments: assignmentsArray,
-          department: department || 'General',
-          designation: designation || 'Lecturer'
-        });
-
-        console.log('✅ Faculty created in MongoDB:', facultyId);
-        // Also write to file for hybrid safety
-        const arr = facultyDB.read();
-        arr.push({ ...newFaculty.toObject(), id: newFaculty._id });
-        facultyDB.write(arr);
-
-        return res.status(201).json(newFaculty);
-      } catch (err) {
-        console.error('Mongo Faculty Create Error:', err);
-      }
+    // Require MongoDB for faculty creation
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Cannot create faculty.' });
     }
 
-    // 2. Fallback: File-based
-    const arr = facultyDB.read();
-    if (arr.find(f => f.facultyId === facultyId)) return res.status(409).json({ error: 'facultyId already exists' });
+    try {
+      const existing = await Faculty.findOne({ facultyId });
+      if (existing) return res.status(409).json({ error: 'facultyId already exists' });
 
-    const item = {
-      id: uuidv4(),
-      name,
-      facultyId,
-      email: email || '',
-      password,
-      assignments: assignmentsArray,
-      department: department || 'General',
-      designation: designation || 'Lecturer',
-      createdAt: new Date().toISOString()
-    };
+      const newFaculty = await Faculty.create({
+        name,
+        facultyId,
+        email: email || '',
+        password,
+        assignments: assignmentsArray,
+        department: department || 'General',
+        designation: designation || 'Lecturer'
+      });
 
-    arr.push(item);
-    facultyDB.write(arr);
-    res.status(201).json(item);
+      console.log('✅ Faculty created in MongoDB:', facultyId);
+      // Notify SSE clients
+      try { broadcastEvent({ resource: 'faculty', action: 'create', data: { id: newFaculty._id.toString(), facultyId, name } }); } catch (e) { }
+
+      return res.status(201).json(newFaculty);
+    } catch (err) {
+      console.error('Mongo Faculty Create Error:', err);
+      return res.status(500).json({ error: 'Failed to create faculty' });
+    }
   } catch (err) {
     console.error('Faculty creation error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -1295,37 +1417,26 @@ app.put('/api/faculty/:fid', requireAdmin, async (req, res) => {
     const fid = req.params.fid;
     const updates = req.body;
 
-    // 1. MongoDB Support
-    if (mongoose.connection.readyState === 1) {
-      try {
-        let updatedFaculty = await Faculty.findOneAndUpdate({ facultyId: fid }, updates, { new: true });
-        if (!updatedFaculty) {
-          updatedFaculty = await Faculty.findByIdAndUpdate(fid, updates, { new: true });
-        }
-
-        if (updatedFaculty) {
-          console.log('✅ Faculty updated in MongoDB:', fid);
-          // Sync to file
-          const arr = facultyDB.read();
-          const idx = arr.findIndex(f => f.facultyId === fid || String(f._id) === String(fid) || String(f.id) === String(fid));
-          if (idx !== -1) {
-            arr[idx] = { ...arr[idx], ...updates };
-            facultyDB.write(arr);
-          }
-          return res.json(updatedFaculty);
-        }
-      } catch (err) {
-        console.error('Mongo Faculty Update Error:', err);
-      }
+    // Require MongoDB for updates
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Cannot update faculty.' });
     }
 
-    // 2. Fallback: File-based
-    const arr = facultyDB.read();
-    const idx = arr.findIndex(f => f.facultyId === fid || f.id === fid);
-    if (idx === -1) return res.status(404).json({ error: 'not found' });
-    arr[idx] = { ...arr[idx], ...updates };
-    facultyDB.write(arr);
-    res.json(arr[idx]);
+    try {
+      let updatedFaculty = await Faculty.findOneAndUpdate({ facultyId: fid }, updates, { new: true });
+      if (!updatedFaculty) {
+        updatedFaculty = await Faculty.findByIdAndUpdate(fid, updates, { new: true });
+      }
+
+      if (!updatedFaculty) return res.status(404).json({ error: 'faculty not found' });
+
+      console.log('✅ Faculty updated in MongoDB:', fid);
+      try { broadcastEvent({ resource: 'faculty', action: 'update', data: { id: updatedFaculty._id.toString(), facultyId: updatedFaculty.facultyId } }); } catch (e) { }
+      return res.json(updatedFaculty);
+    } catch (err) {
+      console.error('Mongo Faculty Update Error:', err);
+      return res.status(500).json({ error: 'Failed to update faculty' });
+    }
   } catch (err) {
     console.error('Faculty update error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -1336,52 +1447,37 @@ app.delete('/api/faculty/:fid', requireAdmin, async (req, res) => {
   try {
     const fid = req.params.fid;
 
-    // Try MongoDB first
-    if (mongoose.connection.readyState === 1) {
-      try {
-        const Faculty = require('./models/Faculty');
-        let faculty = await Faculty.findOne({ facultyId: fid });
-        if (!faculty) {
-          faculty = await Faculty.findById(fid);
-        }
-
-        if (faculty) {
-          await faculty.remove();
-          console.log('✅ Faculty deleted from MongoDB:', fid);
-
-          // Sync to file
-          const arr = facultyDB.read();
-          const idx = arr.findIndex(f => f.facultyId === fid || String(f._id) === String(fid));
-          if (idx !== -1) {
-            arr.splice(idx, 1);
-            facultyDB.write(arr);
-          }
-
-          return res.json({ message: 'Faculty removed' });
-        }
-      } catch (mongoErr) {
-        console.warn('[DELETE /api/faculty] MongoDB delete failed, trying file-based:', mongoErr.message);
-      }
+    // Require MongoDB for delete
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Cannot delete faculty.' });
     }
 
-    // Fallback: File-based
-    const arr = facultyDB.read();
-    const faculty = arr.find(f => f.facultyId === fid);
-    if (!faculty) return res.status(404).json({ error: 'faculty not found' });
+    try {
+      const FacultyModel = require('./models/Faculty');
+      let faculty = await FacultyModel.findOne({ facultyId: fid });
+      if (!faculty) faculty = await FacultyModel.findById(fid);
+      if (!faculty) return res.status(404).json({ error: 'faculty not found' });
 
-    // Remove faculty from data
-    facultyDB.write(arr.filter(f => f.facultyId !== fid));
+      await faculty.remove();
+      console.log('✅ Faculty deleted from MongoDB:', fid);
+      try { broadcastEvent({ resource: 'faculty', action: 'delete', data: { id: faculty._id.toString(), facultyId: fid } }); } catch (e) { }
 
-    // Clean up related data:
-    // 1. Remove faculty's materials
-    const materials = materialsDB.read();
-    materialsDB.write(materials.filter(m => m.uploaderId !== fid));
+      // Optionally clean up related collections (materials/messages) asynchronously
+      try {
+        const Material = require('./models/Material');
+        await Material.deleteMany({ uploaderId: fid }).catch(() => { });
+      } catch (e) { }
 
-    // 2. Remove faculty's messages
-    const messages = messagesDB.read();
-    messagesDB.write(messages.filter(m => m.facultyId !== fid));
+      try {
+        const MessageModel = require('./models/Message');
+        await MessageModel.deleteMany({ facultyId: fid }).catch(() => { });
+      } catch (e) { }
 
-    res.json({ ok: true });
+      return res.json({ message: 'Faculty removed' });
+    } catch (err) {
+      console.error('Faculty delete error:', err);
+      return res.status(500).json({ error: 'Failed to delete faculty' });
+    }
   } catch (err) {
     console.error('Faculty delete error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -1392,41 +1488,86 @@ app.get('/api/faculty-stats/:facultyId/students', async (req, res) => {
   try {
     const { facultyId } = req.params;
     let assignments = [];
-    if (mongoose.connection.readyState === 1 && Faculty) {
+
+    // 1. Try MongoDB
+    if (mongoose.connection.readyState === 1) {
       const faculty = await Faculty.findOne({ facultyId });
-      if (faculty) assignments = faculty.assignments || [];
-    } else {
-      const list = facultyDB.read() || [];
-      const f = list.find(x => x.facultyId === facultyId);
-      if (f) assignments = f.assignments || [];
+      if (faculty && faculty.assignments) assignments = faculty.assignments;
     }
+    // 2. Fallback to File
+    if (assignments.length === 0) {
+      const fList = facultyDB.read();
+      const f = fList.find(i => i.facultyId === facultyId);
+      if (f && f.assignments) assignments = f.assignments;
+    }
+
     if (assignments.length === 0) return res.json([]);
-    let matchingStudents = [];
-    if (mongoose.connection.readyState === 1 && Student) {
+
+    // Get Students (Mongo + File)
+    let allStudents = [];
+    if (mongoose.connection.readyState === 1) {
       const queries = assignments.map(a => ({ year: String(a.year), section: String(a.section).toUpperCase() }));
-      matchingStudents = await Student.find({ $or: queries }).select('-password');
-    } else {
-      const allStudents = studentsDB.read() || [];
-      matchingStudents = allStudents.filter(s => assignments.some(a => String(a.year) === String(s.year) && String(a.section).toUpperCase() === String(s.section).toUpperCase()));
+      // Use $or for Mongo
+      if (queries.length > 0) {
+        const mongoStudents = await Student.find({ $or: queries }).select('-password').lean();
+        allStudents = mongoStudents.map(s => ({ ...s, source: 'mongo' }));
+      }
     }
-    const uniqueStudents = Array.from(new Set(matchingStudents.map(s => s.sid || s._id))).map(id => matchingStudents.find(s => (s.sid || s._id) === id));
-    res.json(uniqueStudents);
-  } catch (err) { res.status(500).json({ error: 'Stats error' }); }
+
+    // Merge with File Students
+    const fileStudents = studentsDB.read();
+    const studentsFromFile = fileStudents.filter(s => {
+      return assignments.some(a => String(s.year) === String(a.year) && String(s.section).toUpperCase() === String(a.section).toUpperCase());
+    }).map(s => ({ ...s, source: 'file' }));
+
+    // Dedup by SID
+    const merged = [...allStudents, ...studentsFromFile];
+    const unique = [];
+    const seen = new Set();
+    merged.forEach(s => {
+      if (!seen.has(s.sid)) {
+        seen.add(s.sid);
+        unique.push(s);
+      }
+    });
+
+    res.json(unique);
+  } catch (err) { console.error('Faculty stats error:', err); res.status(500).json({ error: 'Stats error' }); }
 });
 
 app.get('/api/faculty-stats/:facultyId/materials-downloads', async (req, res) => {
   try {
     const { facultyId } = req.params;
-    let facultyMongoId = null;
-    if (mongoose.connection.readyState === 1 && Faculty) {
-      const f = await Faculty.findOne({ facultyId });
-      if (f) facultyMongoId = f._id;
-    }
+    let materials = [];
+
+    // 1. Try MongoDB
     if (mongoose.connection.readyState === 1 && Material) {
-      const query = facultyMongoId ? { uploadedBy: facultyMongoId } : { uploaderId: facultyId };
-      const mats = await Material.find(query);
-      return res.json(mats);
-    } else { res.json((materialsDB.read() || []).filter(m => String(m.uploaderId) === String(facultyId))); }
+      try {
+        const f = await Faculty.findOne({ facultyId });
+        // Search by Mongo Object ID or Custom facultyId
+        const query = f ? { $or: [{ uploadedBy: f._id }, { uploaderId: facultyId }] } : { uploaderId: facultyId };
+        const mongoMats = await Material.find(query).lean();
+        materials = mongoMats.map(m => ({ ...m, source: 'mongo' }));
+      } catch (e) { console.warn("Mongo stats fetch failed", e); }
+    }
+
+    // 2. File Fallback (Merge)
+    const fileMats = materialsDB.read() || [];
+    const myFileMats = fileMats.filter(m => String(m.uploaderId) === String(facultyId)).map(m => ({ ...m, source: 'file' }));
+
+    // Merge & Dedup
+    const merged = [...materials, ...myFileMats];
+    const unique = [];
+    const seen = new Set();
+    merged.forEach(m => {
+      const id = m.id || m._id;
+      if (!seen.has(String(id))) {
+        seen.add(String(id));
+        unique.push(m);
+      }
+    });
+
+    res.json(unique);
   } catch (err) { res.status(500).json({ error: 'Stats error' }); }
 });
 
@@ -1513,34 +1654,24 @@ app.post('/api/students/login', async (req, res) => {
         });
         if (student && student.password === password) {
           const token = jwt.sign({ id: student._id }, process.env.JWT_SECRET || 'your_jwt_secret');
+          // Update student tokens and lastLogin
+          student.studentToken = token;
+          student.tokenIssuedAt = new Date();
+          student.stats = student.stats || {};
+          student.stats.lastLogin = new Date();
+          await student.save();
 
           const studentWithRole = student.toObject();
           studentWithRole.role = 'student';
-          return res.json({
-            ok: true,
-            token,
-            studentData: studentWithRole
-          });
+
+          try { global.broadcastEvent && global.broadcastEvent({ resource: 'students', action: 'update', data: studentWithRole }); } catch (e) { }
+
+          return res.json({ ok: true, token, studentData: studentWithRole });
         }
       } catch (err) {
         console.error('Mongo Student Login Error:', err);
       }
     }
-
-    // 2. Fallback: File-based
-    const students = studentsDB.read() || [];
-    const student = students.find(s => (s.sid === identifier || s.email === identifier) && s.password === password);
-    if (student) {
-      const token = jwt.sign({ id: student.sid }, process.env.JWT_SECRET || 'your_jwt_secret');
-
-      const studentWithRole = { ...student, role: 'student' };
-      return res.json({
-        ok: true,
-        token,
-        studentData: studentWithRole
-      });
-    }
-
     return res.status(401).json({ error: 'invalid student credentials' });
   } catch (err) {
     console.error('Student login error:', err);
@@ -1556,17 +1687,46 @@ app.post('/api/students/register', async (req, res) => {
     // 1. MongoDB Support
     if (mongoose.connection.readyState === 1 && Student) {
       try {
-        const existing = await Student.findOne({ sid });
-        if (existing) return res.status(409).json({ error: 'Student ID already exists' });
+        const existing = await Student.findOne({ $or: [{ sid }, { email }] });
+        if (existing) {
+          if (existing.sid === sid) return res.status(409).json({ error: 'Student ID already exists' });
+          if (existing.email === email) return res.status(409).json({ error: 'Email address already exists' });
+        }
 
         const newStudent = await Student.create({
           studentName, sid, email, year, section, branch, password, avatar
         });
 
+        // No file sync: MongoDB is the source of truth
+
+        // AUTO-ANNOUNCEMENT: Notify Admin
+        try {
+          const notificationMsg = `New Student Joined: ${studentName} (${branch}-${year})`;
+          const msgItem = {
+            id: uuidv4(),
+            message: notificationMsg,
+            target: 'admin', // Internal target for admin
+            type: 'system-alert',
+            sender: 'SYSTEM',
+            createdAt: new Date().toISOString()
+          };
+          // Write Msg to File
+          const allMsgs = messagesDB.read() || [];
+          allMsgs.unshift(msgItem);
+          messagesDB.write(allMsgs);
+
+          // Write Msg to Mongo
+          try {
+            const Message = require('./models/Message');
+            await Message.create({ ...msgItem, createdAt: new Date() });
+          } catch (e) { }
+        } catch (e) { console.warn('Announcement trigger failed:', e); }
+
         const token = jwt.sign({ id: newStudent._id }, process.env.JWT_SECRET || 'your_jwt_secret');
 
         const studentWithRole = newStudent.toObject();
         studentWithRole.role = 'student';
+        try { broadcastEvent({ resource: 'students', action: 'create', data: studentWithRole }); } catch (e) { }
         return res.status(201).json({
           ok: true,
           token,
@@ -1595,6 +1755,7 @@ app.post('/api/students/register', async (req, res) => {
     };
     arr.push(item);
     studentsDB.write(arr);
+    try { broadcastEvent({ resource: 'students', action: 'create', data: item }); } catch (e) { }
 
     const token = jwt.sign({ id: item.sid }, process.env.JWT_SECRET || 'your_jwt_secret');
     const itemWithRole = { ...item, role: 'student' };
@@ -1638,23 +1799,7 @@ app.post('/api/faculty/login', async (req, res) => {
       }
     }
 
-    // 2. Fallback: File-based
-    const facultyList = facultyDB.read() || [];
-    const facultyMember = facultyList.find(f => f.facultyId === facultyId && f.password === password);
-    if (facultyMember) {
-      const token = jwt.sign({ id: facultyMember.facultyId }, process.env.JWT_SECRET || 'your_jwt_secret');
-      facultyMember.facultyToken = token;
-      facultyMember.tokenIssuedAt = new Date().toISOString();
-      facultyDB.write(facultyList);
-      console.log('📄 Faculty logged in (FileDB):', facultyId);
-
-      return res.json({
-        ok: true,
-        token,
-        facultyData: facultyMember
-      });
-    }
-
+    // If we reached here and MongoDB was connected but no faculty found, return invalid credentials
     return res.status(401).json({ error: 'invalid faculty credentials' });
   } catch (err) {
     console.error('Faculty login error:', err);
@@ -1665,16 +1810,8 @@ app.post('/api/faculty/login', async (req, res) => {
 app.post('/api/faculty/logout', requireFaculty, async (req, res) => {
   try {
     const token = req.headers['x-faculty-token'];
-    // 1. MongoDB Clear
-    if (mongoose.connection.readyState === 1 && Faculty) {
-      await Faculty.findOneAndUpdate({ facultyToken: token }, { facultyToken: null, tokenIssuedAt: null });
-    }
-    // 2. File-based Clear
-    const facultyList = facultyDB.read() || [];
-    const nextList = facultyList.map(f =>
-      f.facultyToken === token ? { ...f, facultyToken: null, tokenIssuedAt: null } : f
-    );
-    facultyDB.write(nextList);
+    if (mongoose.connection.readyState !== 1 || !Faculty) return res.status(503).json({ error: 'MongoDB not connected. Logout unavailable.' });
+    await Faculty.findOneAndUpdate({ facultyToken: token }, { facultyToken: null, tokenIssuedAt: null });
     res.json({ ok: true });
   } catch (err) {
     console.error('Logout error:', err);
@@ -2292,38 +2429,106 @@ app.delete('/api/courses/:id', requireAdmin, async (req, res) => {
 });
 
 // subjects routes (alias for courses)
-app.get('/api/subjects', (req, res) => {
+// subjects routes (alias for courses)
+app.get('/api/subjects', async (req, res) => {
   try {
+    if (mongoose.connection.readyState === 1) {
+      const courses = await Course.find().sort({ createdAt: -1 });
+      const mapped = courses.map(c => ({
+        id: c._id,
+        name: c.courseName,
+        code: c.courseCode,
+        year: c.year,
+        semester: c.semester,
+        branch: c.department,
+        sections: [],
+        description: c.description
+      }));
+      return res.json(mapped);
+    }
     res.json(coursesDB.read());
   } catch (err) {
     console.error('Error fetching subjects:', err);
     res.status(500).json({ error: 'Failed to fetch subjects' });
   }
 });
-app.post('/api/subjects', requireAdmin, (req, res) => {
-  const { name, code, year, semester, branch, sections, description } = req.body;
-  if (!name || !code || !year) return res.status(400).json({ error: 'missing required fields' });
-  const arr = coursesDB.read();
-  if (arr.find(s => s.code === code)) return res.status(409).json({ error: 'subject code exists' });
-  const item = { id: uuidv4(), name, code, year, semester, branch, sections: sections || [], description, createdAt: new Date().toISOString() };
-  arr.push(item);
-  coursesDB.write(arr);
-  res.status(201).json(item);
+
+app.post('/api/subjects', requireAdmin, async (req, res) => {
+  try {
+    const { name, code, year, semester, branch, sections, description } = req.body;
+    if (!name || !code || !year) return res.status(400).json({ error: 'missing required fields' });
+
+    // 1. Try MongoDB
+    if (mongoose.connection.readyState === 1) {
+      const existing = await Course.findOne({ courseCode: code });
+      if (existing) return res.status(409).json({ error: 'Subject code already exists' });
+
+      const newCourse = await Course.create({
+        courseName: name,
+        courseCode: code,
+        year: String(year),
+        semester: String(semester || '1'),
+        department: branch || 'Common',
+        description: description || ''
+      });
+      return res.status(201).json({ ...newCourse.toObject(), id: newCourse._id });
+    }
+
+    // 2. Fallback File
+    const arr = coursesDB.read();
+    if (arr.find(s => s.code === code)) return res.status(409).json({ error: 'subject code exists' });
+    const item = { id: uuidv4(), name, code, year, semester, branch, sections: sections || [], description, createdAt: new Date().toISOString() };
+    arr.push(item);
+    coursesDB.write(arr);
+    res.status(201).json(item);
+  } catch (e) {
+    console.error("Subject create error:", e);
+    res.status(500).json({ error: "Failed to save subject" });
+  }
 });
-app.put('/api/subjects/:id', requireAdmin, (req, res) => {
-  const id = req.params.id;
-  const arr = coursesDB.read();
-  const idx = arr.findIndex(s => s.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'subject not found' });
-  arr[idx] = { ...arr[idx], ...req.body };
-  coursesDB.write(arr);
-  res.json(arr[idx]);
+
+app.put('/api/subjects/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    // 1. Mongo
+    if (mongoose.connection.readyState === 1) {
+      const updated = await Course.findByIdAndUpdate(id, {
+        courseName: req.body.name,
+        courseCode: req.body.code,
+        year: req.body.year,
+        semester: req.body.semester,
+        department: req.body.branch,
+        description: req.body.description
+      }, { new: true });
+      if (updated) return res.json(updated);
+    }
+
+    // 2. File
+    const arr = coursesDB.read();
+    const idx = arr.findIndex(s => s.id === id);
+    if (idx === -1) return res.status(404).json({ error: 'subject not found' });
+    arr[idx] = { ...arr[idx], ...req.body };
+    coursesDB.write(arr);
+    res.json(arr[idx]);
+  } catch (e) {
+    res.status(500).json({ error: "Update failed" });
+  }
 });
-app.delete('/api/subjects/:id', requireAdmin, (req, res) => {
-  const id = req.params.id;
-  const arr = coursesDB.read();
-  coursesDB.write(arr.filter(s => s.id !== id));
-  res.json({ ok: true });
+
+app.delete('/api/subjects/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    // 1. Mongo
+    if (mongoose.connection.readyState === 1) {
+      await Course.findByIdAndDelete(id);
+    }
+    // 2. File
+    const arr = coursesDB.read();
+    coursesDB.write(arr.filter(s => s.id !== id));
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: "Delete failed" });
+  }
 });
 
 // 404 Catch-all for API
@@ -2352,28 +2557,44 @@ app.get('/', (req, res) => {
   });
 });
 
-// health check route
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
 // Initialize and start server
 const initializeApp = async () => {
-  // Connect to MongoDB
-  await connectDB();
+  try {
+    console.log('Starting initializeApp...');
+    // Connect to MongoDB early so routes depending on DB are available
+    try {
+      const dbConnected = await connectDB();
+      if (!dbConnected) {
+        console.warn('⚠️ MongoDB connection failed. Server will start but some routes will be read-only or return 503.');
+      } else {
+        console.log('✅ MongoDB is connected. Full functionality enabled.');
+      }
+    } catch (e) {
+      console.error('Unexpected error while connecting to MongoDB:', e);
+    }
 
-  const PORT = process.env.PORT || 5000;
-  server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Backend server running on port ${PORT}`);
-    console.log(`🌍 Access the API at http://localhost:${PORT}`);
-  });
+    const PORT = process.env.PORT || 5000;
+    console.log(`Attempting to listen on port ${PORT}...`);
+    server = app.listen(PORT, () => {
+      console.log(`🚀 Backend server running on port ${PORT}`);
+      console.log(`🌍 Access the API at http://localhost:${PORT}`);
+      console.log('Server started successfully, testing...');
+      console.log('Server listening callback executed');
+    });
+    console.log('server.listen called, server object created:', !!server);
 
-  server.on('error', (err) => {
-    console.error('Server error:', err);
-    if (err.code === 'EADDRINUSE') console.error(`Port ${PORT} already in use`);
-    // Don't exit the process here to allow debugging and recovery
-    // process.exit(1);
-  });
+    server.on('error', (err) => {
+      console.error('Server listen error:', err.message);
+      console.error('Error code:', err.code);
+      if (err.code === 'EADDRINUSE') console.error(`Port ${PORT} already in use`);
+      // Don't exit the process here to allow debugging and recovery
+      // process.exit(1);
+    });
+
+    console.log('initializeApp completed without errors');
+  } catch (error) {
+    console.error('Error in initializeApp:', error);
+  }
 };
 
 if (require.main === module) {
@@ -2389,7 +2610,7 @@ module.exports = app; // For testing
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error(`Uncaught Exception: ${err.message}`);
-  console.error(err.stack);
+  console.error('Stack:', err.stack);
   // Do not exit to allow inspection; in production consider restarting the process manager
   // process.exit(1);
 });
@@ -2397,7 +2618,7 @@ process.on('uncaughtException', (err) => {
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   console.error(`Unhandled Promise Rejection: ${err.message}`);
-  console.error(err.stack);
+  console.error('Stack:', err.stack);
   // Close server & exit process
   if (server) {
     server.close(() => process.exit(1));

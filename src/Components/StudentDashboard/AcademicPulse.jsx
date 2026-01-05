@@ -4,8 +4,8 @@ import './AcademicPulse.css';
 
 const AcademicPulse = ({ data }) => {
     // data structure from getStudentOverview
-    const attendance = data?.attendance?.overall || 0;
-    const marks = data?.academics?.overallPercentage || 0;
+    const attendance = data?.attendance?.overall ?? null;
+    const marks = data?.academics?.overallPercentage ?? null;
     const streak = data?.activity?.streak || 0;
     const aiUsage = data?.activity?.aiUsage || 0;
     const examsTaken = data?.academics?.totalExamsTaken || 0;
@@ -21,17 +21,29 @@ const AcademicPulse = ({ data }) => {
             <div className="pulse-grid">
                 {/* Attendance Circle */}
                 <div className="pulse-stat">
-                    <div className="circular-progress" style={{ '--data-p': attendance, background: `conic-gradient(var(--accent-primary) ${attendance}%, transparent 0)` }}>
-                        <span className="p-val">{attendance}%</span>
-                    </div>
+                    {attendance !== null ? (
+                        <div className="circular-progress" style={{ '--data-p': attendance, background: `conic-gradient(var(--accent-primary) ${attendance}%, transparent 0)` }}>
+                            <span className="p-val">{attendance}%</span>
+                        </div>
+                    ) : (
+                        <div className="circular-progress empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="p-val">-</span>
+                        </div>
+                    )}
                     <span className="p-label">Attendance</span>
                 </div>
 
                 {/* Marks Circle */}
                 <div className="pulse-stat">
-                    <div className="circular-progress" style={{ '--data-p': marks, background: `conic-gradient(#10b981 ${marks}%, transparent 0)` }}>
-                        <span className="p-val">{marks}%</span>
-                    </div>
+                    {marks !== null ? (
+                        <div className="circular-progress" style={{ '--data-p': marks, background: `conic-gradient(#10b981 ${marks}%, transparent 0)` }}>
+                            <span className="p-val">{marks}%</span>
+                        </div>
+                    ) : (
+                        <div className="circular-progress empty" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="p-val">-</span>
+                        </div>
+                    )}
                     <span className="p-label">Academics</span>
                 </div>
 

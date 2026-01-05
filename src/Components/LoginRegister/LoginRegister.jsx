@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { FaLock, FaEnvelope, FaUser, FaIdCard, FaGraduationCap, FaLayerGroup, FaUserGraduate, FaChalkboardTeacher, FaUserShield, FaArrowLeft, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
+import { FaLock, FaEnvelope, FaUser, FaIdCard, FaGraduationCap, FaLayerGroup, FaUserGraduate, FaChalkboardTeacher, FaUserShield, FaArrowLeft, FaEye, FaEyeSlash, FaUserCircle } from 'react-icons/fa';
 import { adminLogin, facultyLogin, studentLogin, studentRegister } from '../../utils/apiClient';
 import './LoginRegister.css';
 
 const LoginRegister = ({ setIsAuthenticated, setStudentData, setIsAdmin, setIsFaculty, setFacultyData }) => {
+  const navigate = useNavigate();
   const [formToShow, setFormToShow] = useState('selection');
   const [showPassword, setShowPassword] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState('Midnight');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionStudentName, setTransitionStudentName] = useState('');
 
   // Form States
   const [formData, setFormData] = useState({
@@ -48,10 +52,22 @@ const LoginRegister = ({ setIsAuthenticated, setStudentData, setIsAdmin, setIsFa
       setIsFaculty(true);
       setIsAuthenticated(true);
     } else if (role === 'student') {
+      // Get student name with fallback
+      const studentName = data.studentData?.studentName || data.studentData?.name || formData.name || 'Student';
+      
+      // Set authentication state
       setStudentData(data.studentData);
       setIsAuthenticated(true);
+      
+      // Start enhanced transition
+      setIsTransitioning(true);
+      setTransitionStudentName(studentName);
+      
+      // Navigate after exactly 3 seconds
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 3000);
     }
-    // Save to localStorage is handled by apiClient
   };
 
   const handleLogin = async (e) => {
@@ -296,6 +312,61 @@ const LoginRegister = ({ setIsAuthenticated, setStudentData, setIsAdmin, setIsFa
 
   return (
     <div className="modern-auth-wrapper">
+      {/* Enhanced Transition Overlay */}
+      {isTransitioning && (
+        <div className="login-transition-overlay-enhanced">
+          <div className="transition-background">
+            <div className="particles">
+              <div className="particle particle-1"></div>
+              <div className="particle particle-2"></div>
+              <div className="particle particle-3"></div>
+              <div className="particle particle-4"></div>
+              <div className="particle particle-5"></div>
+              <div className="particle particle-6"></div>
+            </div>
+          </div>
+          
+          <div className="transition-content-enhanced">
+            <div className="person-avatars-container">
+              <div className="avatar-wrapper avatar-1">
+                <FaUserCircle className="person-avatar avatar-icon-1" />
+                <div className="avatar-glow glow-1"></div>
+              </div>
+              <div className="avatar-wrapper avatar-2">
+                <FaUserCircle className="person-avatar avatar-icon-2" />
+                <div className="avatar-glow glow-2"></div>
+              </div>
+              <div className="avatar-wrapper avatar-3">
+                <FaUserCircle className="person-avatar avatar-icon-3" />
+                <div className="avatar-glow glow-3"></div>
+              </div>
+            </div>
+            
+            <div className="student-welcome-section">
+              <div className="welcome-title">
+                <span className="welcome-text">Welcome Back</span>
+                <div className="title-underline"></div>
+              </div>
+              <div className="student-name-enhanced">
+                <span className="name-text">{transitionStudentName}</span>
+                <div className="name-sparkle sparkle-1"></div>
+                <div className="name-sparkle sparkle-2"></div>
+                <div className="name-sparkle sparkle-3"></div>
+              </div>
+            </div>
+            
+            <div className="loading-section">
+              <div className="progress-container">
+                <div className="progress-track">
+                  <div className="progress-fill"></div>
+                </div>
+                <div className="progress-text">Preparing Dashboard</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="academic-bg">
         <div className="glowing-orb orb-1"></div>
         <div className="glowing-orb orb-2"></div>

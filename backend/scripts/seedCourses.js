@@ -141,7 +141,9 @@ const runSeed = async () => {
     process.exit(0);
 };
 
+/*
 runSeed().catch(err => {
     console.error(err);
     process.exit(1);
 });
+*/

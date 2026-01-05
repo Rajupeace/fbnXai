@@ -72,6 +72,9 @@ router.post('/', async (req, res) => {
                 throw new Error('Failed to save attendance record: ' + saveResult.reason);
             }
 
+            // Broadcast attendance creation so frontends can refresh
+            try { global.broadcastEvent && global.broadcastEvent({ resource: 'attendance', action: 'create', data: newAttendance }); } catch (e) { }
+
             if (updateResult.status === 'fulfilled' && bulkOps.length > 0) {
                 console.log(`✅ Parallel: Updated stats for ${bulkOps.length} students instantly.`);
             } else if (updateResult.status === 'rejected') {
@@ -97,8 +100,43 @@ router.post('/', async (req, res) => {
             all.push(newRecord);
             db.db.write(all);
 
-            // Note: File-based DB doesn't easily support bulk updates on Student model without reading/writing that file too.
-            // Skipping strictly for file-mode to avoid complexity, assuming Mongo is primary.
+            // Update local student stats file for dashboard sync
+            try {
+                console.log("Attempting to update student stats in file...");
+                const studentsDB = dbFile('students', []);
+                let studentsList = studentsDB.read();
+                console.log(`Loaded ${studentsList.length} students from file.`);
+
+                let updatedCount = 0;
+
+                records.forEach(r => {
+                    console.log(`Processing record for studentId: ${r.studentId}`);
+                    const studentIdx = studentsList.findIndex(s => s.sid === r.studentId || s.id === r.studentId);
+
+                    if (studentIdx !== -1) {
+                        console.log(`Found student at index ${studentIdx}`);
+                        const s = studentsList[studentIdx];
+                        if (!s.stats) s.stats = {};
+                        s.stats.totalClasses = (s.stats.totalClasses || 0) + 1;
+                        if (r.status === 'Present') {
+                            s.stats.totalPresent = (s.stats.totalPresent || 0) + 1;
+                        }
+                        studentsList[studentIdx] = s;
+                        updatedCount++;
+                    } else {
+                        console.log(`Student ${r.studentId} NOT found in file list.`);
+                    }
+                });
+
+                if (updatedCount > 0) {
+                    studentsDB.write(studentsList);
+                    console.log(`Updated stats for ${updatedCount} students in file DB`);
+                } else {
+                    console.log("No students updated.");
+                }
+            } catch (e) {
+                console.error("Failed to update student stats file", e);
+            }
 
             res.status(201).json(newRecord);
         }

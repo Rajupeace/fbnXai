@@ -68,6 +68,10 @@ const facultySchema = new mongoose.Schema({
     section: {
       type: String,
       required: true
+    },
+    branch: {
+      type: String,
+      required: true
     }
   }],
   createdAt: {

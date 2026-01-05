@@ -311,8 +311,8 @@ const FacultyAttendanceManager = ({ subject, sections, year, branch, facultyId }
                                             </div>
 
                                             <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '0.8rem' }}>
-                                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isAbsent ? '#ef4444' : '#cbd5e1' }}>
-                                                    {isAbsent ? 'ABSENT' : 'PRESENT'}
+                                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: isAbsent ? '#ef4444' : '#10b981' }}>
+                                                    {isAbsent ? 'MARKED ABSENT' : 'PRESENT'}
                                                 </span>
                                                 <input
                                                     type="checkbox"

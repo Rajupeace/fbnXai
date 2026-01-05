@@ -42,20 +42,7 @@ const StudentSchedule = ({ studentData }) => {
     };
 
     const getMockSchedule = () => {
-        return [
-            { day: 'Monday', time: '09:00 - 10:00', subject: 'Software Engineering', faculty: 'Dr. Smith', room: 'Room 301', type: 'Theory' },
-            { day: 'Monday', time: '10:00 - 11:00', subject: 'Data Structures', faculty: 'Prof. Johnson', room: 'Room 205', type: 'Theory' },
-            { day: 'Monday', time: '11:30 - 01:00', subject: 'DBMS Lab', faculty: 'Dr. Williams', room: 'Lab 1', type: 'Lab' },
-            { day: 'Tuesday', time: '09:00 - 10:00', subject: 'Operating Systems', faculty: 'Dr. Brown', room: 'Room 302', type: 'Theory' },
-            { day: 'Tuesday', time: '10:00 - 11:00', subject: 'Computer Networks', faculty: 'Prof. Davis', room: 'Room 206', type: 'Theory' },
-            { day: 'Wednesday', time: '09:00 - 10:00', subject: 'Software Engineering', faculty: 'Dr. Smith', room: 'Room 301', type: 'Theory' },
-            { day: 'Wednesday', time: '02:00 - 04:00', subject: 'Software Engineering Lab', faculty: 'Dr. Smith', room: 'Lab 2', type: 'Lab' },
-            { day: 'Thursday', time: '09:00 - 10:00', subject: 'Data Structures', faculty: 'Prof. Johnson', room: 'Room 205', type: 'Theory' },
-            { day: 'Thursday', time: '11:00 - 01:00', subject: 'DS Lab', faculty: 'Prof. Johnson', room: 'Lab 3', type: 'Lab' },
-            { day: 'Friday', time: '09:00 - 10:00', subject: 'Operating Systems', faculty: 'Dr. Brown', room: 'Room 302', type: 'Theory' },
-            { day: 'Friday', time: '10:00 - 11:00', subject: 'Computer Networks', faculty: 'Prof. Davis', room: 'Room 206', type: 'Theory' },
-            { day: 'Saturday', time: '09:00 - 11:00', subject: 'Seminar', faculty: 'Various', room: 'Auditorium', type: 'Other' }
-        ];
+        return [];
     };
 
     const getTodaySchedule = () => {

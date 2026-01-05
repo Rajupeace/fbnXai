@@ -8,6 +8,7 @@ import {
   FaBars, FaTimes, FaBolt, FaChartLine, FaCalendarAlt, FaClipboardList
 } from 'react-icons/fa';
 import './FacultyDashboard.css';
+import sseClient from '../../utils/sseClient';
 import MaterialManager from './MaterialManager';
 import FacultyAnalytics from './FacultyAnalytics';
 import FacultyClassPulse from './FacultyClassPulse';
@@ -16,8 +17,9 @@ import FacultyAttendanceManager from './FacultyAttendanceManager';
 import FacultyTeachingStats from './FacultyTeachingStats';
 import FacultyScheduleView from './FacultyScheduleView';
 import FacultyExams from './FacultyExams';
+import AnnouncementTicker from '../AnnouncementTicker/AnnouncementTicker';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
-import { apiGet, apiDelete } from '../../utils/apiClient';
+import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 
 const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => {
   const [activeContext, setActiveContext] = useState(null);
@@ -64,12 +66,53 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   useEffect(() => {
     refreshAll();
     const timer = setTimeout(() => setBootSequence(false), 1500);
-    const interval = setInterval(refreshAll, 10000); // 10s auto-refresh for faster updates
+    const interval = setInterval(refreshAll, 3000); // 3s ultra-fast auto-refresh
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
     };
   }, []);
+
+  // SSE: subscribe to server push updates and refresh relevant data immediately
+  useEffect(() => {
+    const unsub = sseClient.onUpdate((ev) => {
+      try {
+        if (!ev || !ev.resource) return;
+        const r = ev.resource;
+        if (['materials', 'students', 'messages'].includes(r)) {
+          // Quick refresh same as refreshAll
+          (async () => {
+            try {
+              if (r === 'materials') {
+                const mats = await apiGet('/api/materials');
+                if (mats) setMaterialsList(mats);
+              }
+              if (r === 'students') {
+                const studentsData = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
+                if (Array.isArray(studentsData)) setStudentsList(studentsData);
+              }
+              if (r === 'messages') {
+                const adminMsgs = await apiGet('/api/messages');
+                if (adminMsgs) {
+                  const filteredMsgs = adminMsgs.filter(m =>
+                    m.target === 'all' ||
+                    m.target === 'faculty' ||
+                    m.facultyId === facultyData.facultyId
+                  );
+                  setMessages(filteredMsgs.slice(0, 10));
+                }
+              }
+            } catch (e) {
+              console.error('SSE refresh failed', e);
+            }
+          })();
+        }
+      } catch (e) {
+        console.error('SSE event error', e);
+      }
+    });
+    return unsub;
+  }, [facultyData.facultyId]);
 
   const myClasses = useMemo(() => {
     const grouped = {};
@@ -106,6 +149,32 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
       refreshAll();
     } catch (err) {
       alert("System Conflict: " + err.message);
+    }
+  };
+
+  // BROADCAST SYSTEM
+  const [showMsgModal, setShowMsgModal] = useState(false);
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!activeContext || typeof activeContext === 'string') return alert("Target Link Failure: Please select a Teaching Section to broadcast.");
+
+    const formData = new FormData(e.target);
+    const message = formData.get('message');
+    if (!message) return;
+
+    try {
+      await apiPost('/api/faculty/messages', {
+        message,
+        year: activeContext.year,
+        sections: activeContext.sections,
+        subject: activeContext.subject,
+        type: 'announcement'
+      });
+      alert("Transmission Dispatched to Student Nodes.");
+      setShowMsgModal(false);
+      refreshAll();
+    } catch (err) {
+      alert("Transmission Failed: " + err.message);
     }
   };
 
@@ -351,6 +420,14 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 style={{ width: '100%', justifyContent: 'flex-start', background: 'rgba(168, 85, 247, 0.05)', color: '#a855f7', border: '1px solid rgba(168, 85, 247, 0.2)' }}
               >
                 <FaRobot /> AI Assistant
+              </button>
+
+              <button
+                onClick={() => { setShowMsgModal(true); setShowQuickMenu(false); }}
+                className="cyber-btn"
+                style={{ width: '100%', justifyContent: 'flex-start', background: 'rgba(244, 63, 94, 0.05)', color: '#f43f5e', border: '1px solid rgba(244, 63, 94, 0.2)' }}
+              >
+                <FaBullhorn /> Broadcast Message
               </button>
 
               <button
@@ -661,6 +738,36 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         )}
       </main>
 
+      {/* BROADCAST MODAL */}
+      {showMsgModal && (
+        <div className="modal-overlay" onClick={() => setShowMsgModal(false)}>
+          <div className="glass-card animate-slide-up" style={{ width: '500px', padding: '2.5rem', border: '1px solid var(--cyber-cyan)' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', color: '#f43f5e' }}>
+              <FaBullhorn style={{ fontSize: '1.5rem' }} />
+              <h2 style={{ margin: 0, fontSize: '1.4rem' }}>Tactical Broadcast</h2>
+            </div>
+
+            <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
+              Transmitting to: <strong style={{ color: 'var(--accent-primary)' }}>{(activeContext && activeContext.subject) ? `${activeContext.subject} (Year ${activeContext.year})` : 'Unknown Target'}</strong>
+            </p>
+
+            <form onSubmit={handleSendMessage}>
+              <textarea
+                name="message"
+                placeholder="Enter mission parameters or class announcement..."
+                required
+                style={{ width: '100%', height: '120px', padding: '1rem', borderRadius: '12px', background: '#f8fafc', border: '1px solid var(--pearl-border)', color: 'var(--text-main)', marginBottom: '1.5rem', resize: 'none', fontFamily: 'inherit' }}
+              ></textarea>
+
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowMsgModal(false)} className="cyber-btn" style={{ background: 'transparent', color: 'var(--text-muted)' }}>Discard</button>
+                <button type="submit" className="cyber-btn primary" style={{ background: 'linear-gradient(135deg, #f43f5e, #ec4899)' }}>Transmit</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* IDENTITY MODAL */}
       {showProfile && (
         <div className="modal-overlay" onClick={() => setShowProfile(false)}>
@@ -680,6 +787,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           </div>
         </div>
       )}
+      <AnnouncementTicker messages={messages} />
     </div>
   );
 };

@@ -12,7 +12,9 @@ import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
 import StudentStatistics from './StudentStatistics';
 import AdminExams from './AdminExams';
+import AnnouncementTicker from '../AnnouncementTicker/AnnouncementTicker';
 import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaFileAlt, FaClipboardList, FaEnvelope, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaSearch, FaHome, FaDownload, FaEye, FaBookOpen, FaRobot, FaInfoCircle, FaFileUpload, FaCalendarAlt, FaChartLine } from 'react-icons/fa';
+import sseClient from '../../utils/sseClient';
 
 
 // Helper for mocked API or local storage check
@@ -52,8 +54,56 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     const savedTodos = JSON.parse(localStorage.getItem('adminTodos') || '[]');
     setTodos(savedTodos);
 
-    const interval = setInterval(loadData, 30000); // Poll every 30s
+    const interval = setInterval(loadData, 5000); // Poll every 5s for admin oversight
     return () => clearInterval(interval);
+  }, []);
+
+  // SSE: subscribe to server push updates and refresh relevant data immediately
+  useEffect(() => {
+    const unsub = sseClient.onUpdate((ev) => {
+      try {
+        if (!ev || !ev.resource) return;
+        const r = ev.resource;
+        if (['students', 'faculty', 'courses', 'materials', 'messages', 'todos'].includes(r)) {
+          // Quick refresh same as loadData for specific resource
+          (async () => {
+            try {
+              if (USE_API) {
+                if (r === 'students') {
+                  const s = await api.apiGet('/api/students');
+                  setStudents(Array.isArray(s) ? s : []);
+                }
+                if (r === 'faculty') {
+                  const f = await api.apiGet('/api/faculty');
+                  setFaculty(Array.isArray(f) ? f : []);
+                }
+                if (r === 'courses') {
+                  const c = await api.apiGet('/api/courses');
+                  setCourses(Array.isArray(c) ? c : []);
+                }
+                if (r === 'materials') {
+                  const m = await api.apiGet('/api/materials');
+                  setMaterials(Array.isArray(m) ? m : []);
+                }
+                if (r === 'messages') {
+                  const msg = await api.apiGet('/api/messages');
+                  setMessages(Array.isArray(msg) ? msg.sort((a, b) => new Date(b.date) - new Date(a.date)) : []);
+                }
+                if (r === 'todos') {
+                  const t = await api.apiGet('/api/todos');
+                  setTodos(Array.isArray(t) ? t : []);
+                }
+              }
+            } catch (e) {
+              console.error('SSE refresh failed', e);
+            }
+          })();
+        }
+      } catch (e) {
+        console.error('SSE event error', e);
+      }
+    });
+    return unsub;
   }, []);
 
   const loadData = async () => {
@@ -112,19 +162,27 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
     if (!data.sid || !data.studentName) return alert('ID and Name required');
 
-    let newStudents = [...students];
-    if (editItem) {
-      newStudents = newStudents.map(s => s.sid === editItem.sid ? { ...s, ...data } : s);
-      if (USE_API) await api.apiPut(`/api/students/${editItem.sid}`, data);
-    } else {
-      const newS = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
-      newStudents.push(newS);
-      if (USE_API) await api.apiPost('/api/students', newS);
-    }
+    try {
+      let newStudents = [...students];
+      if (editItem) {
+        newStudents = newStudents.map(s => s.sid === editItem.sid ? { ...s, ...data } : s);
+        if (USE_API) await api.apiPut(`/api/students/${editItem.sid}`, data);
+      } else {
+        const newS = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
+        newStudents.push(newS);
+        if (USE_API) await api.apiPost('/api/students', newS);
+      }
 
-    if (!USE_API) await writeStudents(newStudents);
-    setStudents(newStudents);
-    closeModal();
+      if (!USE_API) await writeStudents(newStudents);
+      setStudents(newStudents);
+      closeModal();
+      // Optional: reload data to ensure sync with server generated fields
+      if (USE_API) await loadData();
+    } catch (error) {
+      console.error("Save Student Error:", error);
+      const msg = error.response?.data?.error || error.message || "Failed to save student";
+      alert(msg);
+    }
   };
 
   const handleDeleteStudent = async (sid) => {
@@ -2056,6 +2114,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           </div>
         </div>
       )}
+      <AnnouncementTicker messages={messages} />
     </div >
   );
 }

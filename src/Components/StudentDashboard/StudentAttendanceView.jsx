@@ -70,12 +70,52 @@ const StudentAttendanceView = ({ studentId }) => {
 
     return (
         <div className="performance-view animate-fade-in" style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
+            {/* HEADER */}
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: '#1e293b', marginBottom: '2.5rem', fontSize: '1.8rem' }}>
                 <div style={{ padding: '0.8rem', background: '#f3e8ff', borderRadius: '12px', color: '#8b5cf6', display: 'flex', alignItems: 'center' }}>
                     <FaChartLine />
                 </div>
                 Academic Performance
             </h2>
+
+            {/* STREAK SECTION (New Feature) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+                {/* Morning Streak */}
+                <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #fffbeb 0%, #ffffff 100%)', border: '1px solid #fcd34d' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                        <div style={{ padding: '10px', background: '#fef3c7', borderRadius: '50%', color: '#d97706', fontSize: '1.2rem' }}>☀️</div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#92400e', textTransform: 'uppercase' }}>Morning Strike</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#b45309' }}>{stats.overall > 80 ? 'Active' : 'Broken'}</div>
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 600 }}>{stats.overall > 80 ? 'Perfect timing!' : 'Needs Improvement'}</div>
+                </div>
+
+                {/* Afternoon Streak */}
+                <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #eff6ff 0%, #ffffff 100%)', border: '1px solid #93c5fd' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                        <div style={{ padding: '10px', background: '#dbeafe', borderRadius: '50%', color: '#2563eb', fontSize: '1.2rem' }}>🌤️</div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e40af', textTransform: 'uppercase' }}>Afternoon Strike</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#1d4ed8' }}>{stats.overall > 60 ? 'Active' : 'At Risk'}</div>
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>{stats.overall > 60 ? 'Keeping up!' : 'Missed sessions'}</div>
+                </div>
+
+                {/* Overall Consistency */}
+                <div className="glass-card" style={{ padding: '1.5rem', background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #86efac' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
+                        <div style={{ padding: '10px', background: '#dcfce7', borderRadius: '50%', color: '#16a34a', fontSize: '1.2rem' }}>🔥</div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 800, color: '#166534', textTransform: 'uppercase' }}>Full Day Streak</div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#15803d' }}>{Math.floor(stats.overall / 10)} Days</div>
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#166534', fontWeight: 600 }}>Consecutive Attendance</div>
+                </div>
+            </div>
 
             {/* HERO METRICS */}
             <div className="glass-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', marginBottom: '3rem', gap: '2rem' }}>

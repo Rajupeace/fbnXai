@@ -2,40 +2,54 @@ import React, { useState, useEffect } from 'react';
 import { FaChalkboardTeacher, FaEnvelope, FaPhone, FaGraduationCap, FaBook } from 'react-icons/fa';
 import { apiGet } from '../../utils/apiClient';
 
-const StudentFacultyList = ({ studentData }) => {
+const StudentFacultyList = ({ studentData, myFaculty }) => {
     const [facultyList, setFacultyList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedSemester, setSelectedSemester] = useState('all');
 
     useEffect(() => {
-        fetchFacultyList();
-    }, [studentData]);
-
+        if (myFaculty && Array.isArray(myFaculty) && myFaculty.length > 0) {
+            setFacultyList(myFaculty);
+            setLoading(false);
+        } else {
+            fetchFacultyList();
+        }
+    }, [studentData, myFaculty]);
     const fetchFacultyList = async () => {
         setLoading(true);
+        // If student data is not ready, clear list
+        if (!studentData || !studentData.year) {
+            setFacultyList([]);
+            setLoading(false);
+            return;
+        }
+
         try {
             // Fetch faculty teaching this student's year and section
             const response = await apiGet(`/api/faculty/teaching?year=${studentData.year}&section=${studentData.section}&branch=${studentData.branch}`);
-            setFacultyList(response || []);
+            const list = (response || []).map(f => {
+                // Find the assignment that matches this student
+                const assignment = (f.assignments || []).find(a => String(a.year) === String(studentData.year) && String(a.section).toUpperCase() === String(studentData.section).toUpperCase() && String(a.branch).toUpperCase() === String(studentData.branch).toUpperCase());
+                return {
+                    id: f.facultyId,
+                    name: f.name || f.facultyName || 'Unknown',
+                    subject: assignment?.subject || f.subject || 'Unknown Subject',
+                    email: f.email || '',
+                    phone: f.phone || f.contact || '',
+                    semester: assignment?.semester || f.semester || 'Semester -',
+                    image: f.image || null,
+                    qualification: f.qualification || '',
+                    experience: f.experience || '',
+                    raw: f
+                };
+            });
+            setFacultyList(list);
         } catch (error) {
             console.error('Failed to fetch faculty list:', error);
-            // Mock faculty data for demonstration
-            setFacultyList(getMockFacultyList());
+            setFacultyList([]);
         } finally {
             setLoading(false);
         }
-    };
-
-    const getMockFacultyList = () => {
-        return [
-            { name: 'Dr. Sarah Smith', subject: 'Software Engineering', email: 'sarah.smith@vignan.ac.in', phone: '+91 98765 43210', semester: 'Semester 5', qualification: 'Ph.D. in Computer Science', experience: '15 years' },
-            { name: 'Prof. Michael Johnson', subject: 'Data Structures & Algorithms', email: 'michael.j@vignan.ac.in', phone: '+91 98765 43211', semester: 'Semester 5', qualification: 'M.Tech in CSE', experience: '12 years' },
-            { name: 'Dr. David Williams', subject: 'Database Management Systems', email: 'david.w@vignan.ac.in', phone: '+91 98765 43212', semester: 'Semester 5', qualification: 'Ph.D. in Database Systems', experience: '18 years' },
-            { name: 'Dr. Emily Brown', subject: 'Operating Systems', email: 'emily.b@vignan.ac.in', phone: '+91 98765 43213', semester: 'Semester 5', qualification: 'Ph.D. in OS Design', experience: '14 years' },
-            { name: 'Prof. James Davis', subject: 'Computer Networks', email: 'james.d@vignan.ac.in', phone: '+91 98765 43214', semester: 'Semester 5', qualification: 'M.Tech in Networks', experience: '10 years' },
-            { name: 'Dr. Lisa Anderson', subject: 'Web Technologies', email: 'lisa.a@vignan.ac.in', phone: '+91 98765 43215', semester: 'Semester 6', qualification: 'Ph.D. in Web Engineering', experience: '11 years' },
-            { name: 'Prof. Robert Taylor', subject: 'Machine Learning', email: 'robert.t@vignan.ac.in', phone: '+91 98765 43216', semester: 'Semester 6', qualification: 'M.Tech in AI/ML', experience: '9 years' },
-        ];
     };
 
     const getFilteredFaculty = () => {
@@ -107,27 +121,41 @@ const StudentFacultyList = ({ studentData }) => {
                     >
                         {/* Faculty Avatar & Name */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <div style={{
-                                width: '70px',
-                                height: '70px',
-                                borderRadius: '20px',
-                                background: 'linear-gradient(135deg, #10b981, #059669)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'white',
-                                fontSize: '1.8rem',
-                                fontWeight: 900,
-                                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                            }}>
-                                {faculty.name.charAt(0)}
-                            </div>
+                            {faculty.image ? (
+                                <img
+                                    src={faculty.image}
+                                    alt={faculty.name}
+                                    style={{
+                                        width: '70px',
+                                        height: '70px',
+                                        borderRadius: '20px',
+                                        objectFit: 'cover',
+                                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                    }}
+                                />
+                            ) : (
+                                <div style={{
+                                    width: '70px',
+                                    height: '70px',
+                                    borderRadius: '20px',
+                                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'white',
+                                    fontSize: '1.8rem',
+                                    fontWeight: 900,
+                                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                }}>
+                                    {faculty.name.charAt(0)}
+                                </div>
+                            )}
                             <div>
-                                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.3rem' }}>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.2rem' }}>
                                     {faculty.name}
                                 </div>
-                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, background: 'rgba(16, 185, 129, 0.1)', padding: '0.3rem 0.8rem', borderRadius: '6px', display: 'inline-block' }}>
-                                    {faculty.semester}
+                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, background: 'rgba(16, 185, 129, 0.1)', padding: '0.3rem 0.8rem', borderRadius: '6px', display: 'inline-block', marginBottom: '0.2rem' }}>
+                                    ID: {faculty.id || 'N/A'}
                                 </div>
                             </div>
                         </div>
@@ -140,30 +168,18 @@ const StudentFacultyList = ({ studentData }) => {
                             </div>
                         </div>
 
-                        {/* Qualification & Experience */}
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', fontSize: '0.85rem', color: '#64748b' }}>
-                                <FaGraduationCap style={{ color: '#a855f7' }} />
-                                {faculty.qualification}
+                        {/* Contact Details */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.85rem', color: '#475569' }}>
+                                <FaEnvelope style={{ color: '#94a3b8' }} />
+                                {faculty.email || 'No Email'}
                             </div>
-                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', paddingLeft: '1.5rem' }}>
-                                Experience: {faculty.experience}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.85rem', color: '#475569' }}>
+                                <FaPhone style={{ color: '#94a3b8' }} />
+                                {faculty.phone || 'No Phone'}
                             </div>
                         </div>
 
-                        {/* Contact Info */}
-                        <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.85rem', color: '#64748b' }}>
-                                <FaEnvelope style={{ color: '#10b981', fontSize: '1rem' }} />
-                                <a href={`mailto:${faculty.email}`} style={{ color: '#10b981', textDecoration: 'none', fontWeight: 600 }}>
-                                    {faculty.email}
-                                </a>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', fontSize: '0.85rem', color: '#64748b' }}>
-                                <FaPhone style={{ color: '#6366f1', fontSize: '1rem' }} />
-                                <span style={{ fontWeight: 600 }}>{faculty.phone}</span>
-                            </div>
-                        </div>
                     </div>
                 ))}
             </div>
@@ -171,7 +187,7 @@ const StudentFacultyList = ({ studentData }) => {
             {getFilteredFaculty().length === 0 && (
                 <div style={{ padding: '4rem', textAlign: 'center', background: '#f8fafc', borderRadius: '20px' }}>
                     <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}>👨‍🏫</div>
-                    <div style={{ color: '#94a3b8', fontSize: '1.1rem' }}>No faculty found for the selected filter</div>
+                    <div style={{ color: '#94a3b8', fontSize: '1.1rem' }}>No faculty found for your section</div>
                 </div>
             )}
         </div>

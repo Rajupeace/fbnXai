@@ -1,7 +1,10 @@
 // Small localStorage helper for app-local JSON "database"
 import api from './apiClient';
 
-const USE_API = Boolean(process.env.REACT_APP_API_URL && process.env.REACT_APP_API_URL.length);
+// Prefer using the backend API by default. Set `REACT_APP_USE_API=false` to force localStorage fallback.
+const USE_API = (typeof process !== 'undefined' && process.env && typeof process.env.REACT_APP_USE_API !== 'undefined')
+  ? String(process.env.REACT_APP_USE_API).toLowerCase() === 'true'
+  : true;
 const safeParse = (v, fallback) => {
   try {
     return JSON.parse(v);

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Material = require('../models/Material');
 const Course = require('../models/Course');
 const Faculty = require('../models/Faculty');
@@ -8,39 +9,89 @@ const Faculty = require('../models/Faculty');
 exports.getMaterials = async (req, res) => {
   try {
     const { year, section, subject, type, course } = req.query;
+    let allMaterials = [];
 
-    // Build query object
-    const query = {};
-    if (year) query.year = year;
-    if (section) query.section = section;
-    if (subject) query.subject = subject;
-    if (type) query.type = type;
-    if (course) query.course = course;
+    // 1. MongoDB Fetch
+    if (mongoose.connection.readyState === 1) {
+      try {
+        // Build query object
+        const query = {};
+        if (year) query.year = year;
+        if (section) query.section = section;
+        if (subject) query.subject = subject;
+        if (type) query.type = type;
+        if (course) query.course = course;
 
-    const materials = await Material.find(query)
-      .populate('course', 'courseCode courseName')
-      .populate('uploadedBy', 'name email')
-      .sort('-createdAt');
+        const materials = await Material.find(query)
+          .populate('course', 'courseCode courseName')
+          .populate('uploadedBy', 'name email')
+          .sort('-createdAt')
+          .lean();
 
-    // Transform to match frontend expectations
-    const transformedMaterials = materials.map(material => ({
-      id: material._id,
-      title: material.title,
-      description: material.description,
-      url: material.fileUrl,
-      type: material.type,
-      subject: material.subject,
-      year: material.year,
-      section: material.section,
-      module: material.module,
-      unit: material.unit,
-      topic: material.topic,
-      uploadedAt: material.createdAt,
-      uploaderName: material.uploadedBy?.name || 'Unknown',
-      uploaderRole: material.uploadedBy?.facultyId === 'admin' ? 'admin' : 'faculty'
-    }));
+        allMaterials = materials.map(material => ({
+          id: material._id.toString(),
+          _id: material._id.toString(),
+          title: material.title,
+          description: material.description,
+          url: material.fileUrl,
+          type: material.type,
+          subject: material.subject,
+          year: material.year,
+          section: material.section,
+          module: material.module,
+          unit: material.unit,
+          topic: material.topic,
+          uploadedAt: material.createdAt,
+          uploaderName: material.uploadedBy?.name || 'Unknown',
+          uploaderRole: material.uploadedBy?.facultyId === 'admin' ? 'admin' : 'faculty',
+          source: 'mongodb'
+        }));
+      } catch (mongoErr) {
+        console.warn('Mongo Material Fetch Error:', mongoErr.message);
+      }
+    }
 
-    res.json(transformedMaterials);
+    // 2. File DB Fetch & Merge
+    try {
+      const dbFile = require('../dbHelper');
+      const fileMats = dbFile('materials').read() || [];
+
+      const filteredFile = fileMats.filter(m => {
+        if (year && String(m.year) !== String(year)) return false;
+        // Relaxed section match for file-db
+        if (section && m.section !== section && m.section !== 'All') return false;
+        if (subject && m.subject !== subject) return false;
+        if (type && m.type !== type) return false;
+        return true;
+      });
+
+      filteredFile.forEach(fm => {
+        // Check for duplicates by ID
+        if (!allMaterials.find(am => String(am.id) === String(fm.id) || String(am.id) === String(fm._id))) {
+          allMaterials.push({
+            id: fm.id || fm._id,
+            _id: fm.id || fm._id,
+            title: fm.title,
+            description: fm.description,
+            url: fm.fileUrl || fm.url,
+            type: fm.type,
+            subject: fm.subject,
+            year: fm.year,
+            section: fm.section,
+            module: fm.module,
+            unit: fm.unit,
+            topic: fm.topic,
+            uploadedAt: fm.uploadedAt || fm.createdAt,
+            uploaderName: fm.uploadedBy?.name || 'System',
+            source: 'file'
+          });
+        }
+      });
+    } catch (fileErr) {
+      console.warn('File Material Fetch Error:', fileErr);
+    }
+
+    res.json(allMaterials);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
@@ -101,13 +152,13 @@ exports.uploadMaterial = async (req, res) => {
     }
     // If no courseId sent, we proceed without linking to a formal Course object, using just subject string.
 
+    // Identify Uploader
     let uploaderId = null;
 
     if (req.user.role === 'admin') {
-      // Proceed as admin
-      let adminFaculty = await Faculty.findOne({ facultyId: 'admin' });
-      if (!adminFaculty) {
-        try {
+      try {
+        let adminFaculty = await Faculty.findOne({ facultyId: 'admin' });
+        if (!adminFaculty) {
           adminFaculty = await Faculty.create({
             facultyId: 'admin',
             name: 'Administrator',
@@ -117,31 +168,25 @@ exports.uploadMaterial = async (req, res) => {
             designation: 'System Administrator',
             assignments: []
           });
-        } catch (e) { console.error("Failed to create Admin faculty record", e); }
-      }
-      uploaderId = adminFaculty ? adminFaculty._id : null;
-
-    } else {
-      // Find faculty by facultyId, or create if not exists
-      let faculty = await Faculty.findOne({ facultyId: req.user.id });
-      if (!faculty) {
-        console.log(`[Upload] Faculty ${req.user.id} not found in MongoDB. Creating shadow record...`);
-        try {
-          faculty = await Faculty.create({
-            facultyId: req.user.id,
-            name: req.user.name || 'Unknown Faculty',
-            email: req.user.email || `${req.user.id}@example.com`,
-            password: 'manage_externally',
-            department: req.user.department || 'General',
-            designation: req.user.designation || 'Lecturer',
-            assignments: []
-          });
-        } catch (err) {
-          console.error('Error creating shadow faculty:', err);
-          return res.status(500).json({ message: 'Failed to create faculty record for upload linking.' });
         }
+        uploaderId = adminFaculty._id;
+      } catch (e) {
+        console.error("Admin uploader resolution failed:", e);
+        // Fallback or error? Let's try to proceed without specific uploader ID if admin
+        // But schema might require it. Let's rely on the created admin.
       }
-      uploaderId = faculty._id;
+    } else {
+      // For faculty
+      uploaderId = req.user._id;
+      // Ensure this user exists in Faculty collection (double check)
+      if (!uploaderId) {
+        const f = await Faculty.findOne({ facultyId: req.user.id });
+        if (f) uploaderId = f._id;
+      }
+    }
+
+    if (!uploaderId && req.user.role !== 'admin') {
+      return res.status(500).json({ message: 'Uploader identity could not be verified.' });
     }
 
     // Create new material with role-based path
@@ -182,6 +227,29 @@ exports.uploadMaterial = async (req, res) => {
 
     await material.save();
 
+    // SYNC TO FILE (Hybrid Persistence)
+    try {
+      const { v4: uuidv4 } = require('uuid');
+      const dbFile = require('../dbHelper');
+      const materialsDB = dbFile('materials');
+      const all = materialsDB.read() || [];
+
+      all.push({
+        id: material._id.toString(),
+        _id: material._id.toString(),
+        title: material.title,
+        description: material.description,
+        subject: material.subject,
+        year: material.year,
+        section: material.section,
+        type: material.type,
+        fileUrl: material.fileUrl,
+        uploadedBy: { id: uploaderId.toString() },
+        createdAt: new Date().toISOString()
+      });
+      materialsDB.write(all);
+    } catch (err) { console.error("File sync failed", err); }
+
     // Populate the response
     await material.populate('course', 'courseCode courseName');
     await material.populate('uploadedBy', 'name email');
@@ -191,17 +259,34 @@ exports.uploadMaterial = async (req, res) => {
       const Message = require('../models/Message');
       const notificationText = `New ${type} added: "${title}" in ${subject} (Year ${year})`;
 
-      // Safely check if we can create a notification (MongoDB only here, JSON handled in index.js)
+      const msgItem = {
+        id: require('uuid').v4(), // Generate ID for file-db
+        message: notificationText,
+        target: 'students-specific',
+        targetYear: year,
+        targetSections: section ? [section] : [],
+        type: 'material-alert',
+        sender: faculty.name || `Prof. ${faculty.facultyId}`,
+        facultyId: faculty.facultyId,
+        createdAt: new Date().toISOString()
+      };
+
+      // 1. Write to File DB (Always)
+      try {
+        const dbFile = require('../dbHelper');
+        const messagesDB = dbFile('messages');
+        const allMsgs = messagesDB.read() || [];
+        allMsgs.unshift(msgItem);
+        messagesDB.write(allMsgs);
+      } catch (e) {
+        console.warn('File DB Message save failed:', e);
+      }
+
+      // 2. Write to MongoDB (if connected)
       if (mongoose.connection.readyState === 1) {
         await Message.create({
-          message: notificationText,
-          target: 'students-specific',
-          targetYear: year,
-          targetSections: section ? [section] : [],
-          type: 'material-alert',
-          sender: faculty.name || `Prof. ${faculty.facultyId}`,
-          facultyId: faculty.facultyId,
-          createdAt: new Date()
+          ...msgItem,
+          createdAt: new Date() // Mongo prefers Date object
         });
         console.log('[Notification] Logic Dispatched to MongoDB Mesh');
       }

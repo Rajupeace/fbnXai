@@ -1,7 +1,7 @@
 {
   "adminId": "ReddyFBN@1228",
   "password": "ReddyFBN",
-  "adminToken": "35067ede-f13c-4b9d-9650-41ad4f837f2a",
-  "tokenIssuedAt": "2026-01-01T14:38:56.607Z",
+  "adminToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlJlZGR5RkJOQDEyMjgiLCJpYXQiOjE3Njc1NTA2NTR9.2VS7milcQJ-H8U4DhNobKC1mxGSLJMvinSDy5BRQbKo",
+  "tokenIssuedAt": "2026-01-04T18:17:34.118Z",
   "test": "test"
 }

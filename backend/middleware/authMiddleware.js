@@ -1,8 +1,11 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 // Project uses `Student.js` as the user model; require it here
 const User = require('../models/Student');
 const Faculty = require('../models/Faculty');
 const Admin = require('../models/Admin');
+
+const dbFile = require('../dbHelper');
 
 // Middleware to protect routes
 const protect = async (req, res, next) => {
@@ -21,33 +24,99 @@ const protect = async (req, res, next) => {
   }
 
   try {
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+    const id = decoded.id; // User ID from token
 
-    // Get user from the token
-    req.user = await User.findById(decoded.id).select('-password');
-    
-    // If not a student, check if it's a faculty
-    if (!req.user) {
-      req.user = await Faculty.findById(decoded.id).select('-password');
-      if (req.user) req.user.role = 'faculty';
-    } else {
-      req.user.role = 'student';
+    // 1. Try MongoDB
+    // 1. Try MongoDB
+    if (mongoose.connection.readyState === 1) {
+      try {
+        // A. Student Check
+        // Try finding by _id (if valid ObjectId) OR sid/email
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          req.user = await User.findById(id).select('-password');
+        }
+        if (!req.user) {
+          req.user = await User.findOne({ sid: id }).select('-password');
+        }
+        if (req.user) req.user.role = 'student';
+
+        // B. Faculty Check
+        if (!req.user) {
+          if (mongoose.Types.ObjectId.isValid(id)) {
+            req.user = await Faculty.findById(id).select('-password');
+          }
+          if (!req.user) {
+            req.user = await Faculty.findOne({ facultyId: id }).select('-password');
+          }
+          if (req.user) req.user.role = 'faculty';
+        }
+
+        // C. Admin Check
+        if (!req.user) {
+          if (mongoose.Types.ObjectId.isValid(id)) {
+            req.user = await Admin.findById(id).select('-password');
+          }
+          if (!req.user) {
+            req.user = await Admin.findOne({ adminId: id }).select('-password');
+          }
+          if (req.user) req.user.role = 'admin';
+        }
+      } catch (mongoErr) {
+        console.warn('Mongo Auth Lookup Failed:', mongoErr.message);
+      }
     }
 
-    // Check if admin
+    // 2. Fallback to File DB if not found in Mongo
     if (!req.user) {
-      req.user = await Admin.findById(decoded.id).select('-password');
-      if (req.user) req.user.role = 'admin';
+      // Check Students
+      const students = dbFile('students').read() || [];
+      const s = students.find(x => x.id === id || x.sid === id || x._id === id);
+      if (s) {
+        req.user = {
+          ...s,
+          _id: s.id || s._id,
+          role: 'student',
+          isAdmin: false
+        };
+      }
+
+      // Check Faculty
+      if (!req.user) {
+        const faculties = dbFile('faculty').read() || [];
+        const f = faculties.find(x => x.id === id || x.facultyId === id || x._id === id);
+        if (f) {
+          req.user = {
+            ...f,
+            _id: f.id || f._id,
+            role: 'faculty',
+            isAdmin: false
+          };
+        }
+      }
+
+      // Check Admin
+      if (!req.user) {
+        const adminData = dbFile('admin').read() || {};
+        // Admin ID might be stored variously
+        if (adminData.id === id || adminData.adminId === id || (adminData.adminToken === token)) {
+          req.user = {
+            ...adminData,
+            _id: adminData.id || adminData.adminId,
+            role: 'admin',
+            isAdmin: true
+          };
+        }
+      }
     }
 
     if (!req.user) {
-      return res.status(401).json({ message: 'Not authorized' });
+      return res.status(401).json({ message: 'Not authorized: User not found' });
     }
 
     next();
   } catch (error) {
-    console.error(error);
+    console.error('Auth Middleware Error:', error.message);
     res.status(401).json({ message: 'Not authorized, token failed' });
   }
 };

@@ -26,48 +26,7 @@ const StudentLabsSchedule = ({ studentData }) => {
     };
 
     const getMockLabSchedule = () => {
-        return [
-            {
-                labName: 'DBMS Lab',
-                day: 'Monday',
-                time: '11:30 AM - 01:30 PM',
-                faculty: 'Dr. David Williams',
-                room: 'CS Lab 1 (Block A, 3rd Floor)',
-                batch: 'Batch A',
-                tools: ['MySQL', 'Oracle', 'MongoDB'],
-                description: 'Practical sessions on database design, SQL queries, and database administration'
-            },
-            {
-                labName: 'Software Engineering Lab',
-                day: 'Wednesday',
-                time: '02:00 PM - 04:00 PM',
-                faculty: 'Dr. Sarah Smith',
-                room: 'CS Lab 2 (Block A, 3rd Floor)',
-                batch: 'Batch A',
-                tools: ['Git', 'JIRA', 'Visual Studio', 'Eclipse'],
-                description: 'Hands-on software development, version control, and project management'
-            },
-            {
-                labName: 'Data Structures Lab',
-                day: 'Thursday',
-                time: '11:00 AM - 01:00 PM',
-                faculty: 'Prof. Michael Johnson',
-                room: 'CS Lab 3 (Block A, 4th Floor)',
-                batch: 'Batch A',
-                tools: ['C++', 'Java', 'VS Code'],
-                description: 'Implementation of arrays, linked lists, stacks, queues, trees, and graphs'
-            },
-            {
-                labName: 'Computer Networks Lab',
-                day: 'Friday',
-                time: '02:00 PM - 04:00 PM',
-                faculty: 'Prof. James Davis',
-                room: 'Networks Lab (Block B, 2nd Floor)',
-                batch: 'Batch A',
-                tools: ['Cisco Packet Tracer', 'Wireshark', 'GNS3'],
-                description: 'Network simulation, protocol analysis, and network configuration'
-            }
-        ];
+        return [];
     };
 
     if (loading) {

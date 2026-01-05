@@ -11,27 +11,29 @@ import StudentSchedule from './StudentSchedule';
 import StudentFacultyList from './StudentFacultyList';
 import StudentLabsSchedule from './StudentLabsSchedule';
 import StudentExams from './StudentExams';
+import AnnouncementTicker from '../AnnouncementTicker/AnnouncementTicker';
 import './StudentDashboard.css';
+import sseClient from '../../utils/sseClient';
 
 
-// Minimal fallback when no studentData is provided
-const FALLBACK = {
-    studentName: 'John Doe',
-    sid: 'student001',
-    branch: 'CSE',
-    year: 1,
-    section: 'A',
-    role: 'student',
-    email: 'john.doe@example.edu'
-};
-
-
-
-export default function StudentDashboard({ studentData = FALLBACK, onLogout }) {
+// Note: Do NOT show demo/fallback academic numbers to real users.
+// Load logged-in user from prop or localStorage; otherwise render empty state.
+export default function StudentDashboard({ studentData, onLogout }) {
     const navigate = useNavigate();
-    const data = { ...FALLBACK, ...studentData };
+    let stored = null;
+    try { stored = (typeof window !== 'undefined' && window.localStorage && window.localStorage.getItem('userData')) ? JSON.parse(window.localStorage.getItem('userData')) : null; } catch (e) { stored = null; }
+    const data = { ...(studentData || stored || { studentName: '', sid: '', branch: '', year: '', section: '', role: 'student' }) };
     const branch = String(data.branch || 'CSE').toUpperCase();
+    const [isDashboardLoaded, setIsDashboardLoaded] = useState(false);
 
+
+    // Trigger dashboard entrance animation
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsDashboardLoaded(true);
+        }, 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     // UI state
     const [view, setView] = useState('overview'); // overview | semester | advanced | subject | settings
@@ -58,7 +60,20 @@ export default function StudentDashboard({ studentData = FALLBACK, onLogout }) {
             try {
                 // Fetch Overview Data (Mega Stats)
                 const ovData = await apiGet(`/api/students/${data.sid}/overview`);
-                if (mounted && ovData) setOverviewData(ovData);
+                if (mounted && ovData) {
+                    setOverviewData(ovData);
+                    // Sync user profile data from server if it changed (e.g. name update)
+                    if (ovData.student && (ovData.student.name !== userData.studentName || ovData.student.year !== userData.year)) {
+                        setUserData(prev => ({
+                            ...prev,
+                            studentName: ovData.student.name || prev.studentName,
+                            year: ovData.student.year || prev.year,
+                            section: ovData.student.section || prev.section,
+                            branch: ovData.student.branch || prev.branch,
+                            stats: ovData.student.stats || prev.stats
+                        }));
+                    }
+                }
 
                 // Fetch Student Courses
                 const courseData = await apiGet(`/api/students/${data.sid}/courses`);
@@ -83,12 +98,45 @@ export default function StudentDashboard({ studentData = FALLBACK, onLogout }) {
         };
 
         fetchData(); // Initial load
-        const interval = setInterval(fetchData, 15000); // 15s polling
+        const interval = setInterval(fetchData, 2000); // 2s polling (Fast Updates)
 
         return () => {
             mounted = false;
             clearInterval(interval);
         };
+    }, [data.sid]);
+
+    // SSE: subscribe to server push updates and refresh relevant data immediately
+    useEffect(() => {
+        const unsub = sseClient.onUpdate((ev) => {
+            try {
+                if (!ev || !ev.resource) return;
+                const r = ev.resource;
+                if (['students', 'materials', 'todos'].includes(r)) {
+                    // Quick refresh same as fetchData
+                    (async () => {
+                        try {
+                            const ovData = await apiGet(`/api/students/${data.sid}/overview`);
+                            if (ovData) setOverviewData(ovData);
+
+                            const courseData = await apiGet(`/api/students/${data.sid}/courses`);
+                            if (Array.isArray(courseData)) setExtraCourses(prev => JSON.stringify(prev) !== JSON.stringify(courseData) ? courseData : prev);
+
+                            const materialsData = await apiGet('/api/materials');
+                            if (Array.isArray(materialsData)) setServerMaterials(prev => JSON.stringify(prev) !== JSON.stringify(materialsData) ? materialsData : prev);
+
+                            const tasksData = await apiGet(`/api/todos?role=student`);
+                            if (Array.isArray(tasksData)) setTasks(prev => JSON.stringify(prev) !== JSON.stringify(tasksData) ? tasksData : prev);
+                        } catch (e) {
+                            console.error('SSE refresh failed', e);
+                        }
+                    })();
+                }
+            } catch (e) {
+                console.error('SSE handler error', e);
+            }
+        });
+        return () => unsub();
     }, [data.sid]);
 
 
@@ -616,7 +664,7 @@ export default function StudentDashboard({ studentData = FALLBACK, onLogout }) {
     const [showAiModal, setShowAiModal] = useState(false);
 
     return (
-        <div className="student-dashboard">
+        <div className={`student-dashboard ${isDashboardLoaded ? 'dashboard-loaded' : ''}`}>
             {/* FLOATING ACTION BUTTON FOR AI */}
             <button
                 onClick={() => setShowAiModal(true)}
@@ -671,10 +719,18 @@ export default function StudentDashboard({ studentData = FALLBACK, onLogout }) {
 
                     {/* Academic Progress Mini-Bar */}
                     <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: '#64748b' }}>
-                        <span>Semester Progress: 85%</span>
-                        <div style={{ width: '100px', height: '6px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
-                            <div style={{ width: '85%', height: '100%', background: '#10b981', borderRadius: '10px' }}></div>
-                        </div>
+                        {/** Use real overviewData.semesterProgress when available; avoid hardcoded demo values */}
+                        {(() => {
+                            const progress = overviewData && typeof overviewData.semesterProgress === 'number' ? Math.max(0, Math.min(100, overviewData.semesterProgress)) : 0;
+                            return (
+                                <>
+                                    <span>Semester Progress: {progress}%</span>
+                                    <div style={{ width: '100px', height: '6px', background: '#e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+                                        <div style={{ width: `${progress}%`, height: '100%', background: '#10b981', borderRadius: '10px' }}></div>
+                                    </div>
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
                 <div className="sd-actions">
@@ -875,7 +931,7 @@ export default function StudentDashboard({ studentData = FALLBACK, onLogout }) {
 
                             <div className="stats-row" style={{ display: 'flex', justifyContent: 'center', gap: '2rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
                                 <div>
-                                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#3b82f6' }}>85%</div>
+                                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#3b82f6' }}>{overviewData && overviewData.attendance && overviewData.attendance.overall != null ? `${overviewData.attendance.overall}%` : '-'}</div>
                                     <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Attendance</div>
                                 </div>
                                 <div>
@@ -1209,6 +1265,7 @@ export default function StudentDashboard({ studentData = FALLBACK, onLogout }) {
                     </div>
                 </div>
             )}
+            <AnnouncementTicker messages={messages} />
         </div>
     );
 }

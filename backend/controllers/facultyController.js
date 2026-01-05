@@ -8,8 +8,15 @@ exports.getFaculty = async (req, res) => {
     const faculty = await Faculty.find().select('-password');
     res.json(faculty);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('MongoDB Faculty fetch failed, trying file DB:', error.message);
+    try {
+      const dbFile = require('../dbHelper');
+      const facultyData = dbFile('faculty').read();
+      res.json(facultyData);
+    } catch (fileErr) {
+      console.error('File DB failed too:', fileErr);
+      res.status(500).json({ message: 'Server Error' });
+    }
   }
 };
 
