@@ -2,6 +2,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
+const { RESOURCE_MAP } = require('./dashboardConfig');
 
 // Models
 const Student = require('./models/Student');
@@ -10,39 +11,39 @@ const Course = require('./models/Course');
 const Material = require('./models/Material');
 const Message = require('./models/Message');
 const ExamResult = require('./models/ExamResult');
-// const Attendance = require('./models/Attendance'); // If model exists
-
-const dataDir = path.join(__dirname, 'data');
 
 const resetData = async () => {
-    console.log("🚀 Starting System Reset...");
+    console.log("🚀 Starting System Reset (New Structure Compatible)...");
 
-    // 1. Clear JSON Files (EXCEPT admin.json)
+    // 1. Clear JSON Files (EXCEPT admin)
     console.log("📂 Cleaning JSON Data Stores...");
-    const files = fs.readdirSync(dataDir);
-    files.forEach(file => {
-        if (file === 'admin.json') {
-            console.log("   - Skipping admin.json (Preserving Credentials)");
+    Object.entries(RESOURCE_MAP).forEach(([key, filePath]) => {
+        if (key === 'admin') {
+            console.log("   - Skipping admin (Preserving Credentials)");
             return;
         }
-        if (file.endsWith('.json')) {
-            // Reset to empty array
-            fs.writeFileSync(path.join(dataDir, file), JSON.stringify([], null, 2));
-            console.log(`   - Cleared ${file}`);
+
+        // Only clear if exists
+        if (fs.existsSync(filePath)) {
+            try {
+                // If it's a file, empty array
+                fs.writeFileSync(filePath, JSON.stringify([], null, 2));
+                console.log(`   - Cleared ${key} -> ${filePath}`);
+            } catch (e) {
+                console.error(`   ! Failed to clear ${key}:`, e.message);
+            }
         }
     });
 
     // 2. Clear MongoDB
-    // Fallback URI logic from config/db.js
     const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/friendly_notebook';
 
     if (mongoUri) {
-        console.log(`🍃 Connecting to MongoDB... (${mongoUri})`);
+        console.log(`🍃 Connecting to MongoDB...`);
         try {
             await mongoose.connect(mongoUri);
             console.log("   Connected!");
 
-            // Clear Collections
             console.log("   - Deleting Students...");
             await Student.deleteMany({});
 
@@ -62,9 +63,7 @@ const resetData = async () => {
                 console.log("   - Deleting ExamResults...");
                 await ExamResult.deleteMany({});
             }
-            // Add other models if needed
 
-            // Optional: Drop studentFaculty collection if accessible direct
             try {
                 await mongoose.connection.collection('studentFaculty').deleteMany({});
                 console.log("   - Cleared studentFaculty collection");
@@ -73,6 +72,11 @@ const resetData = async () => {
             try {
                 await mongoose.connection.collection('attendances').deleteMany({});
                 console.log("   - Cleared attendances collection");
+            } catch (e) { }
+
+            try {
+                await mongoose.connection.collection('teachingassignments').deleteMany({});
+                console.log("   - Cleared teachingassignments collection");
             } catch (e) { }
 
             console.log("✅ MongoDB Cleared Successfully.");
@@ -85,8 +89,7 @@ const resetData = async () => {
         console.log("⚠️ No MONGO_URI found. Skipping MongoDB clean.");
     }
 
-    console.log("🎉 System Reset Complete. All student/faculty data removed.");
-    console.log("ℹ️  Admin credentials in 'backend/data/admin.json' are preserved.");
+    console.log("🎉 System Reset Complete.");
     process.exit(0);
 };
 

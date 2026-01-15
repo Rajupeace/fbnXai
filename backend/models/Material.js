@@ -1,78 +1,32 @@
 const mongoose = require('mongoose');
 
 const materialSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
-  },
+  title: { type: String, required: true },
+
+  // Categorization
+  year: { type: String, default: '1' },
+  branch: { type: String, default: 'Common' },
+  section: { type: String, default: 'All' },
+  semester: { type: String, default: '1' },
+  subject: { type: String, required: true },
+
+  module: { type: String, default: '1' },
+  unit: { type: String, default: '1' },
+  topic: { type: String, default: 'General Topics' },
+
+  // Content
+  type: { type: String, required: true }, // 'notes', 'videos', 'assignment', 'syllabus', 'modelPapers'
+  url: { type: String, required: true },
   description: String,
-  fileUrl: {
-    type: String,
-    required: true
-  },
-  fileType: {
-    type: String,
-    required: true
-  },
-  fileSize: {
-    type: Number,
-    required: true
-  },
-  course: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Course',
-    required: false
-  },
-  uploadedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Faculty',
-    required: true
-  },
-  year: {
-    type: String,
-    required: true
-  },
-  section: {
-    type: String,
-    default: 'All'
-  },
-  subject: {
-    type: String,
-    required: true
-  },
-  branch: {
-    type: String,
-    default: 'All'
-  },
-  semester: {
-    type: String,
-    default: null
-  },
-  module: String,
-  unit: String,
-  topic: String,
-  type: {
-    type: String,
-    enum: ['notes', 'assignment', 'assignments', 'question_paper', 'modelPapers', 'importantQuestions', 'syllabus', 'other', 'videos', 'interview'],
-    required: true
-  },
-  downloads: {
-    type: Number,
-    default: 0
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+
+  // Metadata
+  uploadedBy: { type: String, default: 'admin' }, // 'admin' or facultyId
+  facultyName: String,
+  createdAt: { type: Date, default: Date.now },
+
+  // Stats
+  views: { type: Number, default: 0 },
+  downloads: { type: Number, default: 0 }
 });
 
-// Update the updatedAt field before saving
-materialSchema.pre('save', function () {
-  this.updatedAt = new Date();
-});
-
-module.exports = mongoose.model('Material', materialSchema);
+module.exports = mongoose.model('Material', materialSchema, 'AdminDashboardDB_Sections_Materials');

@@ -1,92 +1,25 @@
 const mongoose = require('mongoose');
 
 const facultySchema = new mongoose.Schema({
-  facultyId: {
-    type: String,
-    required: [true, 'Faculty ID is required'],
-    unique: true,
-    trim: true
-  },
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    trim: true,
-    lowercase: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters long']
-  },
-  department: {
-    type: String,
-    required: [true, 'Department is required'],
-    trim: true
-  },
-  designation: {
-    type: String,
-    required: [true, 'Designation is required'],
-    trim: true
-  },
-  phone: {
-    type: String,
-    trim: true
-  },
-  address: {
-    type: String,
-    trim: true
-  },
-  profileImage: String,
-  isAdmin: {
-    type: Boolean,
-    default: false
-  },
-  facultyToken: {
-    type: String,
-    default: null
-  },
-  tokenIssuedAt: {
-    type: Date,
-    default: null
-  },
+  name: { type: String, required: true },
+  facultyId: { type: String, required: true, unique: true },
+  email: { type: String, default: '' },
+  password: { type: String, required: true },
+  designation: { type: String, default: 'Lecturer' },
+  department: { type: String, default: 'General' },
+  phone: String,
+
+  // Teaching assignments for easier lookup
   assignments: [{
-    year: {
-      type: String,
-      required: true
-    },
-    subject: {
-      type: String,
-      required: true
-    },
-    section: {
-      type: String,
-      required: true
-    },
-    branch: {
-      type: String,
-      required: true
-    }
+    year: String,
+    section: String,
+    subject: String
   }],
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+
+  // Stats
+  lastLogin: Date,
+  totalClasses: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now }
 });
 
-// Update the updatedAt field before saving
-facultySchema.pre('save', function () {
-  this.updatedAt = new Date();
-});
-
-module.exports = mongoose.model('Faculty', facultySchema);
+module.exports = mongoose.model('Faculty', facultySchema, 'AdminDashboardDB_Sections_Faculty');

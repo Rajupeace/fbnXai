@@ -1,13 +1,28 @@
 const mongoose = require('mongoose');
 
 const examResultSchema = new mongoose.Schema({
-    studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
-    examId: { type: mongoose.Schema.Types.ObjectId, ref: 'Exam', required: true },
-    score: { type: Number, required: true },
-    totalMarks: { type: Number, required: true },
-    correctAnswers: { type: Number, required: true },
-    wrongAnswers: { type: Number, required: true },
-    submittedAt: { type: Date, default: Date.now }
+    examTitle: { type: String, required: true },
+    examType: { type: String, default: 'Internal' }, // 'Internal', 'External', 'Lab'
+    date: { type: Date, default: Date.now },
+
+    // Context
+    year: String,
+    semester: String,
+    branch: String,
+    subject: String,
+
+    // Student Data
+    studentId: { type: String, required: true },
+    studentName: String,
+
+    // Scores
+    marksObtained: { type: Number, required: true },
+    maxMarks: { type: Number, required: true },
+    grade: String,
+
+    summary: String, // Remarks
+
+    createdAt: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('ExamResult', examResultSchema);
+module.exports = mongoose.model('ExamResult', examResultSchema, 'StudentDashboardDB_Sections_Exams');

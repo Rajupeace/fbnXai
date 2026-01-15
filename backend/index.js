@@ -3,6 +3,10 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
+const chokidar = require('chokidar');
+const { DASHBOARD_PATHS, RESOURCE_MAP } = require('./dashboardConfig');
+// Import dbHelper but name it dbFile to maintain compatibility with existing code
+const dbFile = require('./dbHelper');
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 const multer = require('multer');
@@ -20,6 +24,8 @@ const materialController = require('./controllers/materialController');
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+
 
 // Global request logging middleware
 app.use((req, res, next) => {
@@ -106,7 +112,8 @@ app.get('/api/stream', (req, res) => {
   });
 });
 // Serve uploads statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const staticUploads = DASHBOARD_PATHS.uploads;
+app.use('/uploads', express.static(staticUploads));
 
 // Health check route - Early registration
 app.get('/api/health', (req, res) => {
@@ -116,22 +123,51 @@ app.get('/api/health', (req, res) => {
 
 let server;
 
-const uploadsDir = path.join(__dirname, 'uploads');
-const dataDir = path.join(__dirname, 'data');
+// Legacy variables for compatibility if needed, though mostly replaced by dashboardConfig
+const uploadsDir = DASHBOARD_PATHS.uploads;
 
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+// Initialize Watcher for Real-time Updates from D: Drive
+// Initialize Watcher for Real-time Updates from D: Drive
+const watchPaths = [];
+Object.values(DASHBOARD_PATHS).forEach(p => {
+  if (typeof p === 'string') watchPaths.push(p);
+  else if (p.root) watchPaths.push(p.root);
+});
 
-const dbFile = (name, initial) => {
-  const p = path.join(dataDir, name + '.json');
-  if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify(initial, null, 2));
-  return {
-    read: () => {
-      try { return JSON.parse(fs.readFileSync(p, 'utf8') || 'null') || initial; } catch (e) { return initial; }
-    },
-    write: (v) => { fs.writeFileSync(p, JSON.stringify(v, null, 2)); }
-  };
-};
+const watcher = chokidar.watch(watchPaths, {
+  ignored: /(^|[\/\\])\../,
+  persistent: true,
+  ignoreInitial: true,
+  depth: 10
+});
+
+watcher.on('all', (event, filePath) => {
+  // debounce requests? For now, raw.
+  // Identify resource
+  let resource = null;
+  // Normalize slashes for comparison
+  const normPath = path.normalize(filePath);
+
+  for (const [key, val] of Object.entries(RESOURCE_MAP)) {
+    if (normPath === path.normalize(val)) {
+      resource = key;
+      break;
+    }
+  }
+
+  // If not found directly, check if it's in a known folder (e.g. uploads or a new json)
+  if (!resource) {
+    if (normPath.includes('students')) resource = 'students';
+    else if (normPath.includes('materials')) resource = 'materials';
+    else if (normPath.includes('courses')) resource = 'courses';
+  }
+
+  if (resource) {
+    console.log(`[File Watcher] Change detected in ${resource} (${event}), broadcasting update.`);
+    // Broadcast to all connected clients
+    broadcastEvent({ resource: resource, action: 'update', from: 'filesystem' });
+  }
+});
 
 const studentsDB = dbFile('students', []);
 const facultyDB = dbFile('faculty', []);
@@ -200,7 +236,8 @@ const scheduleRoutes = require('./routes/scheduleRoutes');
 const chatRoutes = require('./routes/chat');
 const examRoutes = require('./routes/examRoutes');
 
-// Use teaching assignment routes
+const courseRoutes = require('./routes/courseRoutes');
+app.use('/api/courses', courseRoutes);
 // app.use('/api/teaching-assignments', teachingAssignmentRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/attendance', attendanceRoutes);
@@ -815,61 +852,56 @@ app.get('/api/content-source', /* requireAuthMongo, */(req, res) => {
 });
 
 // simple admin-check middleware
-function requireAdmin(req, res, next) {
+// simple admin-check middleware
+const requireAdmin = async (req, res, next) => {
   // Support both custom headers and standard Bearer token
   const bearer = req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null;
   const token = req.headers['x-admin-token'] || bearer;
 
   if (!token) {
-    console.warn(`[Auth] Admin token missing. Received headers: ${JSON.stringify(req.headers)}`);
-    return res.status(401).json({ error: 'Authentication required', details: 'Admin token (x-admin-token or Bearer) is missing.' });
+    console.warn(`[Auth] Admin token missing.`);
+    return res.status(401).json({ error: 'Authentication required', details: 'Admin token is missing.' });
   }
 
-  const checkFileDB = () => {
-    const admin = adminDB.read() || {};
-    if (admin.adminToken && token === admin.adminToken) {
-      req.user = { id: admin.adminId, _id: admin.adminId, role: 'admin', name: 'Administrator' };
-      return next();
-    }
-
-    // If token doesn't strictly match stored token, try verifying JWT payload
+  // Helper: Verify JWT Payload
+  const verifyJWT = (t) => {
     try {
-      const secret = process.env.JWT_SECRET || 'your_jwt_secret';
-      const decoded = jwt.verify(token, secret);
-      // Accept token if decoded id matches stored adminId (covers tokens issued before a file reset)
-      if (decoded && (decoded.id === admin.adminId || decoded.id === admin.id)) {
-        req.user = { id: admin.adminId, _id: admin.adminId, role: 'admin', name: 'Administrator' };
-        return next();
-      }
-    } catch (e) {
-      // Verification failed or token invalid/expired — fall through to deny
-    }
-
-    console.warn(`[Auth] Invalid admin token attempted (file)`);
-    return res.status(401).json({ error: 'Session expired', message: 'Please log out and log in again' });
+      const key = process.env.JWT_SECRET || 'your_jwt_secret';
+      return jwt.verify(t, key);
+    } catch (e) { return null; }
   };
 
-  // Prefer MongoDB, but fall back to file-based admin token if MongoDB unavailable
+  // 1. Stateful: Check MongoDB
   if (mongoose.connection.readyState === 1 && Admin) {
-    Admin.findOne({ adminToken: token })
-      .then(adminDoc => {
-        if (adminDoc) {
-          req.user = { id: adminDoc.adminId, _id: adminDoc._id, role: 'admin', name: adminDoc.name };
-          return next();
-        }
-        // If not found in Mongo, try file fallback
-        return checkFileDB();
-      })
-      .catch(err => {
-        console.error('Admin DB findOne error:', err);
-        // On DB error, try file fallback
-        return checkFileDB();
-      });
-  } else {
-    // MongoDB not connected: allow file-based admin auth
-    return checkFileDB();
+    try {
+      const adminDoc = await Admin.findOne({ adminToken: token });
+      if (adminDoc) {
+        req.user = { id: adminDoc.adminId, _id: adminDoc._id, role: 'admin', name: adminDoc.name };
+        return next();
+      }
+    } catch (err) {
+      console.error('Admin DB findOne error:', err);
+    }
   }
-}
+
+  // 2. Stateless: Verify Valid Signature (Fallback if DB cleared or restarted)
+  const decoded = verifyJWT(token);
+  if (decoded && (decoded.id === process.env.ADMIN_ID || decoded.id === 'ReddyFBN@1228' || decoded.role === 'admin')) {
+    console.log('[Auth] Stateless Admin JWT accepted (DB mismatch ignored).');
+    req.user = { id: decoded.id, role: 'admin', name: 'Administrator' };
+    return next();
+  }
+
+  // 3. File-Based Fallback
+  const adminFile = adminDB.read() || {};
+  if (adminFile.adminToken === token) {
+    req.user = { id: adminFile.adminId || 'admin', role: 'admin', name: 'Administrator' };
+    return next();
+  }
+
+  console.warn(`[Auth] Admin authentication failed. Token invalid or expired.`);
+  return res.status(401).json({ error: 'Session expired', message: 'Please log out and log in again' });
+};
 
 function requireFaculty(req, res, next) {
   const bearer = req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null;
@@ -1007,7 +1039,11 @@ app.post('/api/admin/login', async (req, res) => {
       }
 
       if (admin && admin.password === password) {
-        const token = jwt.sign({ id: admin._id }, process.env.JWT_SECRET || 'your_jwt_secret');
+        const token = jwt.sign(
+          { id: admin.adminId },
+          process.env.JWT_SECRET || 'your_jwt_secret',
+          { expiresIn: '24h' } // Add 24 hour expiration
+        );
         admin.adminToken = token;
         admin.tokenIssuedAt = new Date();
         await admin.save();
@@ -1023,7 +1059,11 @@ app.post('/api/admin/login', async (req, res) => {
     // Fallback: File-based (Legacy)
     const adminFile = adminDB.read() || {};
     if (adminFile.adminId === adminId && adminFile.password === password) {
-      const token = jwt.sign({ id: adminFile.adminId }, process.env.JWT_SECRET || 'your_jwt_secret');
+      const token = jwt.sign(
+        { id: adminFile.adminId },
+        process.env.JWT_SECRET || 'your_jwt_secret',
+        { expiresIn: '24h' } // Add 24 hour expiration
+      );
 
       // Update file with token
       adminFile.adminToken = token;
@@ -1041,6 +1081,41 @@ app.post('/api/admin/login', async (req, res) => {
   } catch (err) {
     console.error('Error in admin login:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/admin/refresh', requireAdmin, async (req, res) => {
+  try {
+    const user = req.user;
+    const token = jwt.sign(
+      { id: user.id },
+      process.env.JWT_SECRET || 'your_jwt_secret',
+      { expiresIn: '24h' }
+    );
+
+    // Update token in storage
+    if (mongoose.connection.readyState === 1 && Admin) {
+      await Admin.findOneAndUpdate(
+        { adminId: user.id },
+        { adminToken: token, tokenIssuedAt: new Date() }
+      );
+    } else {
+      const adminFile = adminDB.read() || {};
+      if (adminFile.adminId === user.id) {
+        adminFile.adminToken = token;
+        adminFile.tokenIssuedAt = new Date().toISOString();
+        adminDB.write(adminFile);
+      }
+    }
+
+    res.json({
+      ok: true,
+      token,
+      message: 'Token refreshed successfully'
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    res.status(500).json({ error: 'Failed to refresh token' });
   }
 });
 
@@ -1169,11 +1244,20 @@ app.delete('/api/students/:sid', requireAdmin, async (req, res) => {
   try {
     await Student.findOneAndDelete({ sid });
 
-    // Clean up student-faculty relationships stored in MongoDB collection 'studentFaculty'
+    // Clean up student-faculty relationships
     try {
       const coll = mongoose.connection.collection('studentFaculty');
       await coll.deleteMany({ studentId: sid });
     } catch (e) { /* ignore cleanup errors */ }
+
+    // Sync removal from File DB (Hybrid Persistence)
+    try {
+      const students = studentsDB.read() || [];
+      const newStudents = students.filter(s => s.sid !== sid);
+      if (students.length !== newStudents.length) {
+        studentsDB.write(newStudents);
+      }
+    } catch (e) { console.warn('File sync warning:', e.message); }
 
     try { broadcastEvent({ resource: 'students', action: 'delete', data: { sid } }); } catch (e) { }
     return res.json({ ok: true });
@@ -1473,6 +1557,16 @@ app.delete('/api/faculty/:fid', requireAdmin, async (req, res) => {
         await MessageModel.deleteMany({ facultyId: fid }).catch(() => { });
       } catch (e) { }
 
+      // Sync removal from File DB (Hybrid Persistence)
+      try {
+        const FacultyModel = require('./models/Faculty'); // redundant if up top but safe
+        const fList = facultyDB.read() || [];
+        const newFList = fList.filter(f => f.facultyId !== fid);
+        if (fList.length !== newFList.length) {
+          facultyDB.write(newFList);
+        }
+      } catch (e) { console.warn('File sync warning:', e.message); }
+
       return res.json({ message: 'Faculty removed' });
     } catch (err) {
       console.error('Faculty delete error:', err);
@@ -1584,9 +1678,13 @@ app.post('/api/admin/login', async (req, res) => {
       try {
         const admin = await Admin.findOne({ adminId });
         if (admin && admin.password === password) {
-          const token = uuidv4();
+          const token = jwt.sign(
+            { id: admin.adminId },
+            process.env.JWT_SECRET || 'your_jwt_secret',
+            { expiresIn: '24h' } // Add 24 hour expiration
+          );
           admin.adminToken = token;
-          admin.tokenIssuedAt = new Date().toISOString();
+          admin.tokenIssuedAt = new Date();
           await admin.save();
           console.log('✅ Admin logged in (MongoDB):', adminId);
 
@@ -1604,7 +1702,11 @@ app.post('/api/admin/login', async (req, res) => {
     // 2. Fallback: File-based
     const adminFile = adminDB.read() || {};
     if ((adminFile.adminId === adminId || adminId === process.env.ADMIN_ID) && (adminFile.password === password || password === process.env.ADMIN_PASSWORD)) {
-      const token = uuidv4();
+      const token = jwt.sign(
+        { id: adminFile.adminId || process.env.ADMIN_ID || adminId },
+        process.env.JWT_SECRET || 'your_jwt_secret',
+        { expiresIn: '24h' } // Add 24 hour expiration
+      );
       const updatedAdmin = { ...adminFile, adminToken: token, tokenIssuedAt: new Date().toISOString() };
       adminDB.write(updatedAdmin);
 
@@ -2416,12 +2518,12 @@ app.delete('/api/courses/:id', requireAdmin, async (req, res) => {
     const { id } = req.params;
     if (mongoose.connection.readyState === 1) {
       await Course.findByIdAndDelete(id);
-      return res.json({ ok: true });
-    } else {
-      const arr = coursesDB.read();
-      coursesDB.write(arr.filter(c => c.id !== id));
-      res.json({ ok: true });
     }
+
+    // Always sync file
+    const arr = coursesDB.read();
+    coursesDB.write(arr.filter(c => c.id !== id));
+    res.json({ ok: true });
   } catch (err) {
     console.error('Error deleting course:', err);
     res.status(500).json({ error: 'Failed to delete course' });
@@ -2455,7 +2557,7 @@ app.get('/api/subjects', async (req, res) => {
 
 app.post('/api/subjects', requireAdmin, async (req, res) => {
   try {
-    const { name, code, year, semester, branch, sections, description } = req.body;
+    const { name, code, year, semester, branch, sections, description, credits } = req.body;
     if (!name || !code || !year) return res.status(400).json({ error: 'missing required fields' });
 
     // 1. Try MongoDB
@@ -2469,7 +2571,8 @@ app.post('/api/subjects', requireAdmin, async (req, res) => {
         year: String(year),
         semester: String(semester || '1'),
         department: branch || 'Common',
-        description: description || ''
+        description: description || '',
+        credits: Number(credits) || 3 // Default credits to 3 if missing
       });
       return res.status(201).json({ ...newCourse.toObject(), id: newCourse._id });
     }
@@ -2477,12 +2580,16 @@ app.post('/api/subjects', requireAdmin, async (req, res) => {
     // 2. Fallback File
     const arr = coursesDB.read();
     if (arr.find(s => s.code === code)) return res.status(409).json({ error: 'subject code exists' });
-    const item = { id: uuidv4(), name, code, year, semester, branch, sections: sections || [], description, createdAt: new Date().toISOString() };
+    const item = { id: uuidv4(), name, code, year, semester, branch, sections: sections || [], description, credits: Number(credits) || 3, createdAt: new Date().toISOString() };
     arr.push(item);
     coursesDB.write(arr);
     res.status(201).json(item);
   } catch (e) {
     console.error("Subject create error:", e);
+    // Return detailed error if it's a validation error
+    if (e.name === 'ValidationError') {
+      return res.status(400).json({ error: e.message });
+    }
     res.status(500).json({ error: "Failed to save subject" });
   }
 });
@@ -2498,7 +2605,8 @@ app.put('/api/subjects/:id', requireAdmin, async (req, res) => {
         year: req.body.year,
         semester: req.body.semester,
         department: req.body.branch,
-        description: req.body.description
+        description: req.body.description,
+        credits: Number(req.body.credits) || 3
       }, { new: true });
       if (updated) return res.json(updated);
     }
@@ -2521,6 +2629,7 @@ app.delete('/api/subjects/:id', requireAdmin, async (req, res) => {
     // 1. Mongo
     if (mongoose.connection.readyState === 1) {
       await Course.findByIdAndDelete(id);
+      // Fall through to file sync
     }
     // 2. File
     const arr = coursesDB.read();

@@ -1,53 +1,29 @@
 const mongoose = require('mongoose');
 
 const courseSchema = new mongoose.Schema({
-  courseCode: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  courseName: {
-    type: String,
-    required: true
-  },
-  description: String,
-  credits: {
-    type: Number,
-    required: true
-  },
-  department: {
-    type: String,
-    required: true
-  },
-  year: {
-    type: String,
-    required: true
-  },
-  semester: {
-    type: String,
-    required: true
-  },
-  faculty: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Faculty'
+  name: String,
+  code: String,
+  branch: String, // 'CSE', 'ECE', 'Common', 'All'
+  semester: String, // '1', '2', ...
+  year: String, // '1', '2', '3', '4'
+  credits: Number,
+  type: String, // 'core', 'lab', 'elective'
+
+  // Structure
+  modules: [{
+    id: String,
+    name: String,
+    units: [{
+      id: String,
+      name: String,
+      topics: [{
+        id: String,
+        name: String
+      }]
+    }]
   }],
-  students: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Student'
-  }],
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
+
+  createdAt: { type: Date, default: Date.now }
 });
 
-// Update the updatedAt field before saving
-courseSchema.pre('save', function () {
-  this.updatedAt = new Date();
-});
-
-module.exports = mongoose.model('Course', courseSchema);
+module.exports = mongoose.model('Course', courseSchema, 'AdminDashboardDB_Sections_Courses');

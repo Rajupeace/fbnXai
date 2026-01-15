@@ -3,12 +3,27 @@ const mongoose = require('mongoose');
 const uri = 'mongodb://127.0.0.1:27017/friendly_notebook';
 
 const cleanAndVerify = async () => {
-    console.log("🔍 Verifying MongoDB Clean State...");
+    console.log("🔍 Verifying MongoDB Clean State (Checking both legacy and new structures)...");
     try {
         await mongoose.connect(uri);
         console.log("✅ Connected to MongoDB.");
 
-        const collections = ['students', 'faculties', 'courses', 'materials', 'messages', 'examresults', 'studentfaculties', 'attendances'];
+        // We check BOTH old and new collection names to be safe
+        const collections = [
+            // Legacy Flat
+            'students', 'faculties', 'courses', 'materials', 'messages', 'examresults',
+
+            // New Structured
+            'AdminDashboardDB_Sections_Students',
+            'AdminDashboardDB_Sections_Faculty',
+            'AdminDashboardDB_Sections_Courses',
+            'AdminDashboardDB_Sections_Materials',
+            'AdminDashboardDB_Sections_Messages',
+            'StudentDashboardDB_Sections_Exams',
+
+            // Others
+            'studentFaculty', 'attendances', 'teachingassignments', 'schedules'
+        ];
 
         for (const colName of collections) {
             try {
@@ -22,8 +37,7 @@ const cleanAndVerify = async () => {
                     console.log(`✅ '${colName}' is empty.`);
                 }
             } catch (e) {
-                // Collection might not exist, which is fine
-                console.log(`   (Collection '${colName}' check skipped/clean)`);
+                // Is fine
             }
         }
 

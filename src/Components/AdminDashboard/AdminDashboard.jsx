@@ -16,6 +16,16 @@ import AnnouncementTicker from '../AnnouncementTicker/AnnouncementTicker';
 import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaFileAlt, FaClipboardList, FaEnvelope, FaSignOutAlt, FaPlus, FaTrash, FaEdit, FaSearch, FaHome, FaDownload, FaEye, FaBookOpen, FaRobot, FaInfoCircle, FaFileUpload, FaCalendarAlt, FaChartLine } from 'react-icons/fa';
 import sseClient from '../../utils/sseClient';
 
+// Newly extracted sections
+import StudentSection from './Sections/StudentSection';
+import FacultySection from './Sections/FacultySection';
+import CourseSection from './Sections/CourseSection';
+import MaterialSection from './Sections/MaterialSection';
+import MessageSection from './Sections/MessageSection';
+import TodoSection from './Sections/TodoSection';
+import AdvancedSection from './Sections/AdvancedSection';
+import ContentSourceSection from './Sections/ContentSourceSection';
+
 
 // Helper for mocked API or local storage check
 // Helper for mocked API or local storage check
@@ -1004,380 +1014,53 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           )}
 
           {activeSection === 'students' && (
-            <div className="section-container">
-              <div className="actions-bar">
-                <button className="btn-primary" onClick={() => openModal('student')}>
-                  <FaPlus /> Add Student
-                </button>
-                <button className="btn-secondary" onClick={() => openModal('bulk-student')} style={{ marginLeft: '0.5rem' }}>
-                  <FaFileUpload /> Bulk Upload
-                </button>
-                <div className="search-box">
-                  <FaSearch />
-                  <input placeholder="Search students..." />
-                </div>
-              </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>ID</th>
-                    <th>Branch</th>
-                    <th>Year</th>
-                    <th>Section</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map(s => (
-                    <tr key={s.sid}>
-                      <td>{s.studentName}</td>
-                      <td>{s.sid}</td>
-                      <td>{s.branch}</td>
-                      <td>{s.year}</td>
-                      <td>{s.section || 'N/A'}</td>
-                      <td>
-                        <button className="btn-icon" title="View Details" onClick={() => openModal('student-view', s)}><FaEye /></button>
-                        <button className="btn-icon" title="Edit" onClick={() => openModal('student', s)}><FaEdit /></button>
-                        <button className="btn-icon danger" title="Delete" onClick={() => handleDeleteStudent(s.sid)}><FaTrash /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <StudentSection
+              students={students}
+              openModal={openModal}
+              handleDeleteStudent={handleDeleteStudent}
+            />
           )}
 
           {activeSection === 'faculty' && (
-            <div className="section-container">
-              <div className="actions-bar">
-                <button className="btn-primary" onClick={() => openModal('faculty')}>
-                  <FaPlus /> Add Faculty
-                </button>
-              </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>ID</th>
-                    <th>Department</th>
-                    <th>Subjects Teaching</th>
-                    <th>Students Taught</th>
-                    <th>Sections</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {faculty.map(f => {
-                    // Calculate accurate student count based on assignments
-                    const teachingCount = students.filter(s =>
-                      (f.assignments || []).some(a =>
-                        String(a.year) === String(s.year) &&
-                        (String(a.section) === String(s.section) || a.section === 'All')
-                      )
-                    ).length;
-
-                    // Get unique subjects taught
-                    const uniqueSubjects = [...new Set((f.assignments || []).map(a => a.subject))];
-
-                    return (
-                      <tr key={f.facultyId}>
-                        <td>{f.name}</td>
-                        <td>{f.facultyId}</td>
-                        <td>{f.department || 'CSE'}</td>
-                        <td>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                            {uniqueSubjects.length > 0 ? (
-                              uniqueSubjects.map((subject, idx) => (
-                                <span key={idx} className="badge" style={{ background: '#e0e7ff', color: '#4338ca', fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}>
-                                  {subject}
-                                </span>
-                              ))
-                            ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>No subjects assigned</span>
-                            )}
-                          </div>
-                        </td>
-                        <td style={{ fontWeight: 'bold', color: '#3b82f6', fontSize: '1.1rem' }}>{teachingCount}</td>
-                        <td>
-                          <span className="badge" style={{ background: '#f0fdf4', color: '#15803d' }}>
-                            {(f.assignments || []).length}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn-icon" title="Edit" onClick={() => openModal('faculty', f)}><FaEdit /></button>
-                          <button className="btn-icon danger" title="Delete" onClick={() => handleDeleteFaculty(f.facultyId)}><FaTrash /></button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <FacultySection
+              faculty={faculty}
+              students={students}
+              openModal={openModal}
+              handleDeleteFaculty={handleDeleteFaculty}
+            />
           )}
 
           {activeSection === 'courses' && (
-            <div className="section-container">
-              <div className="actions-bar">
-                <button className="btn-primary" onClick={() => openModal('course')}>
-                  <FaPlus /> Add Subject
-                </button>
-                <div className="filter-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <label>Filter Branch:</label>
-                  <select
-                    value={selectedBranchFilter}
-                    onChange={(e) => setSelectedBranchFilter(e.target.value)}
-                    style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-                  >
-                    <option value="All">All Branches</option>
-                    <option value="CSE">CSE</option>
-                    <option value="ECE">ECE</option>
-                    <option value="EEE">EEE</option>
-                    <option value="Mechanical">Mechanical</option>
-                    <option value="Civil">Civil</option>
-                    <option value="IT">IT</option>
-                    <option value="AIML">AIML</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="subjects-view">
-                {[1, 2, 3, 4].map(year => {
-                  // 1. Get Dynamic Courses (Admin Added)
-                  const dynamicCourses = courses.filter(c =>
-                    String(c.year) === String(year) &&
-                    (
-                      selectedBranchFilter === 'All' ||
-                      (c.branch && c.branch.toLowerCase() === selectedBranchFilter.toLowerCase()) ||
-                      (c.branch && c.branch.toLowerCase() === 'all')
-                    )
-                  );
-
-                  // 2. Get Static Courses (Default Curriculum) - Only if a branch is selected
-                  let allCourses = [...dynamicCourses];
-
-                  /* 
-                     Fix: Ensure static courses are merged correctly without duplicates 
-                     and respected properly when viewing specific branches.
-                  */
-                  if (selectedBranchFilter !== 'All') {
-                    const staticData = getYearData(selectedBranchFilter, String(year));
-                    if (staticData && staticData.semesters) {
-                      staticData.semesters.forEach(s => {
-                        s.subjects.forEach(sub => {
-                          // Check if admin has already added this subject (dynamic override)
-                          const isDynamic = dynamicCourses.some(dc => dc.code === sub.code);
-
-                          if (!isDynamic) {
-                            allCourses.push({
-                              ...sub,
-                              year: year,
-                              semester: s.sem,
-                              branch: selectedBranchFilter,
-                              isStatic: true
-                            });
-                          }
-                        });
-                      });
-                    }
-                  } else {
-                    // When 'All' is selected, show only Dynamic courses to keep view clean.
-                    // This is intended behavior for the Admin Overview.
-                  }
-
-                  if (allCourses.length === 0) return null;
-
-                  // Group by semester
-                  const semesters = [...new Set(allCourses.map(c => c.semester))].sort();
-
-                  return (
-                    <div key={year} className="year-group" style={{ marginBottom: '2rem' }}>
-                      <h2 style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '0.5rem', color: '#334155' }}>Year {year}</h2>
-                      {semesters.map(sem => (
-                        <div key={sem} className="semester-group" style={{ marginLeft: '1rem', marginTop: '1rem' }}>
-                          <h4 style={{ color: '#64748b' }}>Semester {sem}</h4>
-                          <div className="cards-grid">
-                            {allCourses.filter(c => String(c.semester) === String(sem)).map(c => (
-                              <div key={c.id} className="info-card course-card" style={c.isStatic ? { background: '#f8fafc', border: '1px dashed #cbd5e1' } : {}}>
-                                <h3>{c.name}</h3>
-                                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>{c.code}</p>
-                                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <span className="badge">{c.branch || 'Common'}</span>
-                                    {c.isStatic && <span className="badge" style={{ background: '#94a3b8' }}>Default</span>}
-                                  </div>
-                                  {(() => {
-                                    const hasContent = materials.some(m => m.subject === c.name || m.subject === c.code);
-                                    return (
-                                      <div
-                                        onClick={() => openModal('syllabus-view', c)}
-                                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
-                                        title={hasContent ? "Content Available - Click to View" : "No Content - Click to Add"}
-                                      >
-                                        {hasContent ?
-                                          <FaBookOpen style={{ color: '#10b981', fontSize: '1.3rem' }} /> :
-                                          <FaBook style={{ color: '#3b82f6', fontSize: '1.3rem' }} />
-                                        }
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                                <div className="card-actions" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                                  <button className="btn-icon" onClick={() => openModal('course', c)} title="Edit"><FaEdit /></button>
-                                  <button className="btn-icon danger" onClick={() => handleDeleteCourse(c.id)} title="Delete"><FaTrash /></button>
-                                  {(() => {
-                                    const hasContent = materials.some(m => m.subject === c.name || m.subject === c.code);
-                                    return (
-                                      <button
-                                        className="btn-icon"
-                                        onClick={() => openModal('syllabus-view', c)}
-                                        title={hasContent ? "View Content" : "No Content - Click to Add"}
-                                        style={{ color: hasContent ? '#10b981' : '#cbd5e1' }}
-                                      >
-                                        {hasContent ? <FaBookOpen /> : <FaBook />}
-                                      </button>
-                                    );
-                                  })()}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-                {courses.length === 0 && <p className="empty-state">No subjects found. Add a subject to get started.</p>}
-              </div>
-            </div>
+            <CourseSection
+              courses={courses}
+              materials={materials}
+              openModal={openModal}
+              handleDeleteCourse={handleDeleteCourse}
+            />
           )}
 
           {activeSection === 'advanced' && (
-            <div className="section-container">
-              <div className="actions-bar">
-                <button className="btn-primary" onClick={() => openModal('material', { isAdvanced: true })}>
-                  <FaPlus /> Add Advanced Content
-                </button>
-                <div className="info-text">
-                  Manage content for Advanced Learning modules (Python, Java, React, etc.).
-                </div>
-              </div>
-
-              <div className="cards-grid">
-                {ADVANCED_TOPICS.map(topic => {
-                  // Count items
-                  const count = materials.filter(m => m.subject === topic).length;
-                  return (
-                    <div key={topic} className="info-card course-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3 style={{ margin: 0, color: '#0f172a' }}>{topic}</h3>
-                        <span className="badge" style={{ background: count > 0 ? '#3b82f6' : '#cbd5e1' }}>{count} items</span>
-                      </div>
-                      <div className="card-actions" style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn-icon" onClick={() => openModal('syllabus-view', { name: topic, isAdvanced: true })} title="View Content">
-                          <FaEye /> View
-                        </button>
-                        <button className="btn-icon" onClick={() => openModal('material', { subject: topic, isAdvanced: true })} title="Add Content">
-                          <FaPlus /> Add
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <AdvancedSection
+              topics={ADVANCED_TOPICS}
+              materials={materials}
+              openModal={openModal}
+            />
           )}
 
           {activeSection === 'materials' && (
-            <div className="section-container">
-              <div className="actions-bar">
-                <button className="btn-primary" onClick={() => openModal('material')}>
-                  <FaPlus /> Upload Material
-                </button>
-                <div className="info-text">
-                  Materials will be visible to Students & Faculty based on Year/Section.
-                </div>
-              </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Subject</th>
-                    <th>Target</th>
-                    <th>Topic</th>
-                    <th>Type</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {materials.map((m, idx) => (
-                    <tr key={m.id || idx}>
-                      <td>
-                        <div style={{ fontWeight: 500 }}>{m.title}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#666' }}>By: {m.uploadedBy?.name || m.uploadedBy || 'Unknown'}</div>
-                      </td>
-                      <td>{m.subject}</td>
-                      <td>
-                        <span className="badge syllabus">Y:{m.year}</span>
-                        <span className="badge" style={{ marginLeft: 4 }}>Sec:{m.section}</span>
-                      </td>
-                      <td>{m.topic} <span style={{ fontSize: '0.75rem', color: '#888' }}>(M{m.module}/U{m.unit})</span></td>
-                      <td><span className={`badge ${m.category || m.type}`}>{m.category || m.type}</span></td>
-                      <td>
-                        <button className="btn-icon" title="View Details" onClick={() => openModal('material-view', m)}><FaEye /></button>
-                        <button className="btn-icon" title="Edit" onClick={() => openModal('material', m)}><FaEdit /></button>
-                        <button className="btn-icon danger" title="Delete" onClick={() => handleDeleteMaterial(m.id)}><FaTrash /></button>
-                        {m.url && m.url !== '#' && <a href={getFileUrl(m.url)} target="_blank" rel="noreferrer" className="btn-icon"><FaDownload /></a>}
-                      </td>
-                    </tr>
-                  ))}
-                  {materials.length === 0 && <tr><td colSpan="6" className="empty-state">No materials uploaded yet.</td></tr>}
-                </tbody>
-              </table>
-            </div>
+            <MaterialSection
+              materials={materials}
+              openModal={openModal}
+              handleDeleteMaterial={handleDeleteMaterial}
+              getFileUrl={getFileUrl}
+            />
           )}
 
           {activeSection === 'content-source' && (
-            <div className="section-container">
-              <div className="actions-bar">
-                <h3>Content Source Files</h3>
-                <div className="info-text">
-                  Browse and manage uploaded content source materials. These files are automatically linked to the advanced learning dashboard.
-                </div>
-              </div>
-              <div className="content-source-grid">
-                {contentSource.map(subject => (
-                  <div key={subject.subject} className="subject-card">
-                    <h4>{subject.subject}</h4>
-                    {subject.types.map(type => (
-                      <div key={type.type} className="type-section">
-                        <h5>{type.type.charAt(0).toUpperCase() + type.type.slice(1)}</h5>
-                        {type.chapters.map(chapter => (
-                          <div key={chapter.chapter} className="chapter-section">
-                            <h6>Chapter {chapter.chapter}</h6>
-                            <div className="files-list">
-                              {chapter.files.map(file => (
-                                <div key={file.name} className="file-item">
-                                  <span className="file-name">{file.name}</span>
-                                  <span className="file-size">({(file.size / 1024).toFixed(1)} KB)</span>
-                                  <a href={getFileUrl(file.url)} target="_blank" rel="noreferrer" className="btn-icon">
-                                    <FaEye />
-                                  </a>
-                                  <a href={getFileUrl(file.url)} download className="btn-icon">
-                                    <FaDownload />
-                                  </a>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                ))}
-                {contentSource.length === 0 && <p className="empty-state">No content source files found.</p>}
-              </div>
-            </div>
+            <ContentSourceSection
+              contentSource={contentSource}
+              getFileUrl={getFileUrl}
+            />
           )}
 
           {activeSection === 'attendance' && (
@@ -1393,74 +1076,19 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           )}
 
           {activeSection === 'todos' && (
-            <div className="section-container">
-              <div className="actions-bar center">
-                <button className="btn-primary" onClick={() => openModal('todo')}>
-                  <FaPlus /> New Task
-                </button>
-              </div>
-              <div className="todo-list">
-                {todos.map(todo => (
-                  <div key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={todo.completed}
-                      onChange={() => toggleTodo(todo.id)}
-                    />
-                    <span className="todo-text">{todo.text}</span>
-                    <div className="todo-actions">
-                      <button onClick={() => openModal('todo', todo)}><FaEdit /></button>
-                      <button onClick={() => deleteTodo(todo.id)} className="danger"><FaTrash /></button>
-                    </div>
-                  </div>
-                ))}
-                {todos.length === 0 && <p className="empty-state">No tasks pending. Great job!</p>}
-              </div>
-            </div>
+            <TodoSection
+              todos={todos}
+              openModal={openModal}
+              toggleTodo={toggleTodo}
+              deleteTodo={deleteTodo}
+            />
           )}
 
           {activeSection === 'messages' && (
-            <div className="section-container">
-              <div className="actions-bar">
-                <button className="btn-primary" onClick={() => openModal('message')}>
-                  <FaEnvelope /> New Strategic Message
-                </button>
-              </div>
-              <div className="messages-list" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {messages.map((msg, i) => (
-                  <div key={msg.id || i} className="message-card" style={{ background: 'white', padding: '1.5rem', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
-                        <span className="badge" style={{
-                          background: msg.target === 'all' ? '#10b981' : msg.target === 'faculty' ? '#a855f7' : '#3b82f6',
-                          color: 'white', padding: '0.3rem 0.8rem', borderRadius: '50px', fontSize: '0.75rem', fontWeight: 800
-                        }}>
-                          {msg.target.toUpperCase()}
-                        </span>
-                        {msg.type === 'urgent' && (
-                          <span className="badge" style={{ background: '#f43f5e', color: 'white', fontWeight: 900 }}>URGENT</span>
-                        )}
-                        {msg.targetYear && <span className="badge" style={{ background: '#f1f5f9', color: '#64748b' }}>Year {msg.targetYear}</span>}
-                        {msg.targetSections && msg.targetSections.length > 0 && (
-                          <span className="badge" style={{ background: '#f1f5f9', color: '#64748b' }}>Sec: {msg.targetSections.join(', ')}</span>
-                        )}
-                      </div>
-                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{new Date(msg.createdAt || msg.date).toLocaleString()}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.8rem' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                        <FaEnvelope style={{ fontSize: '0.9rem' }} />
-                      </div>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#1e293b' }}>
-                        {msg.facultyId ? `Prof. ${msg.sender || msg.facultyId}` : 'CENTRAL ADMINISTRATION'}
-                      </div>
-                    </div>
-                    <p style={{ margin: 0, fontSize: '0.95rem', color: '#334155', lineHeight: '1.6', fontWeight: 500 }}>{msg.message || msg.text}</p>
-                  </div>
-                ))}
-                {messages.length === 0 && <p className="empty-state">No active transmissions detected on the network.</p>}
-              </div>
-            </div>
+            <MessageSection
+              messages={messages}
+              openModal={openModal}
+            />
           )}
 
           {activeSection === 'exam-analytics' && (

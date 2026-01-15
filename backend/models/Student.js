@@ -63,4 +63,4 @@ studentSchema.pre('save', function () {
   this.updatedAt = new Date();
 });
 
-module.exports = mongoose.model('Student', studentSchema);
+module.exports = mongoose.model('Student', studentSchema, 'AdminDashboardDB_Sections_Students');

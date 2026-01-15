@@ -345,7 +345,9 @@ exports.updateMaterial = async (req, res) => {
         try {
           const fs = require('fs');
           const path = require('path');
-          const uploadsDir = path.join(__dirname, '..', 'uploads');
+          const uploadsDir = process.platform === 'win32'
+            ? 'D:\\fbn_database\\uploads'
+            : path.join(__dirname, '..', 'uploads');
           const oldFilePath = path.join(uploadsDir, material.fileUrl.replace('/uploads/', ''));
           if (fs.existsSync(oldFilePath)) {
             fs.unlinkSync(oldFilePath);
@@ -370,6 +372,35 @@ exports.updateMaterial = async (req, res) => {
     // Populate the response
     await material.populate('course', 'courseCode courseName');
     await material.populate('uploadedBy', 'name email');
+
+    // Update file in local DB (Hybrid Persistence)
+    try {
+      const dbFile = require('../dbHelper');
+      const materialsDB = dbFile('materials');
+      const all = materialsDB.read() || [];
+      const idx = all.findIndex(m => String(m.id) === String(req.params.id) || String(m._id) === String(req.params.id));
+
+      if (idx !== -1) {
+        // Update existing item fields
+        const updatedItem = {
+          ...all[idx],
+          title: material.title,
+          description: material.description,
+          year: material.year,
+          section: material.section,
+          subject: material.subject,
+          type: material.type,
+          fileUrl: material.fileUrl,
+          fileType: material.fileType,
+          fileSize: material.fileSize
+        };
+        all[idx] = updatedItem;
+        materialsDB.write(all);
+        console.log('[Update] Synced change to materials.json');
+      }
+    } catch (e) {
+      console.warn('[Update] File sync warning:', e.message);
+    }
 
     res.json(material);
   } catch (error) {
@@ -409,7 +440,9 @@ exports.deleteMaterial = async (req, res) => {
       try {
         const fs = require('fs');
         const path = require('path');
-        const uploadsDir = path.join(__dirname, '..', 'uploads');
+        const uploadsDir = process.platform === 'win32'
+          ? 'D:\\fbn_database\\uploads'
+          : path.join(__dirname, '..', 'uploads');
         // Get relative path by removing /uploads/ prefix
         const relativePath = material.fileUrl.replace('/uploads/', '');
         const filePath = path.join(uploadsDir, relativePath);
@@ -426,6 +459,21 @@ exports.deleteMaterial = async (req, res) => {
     }
 
     await material.deleteOne();
+
+    // Remove from File DB (Hybrid Persistence)
+    try {
+      const dbFile = require('../dbHelper');
+      const materialsDB = dbFile('materials');
+      const all = materialsDB.read() || [];
+      const newAll = all.filter(m => String(m.id) !== String(req.params.id) && String(m._id) !== String(req.params.id));
+
+      if (all.length !== newAll.length) {
+        materialsDB.write(newAll);
+        console.log('[Delete] Synced removal with materials.json');
+      }
+    } catch (e) {
+      console.warn('[Delete] File sync warning:', e.message);
+    }
 
     res.json({ message: 'Material removed' });
   } catch (error) {
