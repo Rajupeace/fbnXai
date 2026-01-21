@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * DASHBOARD VERIFICATION SCRIPT
+ * FBN XAI SYSTEM VERIFICATION
  * Tests all dashboards for:
  * ✅ Data connectivity and updates
  * ✅ Real-time synchronization (SSE)
@@ -44,7 +44,7 @@ class DashboardVerifier {
       '🔄': colors.magenta,
       '📊': colors.blue
     };
-    
+
     const color = icons[type] || colors.reset;
     console.log(`${color}${type}${colors.reset} ${message}`);
   }
@@ -198,11 +198,11 @@ class DashboardVerifier {
     console.log(`  Faculty Dashboard:  ${this.results.faculty.status ? '✅ OPERATIONAL' : '❌ OFFLINE'}`);
     console.log(`  Student Dashboard:  ${this.results.student.status ? '✅ OPERATIONAL' : '❌ OFFLINE'}`);
 
-    const totalSections = 
+    const totalSections =
       Object.keys(this.results.admin.sections).length +
       Object.keys(this.results.faculty.sections).length +
       Object.keys(this.results.student.sections).length;
-    
+
     console.log(`\n${colors.blue}SECTIONS:${colors.reset}`);
     console.log(`  Total sections verified: ${totalSections}`);
     console.log(`  Admin sections: ${Object.keys(this.results.admin.sections).length}`);
@@ -250,7 +250,7 @@ class DashboardVerifier {
       await this.verifyStudentDashboard();
       await this.verifyDataSync();
       await this.verifyRealtimeSync();
-      
+
       this.generateReport();
     } catch (err) {
       this.log('❌', `Verification error: ${err.message}`);

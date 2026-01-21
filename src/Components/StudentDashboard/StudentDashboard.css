@@ -165,14 +165,45 @@
     color: var(--nexus-text-main);
 }
 
-.sd-nav-bar {
+/* Header Layout Blocks */
+.sd-header-left {
     display: flex;
+    align-items: center;
+    gap: 3rem;
+    flex: 1;
+    min-width: 0;
+    /* Crucial for nested scroll containers */
+}
+
+.sd-nav-scroll-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE 10+ */
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    /* Prevent clipping shadows */
+}
+
+.sd-nav-scroll-container::-webkit-scrollbar {
+    display: none;
+}
+
+.sd-nav-bar {
+    display: inline-flex;
+    flex-wrap: nowrap;
     gap: 0.5rem;
     background: #f1f5f9;
     padding: 0.5rem;
-    border-radius: 20px;
+    border-radius: 24px;
     border: 1px solid #eef2f6;
-    margin: 0 2rem;
+    margin: 0;
 }
 
 .sd-nav-btn {
