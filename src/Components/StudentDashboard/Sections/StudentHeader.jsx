@@ -1,7 +1,6 @@
 import React from 'react';
 import {
-    FaGraduationCap, FaSignOutAlt,
-    FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt
+    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList
 } from 'react-icons/fa';
 
 /**

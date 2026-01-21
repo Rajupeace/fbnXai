@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaBook, FaPen, FaLaptop, FaGraduationCap, FaFlask, FaBrain, FaLightbulb, FaBookOpen, FaPencilAlt, FaStickyNote, FaCloud, FaSun, FaMoon, FaMeteor } from 'react-icons/fa';
 // Removed unused Gi and Md imports entirely as most were unused.
-import { MdMenuBook } from 'react-icons/md';
+// import { MdMenuBook } from 'react-icons/md'; // Removed problematic import
 // FaUserGraduate and FaChalkboardTeacher were listed as unused by user but I see FaUserGraduate used in code? 
 // User said: Line 2:126: 'FaUserGraduate' is defined but never used
 // Let's check code usage.
@@ -237,7 +237,7 @@ const RocketSplash = ({ onFinish }) => {
             <div className={`telemetry-hud ${notebookPhase >= 1 ? 'online' : ''}`}>
                 <div className="hud-panel panel-left">
                     <div className="telemetry-item">
-                        <MdMenuBook className="telemetry-icon" />
+                        <FaBookOpen className="telemetry-icon" />
                         <span className="telemetry-label">PAGES</span>
                         <span className="telemetry-value">{notebookPhase === 0 ? '0' : notebookPhase === 1 ? '25' : notebookPhase === 2 ? '150' : '350'}</span>
                     </div>
