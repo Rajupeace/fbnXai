@@ -39,7 +39,7 @@ const AdminScheduleManager = () => {
     const branches = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'AIML', 'IT'];
     const sections = ['A', 'B', 'C', 'D', 'E'];
 
-    const fetchSchedules = async () => {
+    const fetchSchedules = React.useCallback(async () => {
         setLoading(true);
         try {
             const queryParams = new URLSearchParams();
@@ -55,11 +55,11 @@ const AdminScheduleManager = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
 
     useEffect(() => {
         fetchSchedules();
-    }, [filters]);
+    }, [fetchSchedules]);
 
     const handleSave = async () => {
         try {
