@@ -7,7 +7,6 @@ import api from '../../utils/apiClient';
 import { getYearData } from '../StudentDashboard/branchData';
 // import AcademicPulse from '../StudentDashboard/AcademicPulse'; // Removed unused import
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
-import SystemTelemetry from './SystemTelemetry';
 import SystemIntelligence from './SystemIntelligence';
 import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
@@ -22,8 +21,6 @@ import CourseSection from './Sections/CourseSection';
 import MaterialSection from './Sections/MaterialSection';
 import MessageSection from './Sections/MessageSection';
 import TodoSection from './Sections/TodoSection';
-import AdvancedSection from './Sections/AdvancedSection';
-import ContentSourceSection from './Sections/ContentSourceSection';
 
 
 // Helper for mocked API or local storage check
@@ -39,12 +36,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
   const [faculty, setFaculty] = useState([]);
   const [courses, setCourses] = useState([]);
   const [materials, setMaterials] = useState([]);
-  const [contentSource] = useState([]); // setContentSource unused
   const [todos, setTodos] = useState([]);
   const [messages, setMessages] = useState([]);
-
-  // Advanced Learning Topics (Predefined)
-  const ADVANCED_TOPICS = ["Angular", "C", "C++", "Django", "Flask", "HTML/CSS", "Java", "JavaScript", "MongoDB", "Node.js", "PHP", "Python", "React", "Machine Learning", "Data Science", "Artificial Intelligence", "Cyber Security", "Cloud Computing", "DevOps"];
 
   // Form States
   const [showModal, setShowModal] = useState(false);

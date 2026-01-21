@@ -127,7 +127,7 @@ const RocketSplash = ({ onFinish }) => {
                             <div className="cover-design"></div>
                             <div className="cover-title">
                                 <FaBook className="cover-icon" />
-                                <span className="title-text">FN</span>
+                                <span className="title-text">FBN</span>
                             </div>
                         </div>
                         <div className="notebook-pages">
