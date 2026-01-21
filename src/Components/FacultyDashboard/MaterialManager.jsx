@@ -306,23 +306,58 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
                         <div className="material-node f-flex-gap f-spacer-lg" style={{ background: '#f8fafc', border: 'none', justifyContent: 'center' }}>
                             <span style={{ fontWeight: 950, color: '#64748b', fontSize: '0.85rem' }}>ACTIVE DEPLOYMENTS FOR {selectedSubject.toUpperCase()}</span>
                         </div>
-                        <div className="f-roster-list">
-                            {globalResources.map((res, i) => (
-                                <div key={i} className="material-node">
-                                    <div className="f-node-type-icon" style={{ background: 'white' }}>
-                                        {res.type === 'videos' ? <FaVideo /> : <FaFileAlt />}
-                                    </div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ fontWeight: 950, color: '#1e293b', fontSize: '1rem' }}>{res.title}</div>
-                                        <div style={{ display: 'flex', gap: '0.8rem', marginTop: '0.4rem' }}>
-                                            <span className="f-meta-badge" style={{ background: '#f1f5f9' }}>SEC {res.section}</span>
-                                            <span className="f-meta-badge type">{res.type}</span>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
+                            {/* NOTES COLUMN */}
+                            <div className="resource-col">
+                                <h4 style={{ fontSize: '0.9rem', color: '#3b82f6', borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <FaFileAlt /> DIRECTIVES (NOTES)
+                                </h4>
+                                {globalResources.filter(r => r.type === 'notes').map((res, i) => (
+                                    <div key={i} className="mini-resource-card animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                                        <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>{res.title}</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                                            <span className="f-meta-badge" style={{ fontSize: '0.6rem' }}>SEC {res.section}</span>
+                                            {res.url && <a href={res.url} target="_blank" rel="noreferrer" style={{ color: '#3b82f6' }}><FaEye /></a>}
                                         </div>
                                     </div>
-                                    {res.url && <a href={res.url} target="_blank" rel="noreferrer" className="f-node-btn view"><FaEye /></a>}
-                                </div>
-                            ))}
-                            {globalResources.length === 0 && <div className="no-content">Registry is empty. No nodes detected.</div>}
+                                ))}
+                                {globalResources.filter(r => r.type === 'notes').length === 0 && <div className="empty-slot">No Data</div>}
+                            </div>
+
+                            {/* VIDEOS COLUMN */}
+                            <div className="resource-col">
+                                <h4 style={{ fontSize: '0.9rem', color: '#f59e0b', borderBottom: '2px solid #f59e0b', paddingBottom: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <FaVideo /> STREAMING (VIDEO)
+                                </h4>
+                                {globalResources.filter(r => r.type === 'videos').map((res, i) => (
+                                    <div key={i} className="mini-resource-card animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                                        <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>{res.title}</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                                            <span className="f-meta-badge" style={{ fontSize: '0.6rem' }}>SEC {res.section}</span>
+                                            {res.url && <a href={res.url} target="_blank" rel="noreferrer" style={{ color: '#f59e0b' }}><FaEye /></a>}
+                                        </div>
+                                    </div>
+                                ))}
+                                {globalResources.filter(r => r.type === 'videos').length === 0 && <div className="empty-slot">No Data</div>}
+                            </div>
+
+                            {/* ARCHIVES COLUMN */}
+                            <div className="resource-col">
+                                <h4 style={{ fontSize: '0.9rem', color: '#10b981', borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <FaLayerGroup /> ARCHIVES (PAPERS)
+                                </h4>
+                                {globalResources.filter(r => !['notes', 'videos'].includes(r.type)).map((res, i) => (
+                                    <div key={i} className="mini-resource-card animate-slide-up" style={{ animationDelay: `${i * 0.05}s` }}>
+                                        <div style={{ fontWeight: 800, fontSize: '0.85rem' }}>{res.title}</div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                                            <span className="f-meta-badge" style={{ fontSize: '0.6rem' }}>{res.type.substring(0, 4).toUpperCase()}</span>
+                                            {res.url && <a href={res.url} target="_blank" rel="noreferrer" style={{ color: '#10b981' }}><FaEye /></a>}
+                                        </div>
+                                    </div>
+                                ))}
+                                {globalResources.filter(r => !['notes', 'videos'].includes(r.type)).length === 0 && <div className="empty-slot">No Data</div>}
+                            </div>
                         </div>
                     </div>
                 )}

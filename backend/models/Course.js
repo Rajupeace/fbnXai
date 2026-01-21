@@ -6,6 +6,7 @@ const courseSchema = new mongoose.Schema({
   branch: String, // 'CSE', 'ECE', 'Common', 'All'
   semester: String, // '1', '2', ...
   year: String, // '1', '2', '3', '4'
+  section: { type: String, default: 'All' }, // 'A', 'B', 'All'
   credits: Number,
   type: String, // 'core', 'lab', 'elective'
 

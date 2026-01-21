@@ -1658,6 +1658,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                               {['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil', 'IT', 'AIML', 'All'].map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                           </div>
+                          <div className="form-group">
+                            <label>SECTION TARGET</label>
+                            <select className="admin-search-input" name="section" defaultValue={editItem?.section || 'All'} required style={{ paddingLeft: '1rem' }}>
+                              {['All', 'A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>{s === 'All' ? 'All Sections' : `Section ${s}`}</option>)}
+                            </select>
+                          </div>
                         </div>
                         <div className="modal-actions" style={{ marginTop: '2.5rem' }}>
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
