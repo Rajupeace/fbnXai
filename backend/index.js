@@ -1282,10 +1282,10 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
 
     // MongoDB Support
     if (mongoose.connection.readyState === 1) {
-      // Try finding by _id first, then sid
-      let updatedStudent = await Student.findByIdAndUpdate(id, updates, { new: true });
+      // Try finding by sid first (since that's what's typically passed), then _id
+      let updatedStudent = await Student.findOneAndUpdate({ sid: id }, updates, { new: true });
       if (!updatedStudent) {
-        updatedStudent = await Student.findOneAndUpdate({ sid: id }, updates, { new: true });
+        updatedStudent = await Student.findByIdAndUpdate(id, updates, { new: true });
       }
 
       if (updatedStudent) {

@@ -1135,28 +1135,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                 getFileUrl={getFileUrl}
               />
 
-              <div style={{ marginTop: '5rem' }}>
-                <div className="f-node-head" style={{ marginBottom: '2rem', background: 'transparent', paddingLeft: 0 }}>
-                  <h3 style={{ fontSize: '1.6rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>ADVANCED INTEL MODULES</h3>
-                  <span className="admin-badge primary">PHASE 2</span>
-                </div>
-                <AdvancedSection
-                  topics={ADVANCED_TOPICS}
-                  materials={materials}
-                  openModal={openModal}
-                />
-              </div>
 
-              <div style={{ marginTop: '5rem', marginBottom: '4rem' }}>
-                <div className="f-node-head" style={{ marginBottom: '2rem', background: 'transparent', paddingLeft: 0 }}>
-                  <h3 style={{ fontSize: '1.6rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>EXTERNAL DATA UPLINKS</h3>
-                  <span className="admin-badge accent">GLOBAL</span>
-                </div>
-                <ContentSourceSection
-                  contentSource={contentSource}
-                  getFileUrl={getFileUrl}
-                />
-              </div>
             </div>
           )}
 

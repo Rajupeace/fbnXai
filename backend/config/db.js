@@ -4,7 +4,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); // Load 
 
 const connectDB = async () => {
   // Prefer environment MONGO_URI; fall back to IPv4 localhost to avoid IPv6 ::1 binding issues
-  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/friendly_notebook';
+  const uri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fbn_xai_system';
   const maxAttempts = Number(process.env.MONGO_CONNECT_ATTEMPTS || 5);
   const baseDelay = Number(process.env.MONGO_RETRY_DELAY_MS || 2000);
 
