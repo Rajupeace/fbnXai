@@ -4,7 +4,6 @@ import AdminHeader from './Sections/AdminHeader';
 import './AdminDashboard.css';
 import { readFaculty, readStudents, writeStudents, writeFaculty } from '../../utils/localdb';
 import api from '../../utils/apiClient';
-// getYearData removed
 import AcademicPulse from '../StudentDashboard/AcademicPulse';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import SystemTelemetry from './SystemTelemetry';
@@ -12,7 +11,7 @@ import SystemIntelligence from './SystemIntelligence';
 import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
 import AdminExams from './AdminExams';
-import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaChartLine, FaBullhorn, FaLayerGroup } from 'react-icons/fa';
+import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup } from 'react-icons/fa';
 import sseClient from '../../utils/sseClient';
 
 // Newly extracted sections
@@ -63,7 +62,23 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     setTodos(savedTodos);
 
     const interval = setInterval(loadData, 5000); // Poll every 5s for admin oversight
-    return () => clearInterval(interval);
+    
+    // Fast announcements update every 2s
+    const messagesInterval = setInterval(async () => {
+      try {
+        if (USE_API) {
+          const msg = await api.apiGet('/api/messages');
+          setMessages(Array.isArray(msg) ? msg.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)) : []);
+        }
+      } catch (e) {
+        console.debug('Messages refresh failed', e);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(messagesInterval);
+    };
   }, []);
 
   // SSE: subscribe to server push updates and refresh relevant data immediately
@@ -907,23 +922,61 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                 </div>
               </header>
 
+              {/* Global Announcements & Messages Banner */}
+              {messages.length > 0 && (
+                <div className="admin-equal-layout" style={{ marginBottom: '2rem' }}>
+                  <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1))', borderLeft: '4px solid #6366f1' }}>
+                    <div className="f-node-head">
+                      <h3 className="f-node-title"><FaBullhorn style={{ marginRight: '0.5rem' }} /> ANNOUNCEMENTS</h3>
+                      <button onClick={() => setActiveSection('messages')} className="admin-btn admin-btn-outline" style={{ height: '32px', fontSize: '0.65rem', border: 'none' }}>VIEW ALL</button>
+                    </div>
+                    <div className="admin-list-container" style={{ gap: '0.75rem', marginTop: '1rem' }}>
+                      {messages.slice(0, 3).map((msg, i) => (
+                        <div key={msg.id || i} className="admin-msg-card" style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '0.85rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                            <span style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>{msg.message || msg.text}</span>
+                            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>{new Date(msg.createdAt || msg.date).toLocaleTimeString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Dashboard Quick Links */}
+              <div className="admin-equal-layout" style={{ marginBottom: '2rem', gap: '1.5rem' }}>
+                <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.1))', borderTop: '3px solid #3b82f6', cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveSection('students')}>
+                  <div className="f-node-head">
+                    <h4 className="f-node-title"><FaUserGraduate /> MANAGE STUDENTS</h4>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.8, margin: 0 }}>View, edit, and manage all student records and enrollment data</p>
+                </div>
+                <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1))', borderTop: '3px solid #10b981', cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveSection('faculty')}>
+                  <div className="f-node-head">
+                    <h4 className="f-node-title"><FaChalkboardTeacher /> MANAGE FACULTY</h4>
+                  </div>
+                  <p style={{ fontSize: '0.85rem', opacity: 0.8, margin: 0 }}>Oversee instructor assignments and teaching schedules</p>
+                </div>
+              </div>
+
               <div className="admin-stats-grid">
-                <div className="admin-summary-card animate-slide-up">
+                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('students')} style={{ cursor: 'pointer', transition: 'all 0.3s' }}>
                   <div className="summary-icon-box" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--admin-primary)' }}><FaUserGraduate /></div>
                   <div className="value">{students.length}</div>
                   <div className="label">TOTAL CADET CORPS</div>
                 </div>
-                <div className="admin-summary-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('faculty')} style={{ animationDelay: '0.1s', cursor: 'pointer', transition: 'all 0.3s' }}>
                   <div className="summary-icon-box" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FaChalkboardTeacher /></div>
                   <div className="value">{faculty.length}</div>
                   <div className="label">COMMAND STAFF</div>
                 </div>
-                <div className="admin-summary-card animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('courses')} style={{ animationDelay: '0.2s', cursor: 'pointer', transition: 'all 0.3s' }}>
                   <div className="summary-icon-box" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><FaBook /></div>
                   <div className="value">{courses.length}</div>
                   <div className="label">ACTIVE MODULES</div>
                 </div>
-                <div className="admin-summary-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('materials')} style={{ animationDelay: '0.3s', cursor: 'pointer', transition: 'all 0.3s' }}>
                   <div className="summary-icon-box" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}><FaLayerGroup /></div>
                   <div className="value">{materials.length}</div>
                   <div className="label">DATA ARCHIVES</div>

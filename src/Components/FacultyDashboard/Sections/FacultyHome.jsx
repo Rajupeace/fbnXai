@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaShieldAlt, FaHistory, FaLayerGroup, FaFileAlt, FaEye, FaBullhorn } from 'react-icons/fa';
+import { FaShieldAlt, FaHistory, FaLayerGroup, FaFileAlt, FaEye, FaBullhorn, FaUserGraduate } from 'react-icons/fa';
 import FacultyClassPulse from '../FacultyClassPulse';
 import FacultyAnalytics from '../FacultyAnalytics';
 import FacultyTeachingStats from '../FacultyTeachingStats';
@@ -15,7 +15,8 @@ const FacultyHome = ({
     myClasses,
     facultyData,
     messages,
-    getFileUrl
+    getFileUrl,
+    setView
 }) => {
     return (
         <div className="dashboard-v2-grid animate-fade-in">
@@ -102,6 +103,50 @@ const FacultyHome = ({
                             </div>
                         ))}
                         {messages.length === 0 && <div className="no-content">No active transmissions.</div>}
+                    </div>
+                </div>
+
+                {/* STUDENT ROSTER */}
+                <div className="f-node-card" style={{ borderLeft: '6px solid var(--admin-primary)', gridColumn: '1 / -1' }}>
+                    <div className="f-node-head">
+                        <h3 className="f-card-title">
+                            <FaUserGraduate color="var(--admin-primary)" /> ASSIGNED CADETS
+                        </h3>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{studentsList.length} Total</span>
+                    </div>
+                    <div className="f-clean-list">
+                        {studentsList.slice(0, 8).map((student, i) => (
+                            <div key={student.sid || student.id || i} className="f-feed-item" style={{ cursor: 'pointer', padding: '0.75rem' }}>
+                                <div className="f-node-type-icon" style={{ background: 'rgba(59,130,246,0.2)', color: '#3b82f6' }}>
+                                    <FaUserGraduate />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontWeight: 950, fontSize: '0.95rem', color: '#1e293b' }}>{student.studentName || student.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 850, marginTop: '0.2rem' }}>
+                                        ID: {student.sid || student.id} • Year {student.year} • {student.section}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {studentsList.length === 0 && <div className="no-content">No students assigned to your classes.</div>}
+                        {studentsList.length > 8 && (
+                            <button 
+                                onClick={() => setView && setView('students')}
+                                style={{ 
+                                    width: '100%', 
+                                    padding: '0.75rem', 
+                                    marginTop: '1rem', 
+                                    background: 'rgba(59,130,246,0.1)', 
+                                    border: '1px solid rgba(59,130,246,0.3)',
+                                    borderRadius: '8px',
+                                    color: '#3b82f6',
+                                    fontWeight: 950,
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                VIEW ALL STUDENTS ({studentsList.length})
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

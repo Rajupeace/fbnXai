@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaChevronRight, FaFilter
+  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaChevronRight, FaFilter, FaUserGraduate
 } from 'react-icons/fa';
 import '../StudentDashboard/StudentDashboard.css'; // Global Nexus tokens
 import './FacultyDashboard.css';
@@ -61,9 +61,28 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
     refreshAll();
     const timer = setTimeout(() => setBootSequence(false), 1500);
     const interval = setInterval(refreshAll, 10000);
+    
+    // Fast messages update every 3s
+    const msgInterval = setInterval(async () => {
+      try {
+        const adminMsgs = await apiGet('/api/messages');
+        if (adminMsgs) {
+          const filteredMsgs = adminMsgs.filter(m =>
+            m.target === 'all' ||
+            m.target === 'faculty' ||
+            m.facultyId === facultyData.facultyId
+          );
+          setMessages(filteredMsgs.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)).slice(0, 10));
+        }
+      } catch (e) {
+        console.debug('Faculty messages update failed', e);
+      }
+    }, 3000);
+    
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
+      clearInterval(msgInterval);
     };
   }, []);
 
@@ -180,6 +199,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
             facultyData={facultyData}
             messages={messages}
             getFileUrl={getFileUrl}
+            setView={setView}
           />
         )}
 
@@ -367,6 +387,82 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                   <button type="submit" className="nexus-btn-primary">TRANSMIT BROADCAST</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {view === 'messages' && (
+          <div className="nexus-hub-viewport">
+            <div className="nexus-mesh-bg"></div>
+            <header className="f-view-header">
+              <div>
+                <h2>COMMAND <span>MESSAGES</span></h2>
+                <p className="nexus-subtitle">Administrative announcements and system notifications</p>
+              </div>
+            </header>
+            <div className="f-node-card" style={{ marginTop: '2rem' }}>
+              {messages.length > 0 ? (
+                <div style={{ display: 'grid', gap: '1rem', padding: '1.5rem' }}>
+                  {messages.map((msg, i) => (
+                    <div key={msg.id || i} style={{ padding: '1rem', borderLeft: '4px solid #6366f1', borderRadius: '8px', background: 'rgba(99,102,241,0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                        <span style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>{msg.message || msg.text}</span>
+                        <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{new Date(msg.createdAt || msg.date).toLocaleString()}</span>
+                      </div>
+                      {msg.target && <span style={{ fontSize: '0.7rem', opacity: 0.6, padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', display: 'inline-block' }}>Target: {msg.target.toUpperCase()}</span>}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
+                  <p>No messages at this time</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {view === 'students' && (
+          <div className="nexus-hub-viewport">
+            <div className="nexus-mesh-bg"></div>
+            <header className="f-view-header">
+              <div>
+                <h2>STUDENT <span>ROSTER</span></h2>
+                <p className="nexus-subtitle">All students assigned to your teaching sectors</p>
+              </div>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <span style={{ fontWeight: 950, fontSize: '1.1rem', color: 'var(--admin-secondary)' }}>{studentsList.length} Total Cadets</span>
+              </div>
+            </header>
+            <div className="f-node-card" style={{ marginTop: '2rem' }}>
+              {studentsList.length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', padding: '1.5rem' }}>
+                  {studentsList.map((student, i) => (
+                    <div key={student.sid || student.id || i} className="f-node-card" style={{ padding: '1.5rem', borderTop: '3px solid #3b82f6' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                        <div className="f-node-type-icon" style={{ background: 'rgba(59,130,246,0.2)', color: '#3b82f6', width: '48px', height: '48px' }}>
+                          <FaUserGraduate size={20} />
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 950, fontSize: '1rem', color: '#1e293b' }}>{student.studentName || student.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 850 }}>ID: {student.sid || student.id}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.8' }}>
+                        <div><strong>Year:</strong> {student.year || 'N/A'}</div>
+                        <div><strong>Section:</strong> {student.section || 'N/A'}</div>
+                        <div><strong>Branch:</strong> {student.branch || 'N/A'}</div>
+                        <div><strong>Email:</strong> {student.email || 'N/A'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.6 }}>
+                  <FaUserGraduate size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+                  <p style={{ fontSize: '1.1rem' }}>No students assigned to your classes</p>
+                </div>
+              )}
             </div>
           </div>
         )}

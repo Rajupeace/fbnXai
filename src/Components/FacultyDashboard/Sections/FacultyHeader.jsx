@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     FaGraduationCap, FaEnvelope, FaSignOutAlt,
-    FaLayerGroup, FaBolt, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt
+    FaLayerGroup, FaBolt, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt, FaUserGraduate
 } from 'react-icons/fa';
 
 /**
@@ -35,7 +35,9 @@ const FacultyHeader = ({
         { id: 'attendance', label: 'ATTENDANCE', icon: <FaUserCheck />, color: '#10b981' },
         { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt />, color: '#f59e0b' },
         { id: 'schedule', label: 'SCHEDULE', icon: <FaBolt />, color: '#ec4899' },
+        { id: 'students', label: 'STUDENTS', icon: <FaUserGraduate />, color: '#3b82f6' },
         { id: 'broadcast', label: 'BROADCAST', icon: <FaBullhorn />, color: '#f43f5e' },
+        { id: 'messages', label: 'ANNOUNCEMENTS', icon: <FaEnvelope />, color: '#8b5cf6' },
         { id: 'settings', label: 'SYSTEM', icon: <FaGraduationCap />, color: '#64748b' }
     ];
 
