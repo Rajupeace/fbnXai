@@ -535,7 +535,7 @@
 /* Dashboard Specialized Layouts */
 .admin-split-layout {
   display: grid;
-  grid-template-columns: 1.8fr 1.2fr;
+  grid-template-columns: 1fr;
   gap: 2.5rem;
   margin-bottom: 2.5rem;
 }
