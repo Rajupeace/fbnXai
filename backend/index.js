@@ -317,6 +317,32 @@ app.get('/api/labs/schedule', async (req, res) => {
     res.json([]);
   }
 });
+
+// Public GET endpoint for all exams (for dashboards)
+app.get('/api/exams', async (req, res) => {
+  try {
+    const { year, section, branch, subject } = req.query;
+    let query = {};
+
+    if (year) query.year = year;
+    if (section) query.section = section;
+    if (branch) query.branch = branch;
+    if (subject) query.subject = subject;
+
+    if (mongoose.connection.readyState === 1) {
+      const Exam = require('./models/Exam');
+      const exams = await Exam.find(query).sort({ examDate: -1 }).lean();
+      return res.json(exams);
+    } else {
+      // Fallback to file-based if MongoDB not connected
+      return res.json([]);
+    }
+  } catch (error) {
+    console.error('Error fetching exams:', error);
+    res.status(500).json({ error: 'Failed to fetch exams', details: error.message });
+  }
+});
+
 app.use('/api/exams', examRoutes);
 
 // Multer setup for file uploads (MongoDB) - Organized by role

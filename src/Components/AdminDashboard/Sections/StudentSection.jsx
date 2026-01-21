@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaPlus, FaFileUpload, FaSearch, FaEye, FaEdit, FaTrash, FaUserGraduate } from 'react-icons/fa';
+import { FaPlus, FaFileUpload, FaSearch, FaEye, FaEdit, FaTrash, FaUserGraduate, FaBook } from 'react-icons/fa';
 
 /**
  * SENTINEL STUDENT MANAGEMENT
@@ -71,6 +71,7 @@ const StudentSection = ({ students, openModal, handleDeleteStudent }) => {
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button className="admin-action-btn view" title="Full Profile" onClick={() => openModal('student-view', s)}><FaEye /></button>
+                                                <button className="admin-action-btn view" title="View Curriculum" onClick={() => openModal('student-curriculum', s)} style={{ color: '#8b5cf6', background: '#f5f3ff' }}><FaBook /></button>
                                                 <button className="admin-action-btn edit" title="Modify" onClick={() => openModal('student', s)}><FaEdit /></button>
                                                 <button className="admin-action-btn delete" title="Deactivate" onClick={() => handleDeleteStudent(s.sid)}><FaTrash /></button>
                                             </div>

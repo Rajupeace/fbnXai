@@ -4,6 +4,7 @@ import AdminHeader from './Sections/AdminHeader';
 import './AdminDashboard.css';
 import { readFaculty, readStudents, writeStudents, writeFaculty } from '../../utils/localdb';
 import api from '../../utils/apiClient';
+import { getYearData } from '../StudentDashboard/branchData';
 // import AcademicPulse from '../StudentDashboard/AcademicPulse'; // Removed unused import
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import SystemTelemetry from './SystemTelemetry';
@@ -1410,6 +1411,89 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
                         <div className="admin-modal-actions">
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>DISMISS ARCHIVE</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STUDENT CURRICULUM INSPECTION */}
+                    {modalType === 'student-curriculum' && editItem && (
+                      <div className="view-details">
+                        <div className="f-node-head" style={{ padding: '2rem', borderBottom: '1px solid var(--admin-border)' }}>
+                          <div>
+                            <h3 className="f-node-title" style={{ fontSize: '1.4rem' }}>{editItem.studentName}</h3>
+                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                              <span className="admin-badge primary">SID: {editItem.sid}</span>
+                              <span className="admin-badge accent">YEAR {editItem.year} • {editItem.branch}</span>
+                              <span className="admin-badge warning">SEC {editItem.section || 'A'}</span>
+                            </div>
+                          </div>
+                          <FaLayerGroup size={32} style={{ opacity: 0.2 }} />
+                        </div>
+
+                        <div className="admin-list-container" style={{ maxHeight: '600px', overflowY: 'auto', padding: '2rem' }}>
+                          {(() => {
+                            const staticData = getYearData(editItem.branch, editItem.year);
+                            const semesters = staticData ? staticData.semesters : [];
+
+                            if (semesters.length === 0) return <div className="admin-empty-state"><p>No curriculum map found for this cohort.</p></div>;
+
+                            return semesters.map(sem => (
+                              <div key={sem.sem} className="admin-card" style={{ marginBottom: '2rem', padding: '0', overflow: 'hidden' }}>
+                                <div style={{ background: '#f8fafc', padding: '1rem 1.5rem', borderBottom: '1px solid var(--admin-border)' }}>
+                                  <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>SEMESTER {sem.sem}</h4>
+                                </div>
+                                <table className="admin-grid-table" style={{ margin: 0 }}>
+                                  <thead>
+                                    <tr>
+                                      <th style={{ paddingLeft: '1.5rem' }}>SUBJECT MODULE</th>
+                                      <th>CODE</th>
+                                      <th>NOTES</th>
+                                      <th>VIDEOS</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {sem.subjects.map(sub => {
+                                      const subNotes = materials.filter(m =>
+                                        (m.subject === sub.name || m.subject === sub.code) &&
+                                        m.type === 'notes' &&
+                                        (m.section === 'All' || m.section === editItem.section)
+                                      );
+                                      const subVideos = materials.filter(m =>
+                                        (m.subject === sub.name || m.subject === sub.code) &&
+                                        m.type === 'videos' &&
+                                        (m.section === 'All' || m.section === editItem.section)
+                                      );
+
+                                      return (
+                                        <tr key={sub.code}>
+                                          <td style={{ paddingLeft: '1.5rem', fontWeight: 600 }}>{sub.name}</td>
+                                          <td style={{ fontSize: '0.8rem', opacity: 0.7 }}>{sub.code}</td>
+                                          <td>
+                                            {subNotes.length > 0 ? (
+                                              <span className="admin-badge primary" style={{ fontSize: '0.7rem' }}>{subNotes.length} ACTIVE</span>
+                                            ) : (
+                                              <span style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>EMPTY</span>
+                                            )}
+                                          </td>
+                                          <td>
+                                            {subVideos.length > 0 ? (
+                                              <span className="admin-badge accent" style={{ fontSize: '0.7rem' }}>{subVideos.length} STREAMING</span>
+                                            ) : (
+                                              <span style={{ fontSize: '0.7rem', color: '#cbd5e1' }}>OFFLINE</span>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            ));
+                          })()}
+                        </div>
+
+                        <div className="modal-actions" style={{ padding: '0 2rem 2rem' }}>
+                          <button onClick={closeModal} className="admin-btn admin-btn-primary" style={{ width: '100%' }}>CLOSE INSPECTION</button>
                         </div>
                       </div>
                     )}
