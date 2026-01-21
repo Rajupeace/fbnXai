@@ -922,7 +922,8 @@ const requireAdmin = async (req, res, next) => {
   const verifyJWT = (t) => {
     try {
       const key = process.env.JWT_SECRET || 'your_jwt_secret';
-      return jwt.verify(t, key);
+      // In development, ignore token expiration
+      return jwt.verify(t, key, { ignoreExpiration: process.env.NODE_ENV === 'development' });
     } catch (e) { return null; }
   };
 
@@ -1100,7 +1101,7 @@ app.post('/api/admin/login', async (req, res) => {
           const token = jwt.sign(
             { id: admin.adminId, role: 'admin' },
             process.env.JWT_SECRET || 'your_jwt_secret',
-            { expiresIn: '24h' }
+            { expiresIn: '7d' }
           );
 
           // Save token
