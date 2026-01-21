@@ -4,7 +4,7 @@ import AdminHeader from './Sections/AdminHeader';
 import './AdminDashboard.css';
 import { readFaculty, readStudents, writeStudents, writeFaculty } from '../../utils/localdb';
 import api from '../../utils/apiClient';
-import AcademicPulse from '../StudentDashboard/AcademicPulse';
+// import AcademicPulse from '../StudentDashboard/AcademicPulse'; // Removed unused import
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import SystemTelemetry from './SystemTelemetry';
 import SystemIntelligence from './SystemIntelligence';
@@ -62,7 +62,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     setTodos(savedTodos);
 
     const interval = setInterval(loadData, 2000); // Poll every 2s for FAST real-time updates
-    
+
     // Fast announcements update every 2s
     const messagesInterval = setInterval(async () => {
       try {
@@ -98,7 +98,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                 }
                 if (r === 'faculty') {
                   const f = await api.apiGet('/api/faculty');
-                  setFaculty(Array.isArray(f) ? f : []);
+                  const facultyWithAssignments = (Array.isArray(f) ? f : []).map(faculty => ({
+                    ...faculty,
+                    assignments: Array.isArray(faculty.assignments) ? faculty.assignments : []
+                  }));
+                  console.log('🔄 SSE Faculty refresh:', facultyWithAssignments);
+                  setFaculty(facultyWithAssignments);
                 }
                 if (r === 'courses') {
                   const c = await api.apiGet('/api/courses');
@@ -151,8 +156,16 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           fetchSafely('/api/todos')
         ]);
 
+        // Ensure faculty data includes assignments properly
+        const facultyWithAssignments = (f || []).map(faculty => ({
+          ...faculty,
+          assignments: Array.isArray(faculty.assignments) ? faculty.assignments : []
+        }));
+
+        console.log('✅ Faculty loaded with assignments:', facultyWithAssignments);
+
         setStudents(s);
-        setFaculty(f);
+        setFaculty(facultyWithAssignments);
         setCourses(c);
         setMaterials(m);
         setMessages(msg.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
@@ -265,14 +278,34 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     // Merge assignments
     data.assignments = facultyAssignments;
 
+    console.log('📝 Saving Faculty:', {
+      isEdit: !!editItem,
+      facultyId: data.facultyId,
+      name: data.name,
+      assignments: data.assignments
+    });
+
     try {
       let newFaculty = [...faculty];
       if (editItem) {
         // EDIT
         if (USE_API) {
           const idToUpdate = editItem._id || editItem.facultyId;
-          await api.apiPut(`/api/faculty/${idToUpdate}`, data);
-          newFaculty = newFaculty.map(f => (f._id === idToUpdate || f.facultyId === editItem.facultyId) ? { ...f, ...data } : f);
+          const response = await api.apiPut(`/api/faculty/${idToUpdate}`, data);
+          const updatedData = response.data || response;
+          console.log('✅ Faculty updated from server:', updatedData);
+
+          // Ensure assignments is preserved in the state
+          newFaculty = newFaculty.map(f => {
+            if (f._id === idToUpdate || f.facultyId === editItem.facultyId) {
+              return {
+                ...f,
+                ...data,
+                assignments: Array.isArray(updatedData.assignments) ? updatedData.assignments : data.assignments
+              };
+            }
+            return f;
+          });
         } else {
           newFaculty = newFaculty.map(f => f.facultyId === editItem.facultyId ? { ...f, ...data } : f);
           await writeFaculty(newFaculty);
@@ -281,7 +314,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         // CREATE
         if (USE_API) {
           const res = await api.apiPost('/api/faculty', data);
-          newFaculty.push(res.data || res);
+          const newF = res.data || res;
+          console.log('✅ New Faculty created:', newF);
+
+          // Ensure assignments is set
+          newF.assignments = Array.isArray(newF.assignments) ? newF.assignments : data.assignments;
+          newFaculty.push(newF);
         } else {
           const newF = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
           newFaculty.push(newF);
@@ -579,21 +617,26 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           const updatedMat = { ...editItem, ...data };
           allMaterials = allMaterials.map(m => (m.id === editItem.id || m._id === editItem._id) ? updatedMat : m);
         } else {
-          // CREATE: If no ID, or we are adding new Advanced content
           console.log('[Material Upload] Creating new material...');
 
           try {
+            console.log('[Material Upload] FormData size:', apiFormData.get('file')?.size || 'no file');
+            console.log('[Material Upload] Sending to /api/materials with POST...');
+
             const res = await api.apiUpload('/api/materials', apiFormData);
-            console.log('[Material Upload] Upload successful:', res);
+            console.log('[Material Upload] SUCCESS! Response:', res);
 
             if (res && (res._id || res.id)) {
+              console.log('[Material Upload] Adding successful response to materials array');
               allMaterials.push(res);
             } else {
-              console.warn('[Material Upload] Response missing ID:', res);
-              allMaterials.push({ ...data, id: Date.now().toString(), uploadedAt: new Date().toISOString() });
+              console.warn('[Material Upload] Response missing ID, creating local fallback');
+              const fallbackItem = { ...data, id: Date.now().toString(), uploadedAt: new Date().toISOString() };
+              allMaterials.push(fallbackItem);
             }
           } catch (uploadError) {
-            console.error('[Material Upload] Upload failed:', uploadError);
+            console.error('[Material Upload] ERROR during upload:', uploadError.message);
+            console.error('[Material Upload] Stack:', uploadError.stack);
 
             // Provide specific error messages
             if (uploadError.message.includes('Failed to fetch')) {
