@@ -1296,7 +1296,6 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
           if (idx !== -1) {
             fileStudents[idx] = { ...fileStudents[idx], ...updates };
             studentsDB.write(fileStudents);
-            console.log(`[Hybrid Sync] Synced update for ${updatedStudent.sid} to local file DB`);
           }
         } catch (e) { console.warn('Hybrid sync update failed', e); }
 
@@ -1344,7 +1343,8 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
     console.error('Error updating student:', error);
     res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to update student. Please try again later.'
+      message: 'Failed to update student. Please try again later.',
+      details: error.message
     });
   }
 });

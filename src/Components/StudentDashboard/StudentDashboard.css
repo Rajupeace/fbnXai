@@ -5764,3 +5764,57 @@
     align-items: baseline;
     gap: 0.5rem;
 }
+/* ==========================================================================
+   HORIZONTAL SCROLL FIXES (USER REQUEST)
+   ========================================================================== */
+
+/* Turn Grid Layouts into Horizontal Scroll Strips */
+.nexus-grid-layout {
+    display: flex !important;
+    gap: 1.5rem;
+    overflow-x: auto;
+    padding: 1.5rem 0.5rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Hide scrollbar for clean UI */
+}
+
+.nexus-grid-layout::-webkit-scrollbar {
+    display: none;
+}
+
+.nexus-grid-layout .nexus-node-card {
+    min-width: 300px; /* Ensure cards don't shrink */
+    max-width: 300px;
+    flex-shrink: 0;
+}
+
+.nexus-grid-layout .sem-node,
+.nexus-grid-layout .subject-node {
+    flex: 0 0 auto;
+}
+
+/* Resource Rows (Notes, Videos) */
+.res-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 1.5rem;
+    overflow-x: auto;
+    padding: 1rem 0.5rem;
+    scrollbar-width: none;
+}
+
+.res-row::-webkit-scrollbar {
+    display: none;
+}
+
+.res-row .res-card-v2 {
+    min-width: 280px;
+    flex-shrink: 0;
+}
+
+/* Ensure nothing forces wrapping */
+.nexus-browser-viewport {
+    overflow: hidden; /* Prevent outer scroll */
+}
+
