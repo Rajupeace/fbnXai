@@ -1,0 +1,52 @@
+---
+Source: Vignan University General Info
+---
+
+**About Vignan University (VFSTR):**
+Vignan's Foundation for Science, Technology & Research (VFSTR) is a Deemed to be University located in Vadlamudi, Guntur District, Andhra Pradesh. It provides high-quality education in Engineering, Management, and Applied Sciences.
+
+**Grading System:**
+The university follows a Choice Based Credit System (CBCS).
+- **O (Outstanding)**: 10 Grade Points (Marks: 90-100)
+- **S (Excellent)**: 9 Grade Points (Marks: 80-89)
+- **A (Very Good)**: 8 Grade Points (Marks: 70-79)
+- **B (Good)**: 7 Grade Points (Marks: 60-69)
+- **C (Fair)**: 6 Grade Points (Marks: 50-59)
+- **D (Pass)**: 5 Grade Points (Marks: 40-49)
+- **F (Fail)**: <40 Marks
+
+**Library Facilities:**
+The NTR Vignan Library is the central library.
+- **Working Hours**: 8:00 AM to 10:00 PM (Mon-Sat).
+- **Digital Library**: Access to IEEE, Springer, and ASME journals.
+- **Book Bank**: Students can borrow up to 6 books for the entire semester.
+
+**Examination Section:**
+- Mid-term exams are conducted twice a semester.
+- End-semester exams account for 60% of the total weightage.
+- The Controller of Examinations (CoE) office is located in the Administrative Block.
+
+**Student Activity Council (SAC):**
+SAC is the student body responsible for organizing fests like 'Mahotsav' and 'Srujanankura'. It consists of various clubs:
+- **Literary Club**: For debates and writing.
+- **Cultural Club**: Dance and Music.
+- **Technical Club**: Coding and Robotics.
+
+**Friendly Notebook Smart Ecosystem (2025 Update):**
+The university has transitioned to the **Friendly Notebook** platform—a next-generation academic ecosystem designed for seamless learning, teaching, and administration.
+
+**For Students:**
+- **Shared Tasks**: View deadlines assigned by faculty directly in the dashboard header.
+- **Advanced Learning Hub**: Access premium courses in Full Stack, AI, and more with progress tracking.
+- **Interview Prep**: Dedicated section for mock questions and interview practice.
+- **AI Study Buddy**: Click the **"AI Study Buddy" card** on your dashboard for instant academic help.
+
+**For Faculty:**
+- **Auto-Quiz**: Generate quizzes automatically from your uploaded notes using AI.
+- **Task Assignment**: Assign tasks with deadlines to specific student groups.
+- **AI Assistant**: Persistent access to the AI agent for research and teaching aid.
+
+**For Admin:**
+- **Campus Pulse**: Real-time analytics dashboard for student engagement and system health.
+- **Live Governance**: Real-time clock and system status monitoring.
+- **Global AI Access**: Instant AI support for administrative queries.
