@@ -1,26 +1,18 @@
 #!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    FBN XAI System Startup Script
+    FBN XAI System Startup Script v2.0
     Automated startup for MongoDB, Backend, and Frontend
-
-.DESCRIPTION
-    This script starts all required services for FBN XAI system:
-    - MongoDB database
-    - Node.js Backend server
-    - React Frontend application
 
 .NOTES
     Author: Bobby Martin
-    Version: 2.0
     Updated: January 21, 2026
 #>
 
 param(
     [switch]$SkipMongo = $false,
     [switch]$SkipBackend = $false,
-    [switch]$SkipFrontend = $false,
-    [switch]$Verbose = $false
+    [switch]$SkipFrontend = $false
 )
 
 # Color codes for output

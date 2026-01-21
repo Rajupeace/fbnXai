@@ -1028,15 +1028,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
               </div>
 
               <div className="admin-split-layout">
-                <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.4s' }}>
-                  <div className="f-node-head">
-                    <h3 className="f-node-title">CORE SYSTEM TELEMETRY</h3>
-                    <span className="admin-badge success">ONLINE</span>
-                  </div>
-                  <div style={{ padding: '0.5rem' }}>
-                    <SystemTelemetry />
-                  </div>
-                </div>
+
 
                 <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.5s', display: 'flex', flexDirection: 'column' }}>
                   <div className="f-node-head">
