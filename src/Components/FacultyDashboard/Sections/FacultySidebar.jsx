@@ -44,8 +44,8 @@ const FacultySidebar = ({
                 </div>
                 {!sidebarCollapsed && (
                     <>
-                        <h2 className="brand-shimmer">friendlyNotebook</h2>
-                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px', opacity: 0.8 }}>FACULTY CONSOLE V2.0</p>
+                        <h2 className="brand-shimmer">FBN XAI</h2>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px', opacity: 0.8 }}>FACULTY NEXUS</p>
                     </>
                 )}
             </div>
