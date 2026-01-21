@@ -46,8 +46,8 @@ const StudentHeader = ({
                 <div className="sd-brand-group">
                     <FaGraduationCap className="sd-brand-icon" />
                     <div>
-                        <h1 className="sd-brand-name brand-title">FRIENDLY</h1>
-                        <span className="brand-subtitle">Notebook v4</span>
+                        <h1 className="sd-brand-name brand-title">FBN XAI</h1>
+                        <span className="brand-subtitle">STUDENT HUB</span>
                     </div>
                 </div>
 

@@ -443,7 +443,7 @@ const ContentManager = () => {
                   {item.title}
                 </Typography>
                 <Typography sx={{ mb: 1.5 }} color="text.secondary">
-                  {item.subject}
+                  {item.subject || 'General'}
                 </Typography>
                 <Chip label={`Year: ${item.year}`} size="small" sx={{ mr: 0.5 }} />
                 <Chip label={`Sec: ${item.section}`} size="small" />

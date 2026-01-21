@@ -99,7 +99,6 @@ export async function apiDelete(path) {
 export async function apiUpload(path, formData) {
   if (!API_URL) throw new Error('API_URL not configured');
 
-  const headers = getAuthHeaders();
   const adminToken = window.localStorage.getItem('adminToken');
   const facultyToken = window.localStorage.getItem('facultyToken');
 
@@ -111,10 +110,18 @@ export async function apiUpload(path, formData) {
   }
 
   try {
+    // Build headers - DO NOT set Content-Type for FormData (browser will set it automatically with boundary)
+    const headers = {};
+    if (adminToken) {
+      headers['Authorization'] = `Bearer ${adminToken}`;
+    } else if (facultyToken) {
+      headers['Authorization'] = `Bearer ${facultyToken}`;
+    }
+
     const res = await fetch(`${API_URL.replace(/\/$/, '')}${path}`, {
       method: 'POST',
       body: formData,
-      headers: headers,
+      headers: headers,  // No Content-Type - let browser set it with boundary
     });
 
     const data = await res.json().catch(() => ({}));

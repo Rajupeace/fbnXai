@@ -64,8 +64,8 @@ const AdminHeader = ({
                 <div className="admin-brand-group">
                     <div className="admin-brand-icon"><FaShieldAlt /></div>
                     <div>
-                        <h1 className="admin-brand-name">SENTINEL</h1>
-                        <span style={{ fontSize: '0.6rem', fontWeight: 950, color: 'var(--admin-text-muted)', letterSpacing: '0.2rem' }}>ENTERPRISE</span>
+                        <h1 className="admin-brand-name">FBN XAI</h1>
+                        <span style={{ fontSize: '0.6rem', fontWeight: 950, color: 'var(--admin-text-muted)', letterSpacing: '0.2rem' }}>SENTINEL ADMIN</span>
                     </div>
                 </div>
             </div>

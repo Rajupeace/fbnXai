@@ -47,8 +47,8 @@ const FacultyHeader = ({
                 <div className="sd-brand-group">
                     <FaGraduationCap className="sd-brand-icon" style={{ fontSize: '2.4rem' }} />
                     <div>
-                        <h1 className="sd-brand-name">NEXUS</h1>
-                        <span className="sd-brand-tag">FACULTY CONTROL v4.2</span>
+                        <h1 className="sd-brand-name">FBN XAI</h1>
+                        <span className="sd-brand-tag">FACULTY NEXUS</span>
                     </div>
                 </div>
 

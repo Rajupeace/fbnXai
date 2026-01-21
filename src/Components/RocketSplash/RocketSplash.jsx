@@ -17,8 +17,8 @@ const RocketSplash = ({ onFinish }) => {
     const [particles, setParticles] = useState([]);
     const [stars, setStars] = useState([]);
     const canvasRef = useRef(null);
-    const brandName = "Friendly Notebook";
-    const creatorName = "Bobby Martin";
+    const brandName = "FBN XAI";
+    const creatorName = "FBN Team";
 
     // Generate starfield
     useEffect(() => {
@@ -135,7 +135,7 @@ const RocketSplash = ({ onFinish }) => {
                                 <div className="page-content">
                                     <div className="content-header">
                                         <FaGraduationCap className="header-icon" />
-                                        <span className="header-text">Friendly Notebook</span>
+                                        <span className="header-text">FBN XAI SYSTEM</span>
                                     </div>
                                     <div className="content-details">
                                         <div className="detail-item item-1"></div>

@@ -248,7 +248,7 @@ const LoginRegister = ({ setIsAuthenticated, setStudentData, setIsAdmin, setIsFa
           <div className="selection-content">
             <div className="hero-section animate-slide-up">
               <h1 className="hero-title">
-                {"Friendly Notebook".split("").map((char, index) => (
+                {"FBN XAI".split("").map((char, index) => (
                   <span
                     key={index}
                     className="letter-3d-login"
@@ -258,7 +258,7 @@ const LoginRegister = ({ setIsAuthenticated, setStudentData, setIsAdmin, setIsFa
                   </span>
                 ))}
               </h1>
-              <p className="hero-subtitle">Next-Gen Academy Portal</p>
+              <p className="hero-subtitle">Next-Gen Cognitive Portal</p>
             </div>
 
             <div className="modern-role-grid">
