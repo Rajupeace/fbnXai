@@ -10,6 +10,7 @@ import './App.css';
 import RocketSplash from './Components/RocketSplash/RocketSplash';
 import CommandPalette from './Components/CommandPalette/CommandPalette';
 import AnnouncementTicker from './Components/AnnouncementTicker/AnnouncementTicker';
+import GlobalNotifications from './Components/GlobalNotifications/GlobalNotifications';
 
 function App() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -122,6 +123,9 @@ function App() {
             <div className="App">
                 {isAuthenticated && (
                     <>
+                        {/* GLOBAL NOTIFICATION SYSTEM */}
+                        <GlobalNotifications userRole={userRole} userData={currentUser} />
+
                         <CommandPalette
                             isOpen={isCmdOpen}
                             onClose={() => setIsCmdOpen(false)}

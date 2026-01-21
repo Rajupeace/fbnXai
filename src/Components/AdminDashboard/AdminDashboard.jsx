@@ -11,9 +11,7 @@ import SystemTelemetry from './SystemTelemetry';
 import SystemIntelligence from './SystemIntelligence';
 import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
-import StudentStatistics from './StudentStatistics';
 import AdminExams from './AdminExams';
-import AnnouncementTicker from '../AnnouncementTicker/AnnouncementTicker';
 import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaChartLine, FaBullhorn, FaLayerGroup } from 'react-icons/fa';
 import sseClient from '../../utils/sseClient';
 
@@ -977,7 +975,9 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     <span className="admin-badge accent">REAL-TIME</span>
                   </div>
                   <div style={{ padding: '0.5rem' }}>
-                    <StudentStatistics />
+                    <div className="admin-empty-state">
+                      <p className="admin-empty-text">MODULE OFFLINE</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1728,7 +1728,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         })()
       }
 
-      <AnnouncementTicker messages={messages} />
+
     </div >
   );
 }

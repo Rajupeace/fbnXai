@@ -45,9 +45,11 @@ const LoginRegister = ({ setIsAuthenticated, setStudentData, setIsAdmin, setIsFa
 
   const handleAuthSuccess = (data, role) => {
     if (role === 'admin') {
+      window.localStorage.setItem('userData', JSON.stringify({ role: 'admin', studentName: 'Administrator' }));
       setIsAdmin(true);
       setIsAuthenticated(true);
     } else if (role === 'faculty') {
+      window.localStorage.setItem('userData', JSON.stringify({ ...data.facultyData, role: 'faculty' }));
       setFacultyData(data.facultyData);
       setIsFaculty(true);
       setIsAuthenticated(true);

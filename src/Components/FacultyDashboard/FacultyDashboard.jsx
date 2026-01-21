@@ -12,7 +12,6 @@ import FacultySettings from './FacultySettings';
 import FacultyAttendanceManager from './FacultyAttendanceManager';
 import FacultyScheduleView from './FacultyScheduleView';
 import FacultyExams from './FacultyExams';
-import AnnouncementTicker from '../AnnouncementTicker/AnnouncementTicker';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 
@@ -413,7 +412,6 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         </div>
       )}
 
-      <AnnouncementTicker messages={messages} />
       <div className="ai-fab" onClick={() => setView('ai-agent')}>
         <FaBullhorn />
       </div>

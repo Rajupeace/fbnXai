@@ -6,7 +6,6 @@ import {
     FaLayerGroup, FaRobot, FaFire, FaClipboardList
 } from 'react-icons/fa';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
-import AnnouncementTicker from '../AnnouncementTicker/AnnouncementTicker';
 
 // Sections
 import StudentHeader from './Sections/StudentHeader';
@@ -280,8 +279,6 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
     return (
         <div className={`student-dashboard-layout ${isDashboardLoaded ? 'loaded' : ''}`}>
-
-            <AnnouncementTicker messages={messages} />
 
             <StudentHeader
                 userData={userData}
