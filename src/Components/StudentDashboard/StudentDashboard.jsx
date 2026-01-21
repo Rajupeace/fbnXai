@@ -101,7 +101,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 60000);
+        const interval = setInterval(fetchData, 2000); // Poll every 2s for FAST real-time updates
         
         // Fast messages update every 3s
         const msgInterval = setInterval(async () => {

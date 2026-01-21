@@ -60,7 +60,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   useEffect(() => {
     refreshAll();
     const timer = setTimeout(() => setBootSequence(false), 1500);
-    const interval = setInterval(refreshAll, 10000);
+    const interval = setInterval(refreshAll, 3000); // Poll every 3s for FAST real-time updates
     
     // Fast messages update every 3s
     const msgInterval = setInterval(async () => {

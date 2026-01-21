@@ -61,7 +61,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     const savedTodos = JSON.parse(localStorage.getItem('adminTodos') || '[]');
     setTodos(savedTodos);
 
-    const interval = setInterval(loadData, 5000); // Poll every 5s for admin oversight
+    const interval = setInterval(loadData, 2000); // Poll every 2s for FAST real-time updates
     
     // Fast announcements update every 2s
     const messagesInterval = setInterval(async () => {
