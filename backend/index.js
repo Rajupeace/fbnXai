@@ -2770,11 +2770,34 @@ const initializeApp = async () => {
       console.error('Unexpected error while connecting to MongoDB:', e);
     }
 
+    // --- DEPLOYMENT SUPPORT: Serve Static Frontend ---
+    // This allows the backend to serve the React app in production (Monolithic Deployment)
+    const buildPath = path.join(__dirname, '..', 'build');
+    if (fs.existsSync(buildPath)) {
+      console.log('📂 Serving static frontend from:', buildPath);
+      app.use(express.static(buildPath));
+
+      // Catch-all handler for React SPA (must be after API routes)
+      app.get('*', (req, res) => {
+        // Don't interfere with API routes checking
+        if (req.path.startsWith('/api')) {
+          return res.status(404).json({ error: 'API route not found' });
+        }
+        res.sendFile(path.join(buildPath, 'index.html'));
+      });
+    } else {
+      console.log('⚠️ No frontend build found at:', buildPath);
+      console.log('   (This is normal in development if running separate servers)');
+    }
+
     const PORT = process.env.PORT || 5000;
     console.log(`Attempting to listen on port ${PORT}...`);
-    server = app.listen(PORT, () => {
+    server = app.listen(PORT, '0.0.0.0', () => { // Listen on 0.0.0.0 for external access
       console.log(`🚀 Backend server running on port ${PORT}`);
       console.log(`🌍 Access the API at http://localhost:${PORT}`);
+      if (fs.existsSync(buildPath)) {
+        console.log(`💻 Website available at http://localhost:${PORT}`);
+      }
       console.log('Server started successfully, testing...');
       console.log('Server listening callback executed');
     });

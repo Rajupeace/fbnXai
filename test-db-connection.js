@@ -11,7 +11,7 @@ require('dotenv').config({ path: path.join(__dirname, 'backend', '.env') });
 
 const testConnections = async () => {
   console.log('🧪 MongoDB Connection Tester\n');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
   
   // Test 1: Local MongoDB
   console.log('\n1️⃣  Testing LOCAL MongoDB (127.0.0.1:27017)');
