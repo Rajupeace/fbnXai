@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "42241770-6f47-481b-9d16-513333595ebf",
+    "courseCode": "m20131",
+    "code": "m20131",
+    "name": "MSD",
+    "branch": "CSE",
+    "year": "3",
+    "semester": "6",
+    "createdAt": "2026-01-23T19:42:52.120Z"
+  }
+]
