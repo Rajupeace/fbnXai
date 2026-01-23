@@ -102,7 +102,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
     useEffect(() => {
         fetchData();
         const interval = setInterval(fetchData, 2000); // Poll every 2s for FAST real-time updates
-        
+
         // Fast messages update every 3s
         const msgInterval = setInterval(async () => {
             try {
@@ -398,6 +398,18 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             <p className="nexus-page-subtitle sub-text-slate">DETAILED SUBJECT-WISE PROGRESSION ANALYTICS</p>
                         </header>
                         <SubjectAttendanceMarks overviewData={overviewData} enrolledSubjects={enrolledSubjects} />
+                    </div>
+                )}
+                {view === 'ai-agent' && (
+                    <div className="nexus-hub-viewport" style={{ padding: '0 2rem', height: 'calc(100vh - 100px)' }}>
+                        <div className="nexus-mesh-bg"></div>
+                        <header className="hub-header" style={{ marginBottom: '1.5rem' }}>
+                            <h2 className="nexus-page-title">NEURAL <span>CORE</span></h2>
+                            <p className="nexus-page-subtitle sub-text-slate">ADVANCED INTELLIGENCE & ACADEMIC ASSISTANCE</p>
+                        </header>
+                        <div style={{ flex: 1, height: '100%', paddingBottom: '2rem' }}>
+                            <VuAiAgent />
+                        </div>
                     </div>
                 )}
             </div>

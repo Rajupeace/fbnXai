@@ -61,7 +61,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
     refreshAll();
     const timer = setTimeout(() => setBootSequence(false), 1500);
     const interval = setInterval(refreshAll, 3000); // Poll every 3s for FAST real-time updates
-    
+
     // Fast messages update every 3s
     const msgInterval = setInterval(async () => {
       try {
@@ -78,7 +78,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         console.debug('Faculty messages update failed', e);
       }
     }, 3000);
-    
+
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
@@ -508,8 +508,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         </div>
       )}
 
-      <div className="ai-fab" onClick={() => setView('ai-agent')}>
-        <FaBullhorn />
+      <div className="ai-fab" onClick={() => setView('ai-agent')} title="Open Neural Core">
+        <FaRobot />
       </div>
       {view === 'ai-agent' && (
         <div className="nexus-modal-overlay" onClick={() => setView('overview')}>

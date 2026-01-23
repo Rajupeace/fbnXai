@@ -36,6 +36,7 @@ const StudentHeader = ({
         { id: 'schedule', label: 'CHRONOS', icon: <FaClipboardList /> },
         { id: 'faculty', label: 'MENTORS', icon: <FaGraduationCap /> },
         { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt /> },
+        { id: 'ai-agent', label: 'NEURAL', icon: <FaRobot /> },
         { id: 'advanced', label: 'STARSHIP', icon: <FaRocket /> },
         { id: 'settings', label: 'CORE', icon: <FaShieldAlt /> }
     ];
