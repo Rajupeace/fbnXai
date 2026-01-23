@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaChalkboardTeacher, FaBook, FaBolt, FaHistory, FaChevronRight, FaPlayCircle, FaCheckCircle, FaFlask } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiGet } from '../../utils/apiClient';
 import StudentLabsSchedule from './StudentLabsSchedule';
 
@@ -95,12 +96,20 @@ const StudentSchedule = ({ studentData }) => {
 
     return (
         <div className="chronos-protocol-container">
+            {/* Cinematic Effects */}
+            <div className="nexus-cyber-grid"></div>
+            <div className="nexus-scanline"></div>
+
             {/* Header Area */}
             <div className="chronos-header">
-                <div className="header-left">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="header-left"
+                >
                     <div className="protocol-tag"><FaBolt /> Temporal Directives</div>
                     <h1>CHRONOS <span className="highlight">MAP</span></h1>
-                </div>
+                </motion.div>
                 <div className="chronos-meta">
                     <div className="meta-item">
                         <span className="lab">SYSTEM STATUS</span>
@@ -150,13 +159,27 @@ const StudentSchedule = ({ studentData }) => {
                     </div>
 
                     {/* Timeline View */}
-                    <div className="chronos-timeline">
+                    <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            visible: { transition: { staggerChildren: 0.05 } }
+                        }}
+                        className="chronos-timeline"
+                    >
                         {todayClasses.length > 0 ? (
                             todayClasses.map((item, index) => {
                                 const ongoing = isClassOngoing(item.time);
                                 const past = isClassPast(item.time);
                                 return (
-                                    <div key={index} className={`chronos-event-card ${ongoing ? 'ongoing' : ''} ${past ? 'past' : ''}`}>
+                                    <motion.div
+                                        key={index}
+                                        variants={{
+                                            hidden: { opacity: 0, x: -10 },
+                                            visible: { opacity: 1, x: 0 }
+                                        }}
+                                        className={`chronos-event-card ${ongoing ? 'ongoing' : ''} ${past ? 'past' : ''}`}
+                                    >
                                         <div className="event-time">
                                             <span className="time-val">{item.time}</span>
                                             <div className="time-line">
@@ -181,7 +204,7 @@ const StudentSchedule = ({ studentData }) => {
                                         <div className="event-action">
                                             <button className="nexus-context-btn"><FaChevronRight /></button>
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 );
                             })
                         ) : (
@@ -192,7 +215,7 @@ const StudentSchedule = ({ studentData }) => {
                                 <button onClick={fetchSchedule} className="re-sync-btn">RE-SYNC TEMPORAL STREAM</button>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 </>
             ) : (
                 <StudentLabsSchedule studentData={studentData} />

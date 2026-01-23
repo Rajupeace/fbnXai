@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiGet } from '../../utils/apiClient';
 import { FaUserClock, FaChartLine, FaTrophy, FaCalendarAlt, FaStar, FaLevelUpAlt, FaFire } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * NEXUS ANALYTICS (Attendance & Performance)
@@ -58,25 +59,49 @@ const StudentAttendanceView = ({ studentId }) => {
 
     return (
         <div className="nexus-page-container">
+            {/* Cinematic Effects */}
+            <div className="nexus-cyber-grid"></div>
+            <div className="nexus-scanline"></div>
+
             {/* Header Section */}
             <div className="nexus-page-header">
-                <div>
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                >
                     <div className="nexus-page-subtitle">
                         <FaChartLine /> Performance Neural
                     </div>
                     <h1 className="nexus-page-title">
                         ACADEMIC <span>INSIGHTS</span>
                     </h1>
-                </div>
-                <div className="nexus-date-pill">
+                </motion.div>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="nexus-date-pill"
+                >
                     <FaCalendarAlt /> SESSION 2025-26
-                </div>
+                </motion.div>
             </div>
 
             {/* Top Metric Cards */}
-            <div className="nexus-analytics-hero">
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                    visible: { transition: { staggerChildren: 0.1 } }
+                }}
+                className="nexus-analytics-hero"
+            >
                 {/* Attendance Card */}
-                <div className="analytics-card">
+                <motion.div
+                    variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 }
+                    }}
+                    className="analytics-card"
+                >
                     <div className="card-content">
                         <div className="card-head">
                             <span className="card-label">TOTAL ATTENDANCE</span>
@@ -91,10 +116,16 @@ const StudentAttendanceView = ({ studentId }) => {
                             <span className="status-tag">OPTIMAL</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Performance Card */}
-                <div className="analytics-card">
+                <motion.div
+                    variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 }
+                    }}
+                    className="analytics-card"
+                >
                     <div className="card-content">
                         <div className="card-head">
                             <span className="card-label">GPA PERFORMANCE</span>
@@ -109,10 +140,16 @@ const StudentAttendanceView = ({ studentId }) => {
                             <span className="status-tag pulse">ELITE</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Consistency Card */}
-                <div className="analytics-card">
+                <motion.div
+                    variants={{
+                        hidden: { opacity: 0, y: 20 },
+                        visible: { opacity: 1, y: 0 }
+                    }}
+                    className="analytics-card"
+                >
                     <div className="card-content">
                         <div className="card-head">
                             <span className="card-label">LEARNING STREAK</span>
@@ -129,8 +166,8 @@ const StudentAttendanceView = ({ studentId }) => {
                             <span className="status-tag gold">ON FIRE</span>
                         </div>
                     </div>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
 
             {/* Subject Matrix */}
             <div className="analytics-matrix-header">
@@ -139,9 +176,23 @@ const StudentAttendanceView = ({ studentId }) => {
                 </h3>
             </div>
 
-            <div className="nexus-subject-grid">
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                    visible: { transition: { staggerChildren: 0.05 } }
+                }}
+                className="nexus-subject-grid"
+            >
                 {reportCards.map((card, i) => (
-                    <div key={i} className="nexus-subject-card">
+                    <motion.div
+                        key={i}
+                        variants={{
+                            hidden: { opacity: 0, scale: 0.95 },
+                            visible: { opacity: 1, scale: 1 }
+                        }}
+                        className="nexus-subject-card"
+                    >
                         <div className="subject-head">
                             <div className="subject-icon">{card.subject.substring(0, 2).toUpperCase()}</div>
                             <div className="subject-info">
@@ -167,9 +218,9 @@ const StudentAttendanceView = ({ studentId }) => {
                         <button className="subject-drilldown">
                             VIEW DETAILED NEURAL MAP <FaLevelUpAlt className="rotate-90" />
                         </button>
-                    </div>
+                    </motion.div>
                 ))}
-            </div>
+            </motion.div>
         </div>
     );
 };

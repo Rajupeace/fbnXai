@@ -258,3 +258,61 @@ exports.getStudentOverview = async (req, res) => {
     });
   }
 };
+
+// @desc    Get Detailed Student Profile
+// @route   GET /api/students/:id/profile
+exports.getStudentProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let student = await Student.findOne({ sid: id }).select('-password');
+
+    if (!student) {
+      const dbFile = require('../dbHelper');
+      const students = dbFile('students').read();
+      student = students.find(s => s.sid === id || s.id === id);
+    }
+
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+    res.json(student);
+  } catch (error) {
+    res.status(500).json({ error: 'Profile fetch failed', details: error.message });
+  }
+};
+
+// @desc    Update Student Profile
+// @route   PUT /api/students/:id/profile
+exports.updateStudentProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Safety: don't allow updating password or sid here
+    delete updates.password;
+    delete updates.sid;
+    delete updates.email;
+
+    const student = await Student.findOneAndUpdate(
+      { sid: id },
+      { $set: updates },
+      { new: true }
+    ).select('-password');
+
+    if (!student) return res.status(404).json({ error: 'Student not found in MongoDB' });
+
+    // Sync File DB if needed
+    try {
+      const dbFile = require('../dbHelper');
+      const fileDB = dbFile('students');
+      let students = fileDB.read();
+      const idx = students.findIndex(s => s.sid === id);
+      if (idx !== -1) {
+        students[idx] = { ...students[idx], ...updates };
+        fileDB.write(students);
+      }
+    } catch (e) { console.log('File DB sync skipped during profile update'); }
+
+    res.json({ message: 'Profile updated successfully', student });
+  } catch (error) {
+    res.status(500).json({ error: 'Update failed', details: error.message });
+  }
+};

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaEnvelope, FaPhone, FaBook, FaUserTie, FaFilter, FaShieldAlt, FaLinkedin, FaGithub } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiGet } from '../../utils/apiClient';
 
 /**
@@ -75,17 +76,28 @@ const StudentFacultyList = ({ studentData }) => {
 
     return (
         <div className="nexus-page-container">
+            {/* Cinematic Effects */}
+            <div className="nexus-cyber-grid"></div>
+            <div className="nexus-scanline"></div>
+
             {/* Header Area */}
             <div className="nexus-page-header">
-                <div>
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                >
                     <div className="nexus-page-subtitle"><FaUserTie /> Academic Sovereignty</div>
                     <h1 className="nexus-page-title">MENTOR <span>CIRCLE</span></h1>
-                </div>
-                <div className="hub-stats">
+                </motion.div>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="hub-stats"
+                >
                     <div className="nexus-intel-badge">
                         ACTIVE NODES: {filtered.length}
                     </div>
-                </div>
+                </motion.div>
             </div>
 
             {/* Sector Navigation */}
@@ -107,9 +119,23 @@ const StudentFacultyList = ({ studentData }) => {
             </div>
 
             {/* Mentor Grid */}
-            <div className="mentor-quantum-grid">
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                    visible: { transition: { staggerChildren: 0.1 } }
+                }}
+                className="mentor-quantum-grid"
+            >
                 {filtered.map((mentor, index) => (
-                    <div key={index} className="quantum-mentor-card">
+                    <motion.div
+                        key={index}
+                        variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            visible: { opacity: 1, y: 0 }
+                        }}
+                        className="quantum-mentor-card"
+                    >
                         <div className="card-top">
                             <div className="mentor-portrait">
                                 {mentor.image ? (
@@ -160,9 +186,9 @@ const StudentFacultyList = ({ studentData }) => {
                                 INITIATE LINK <FaShieldAlt />
                             </button>
                         </div>
-                    </div>
+                    </motion.div>
                 ))}
-            </div>
+            </motion.div>
 
             {
                 filtered.length === 0 && (

@@ -35,6 +35,11 @@ const studentSchema = new mongoose.Schema({
   address: String,
   profileImage: String,
   avatar: String,
+  bio: { type: String, default: 'Elite Learner at FBN XAI Sentinel Hub.' },
+  skills: [{ type: String }],
+  github: String,
+  linkedIn: String,
+  portfolio: String,
   studentToken: String,
   tokenIssuedAt: Date,
   createdAt: {
@@ -53,7 +58,8 @@ const studentSchema = new mongoose.Schema({
     tasksCompleted: { type: Number, default: 0 },
     advancedProgress: { type: Number, default: 0 }, // % completed
     totalClasses: { type: Number, default: 0 },
-    totalPresent: { type: Number, default: 0 }
+    totalPresent: { type: Number, default: 0 },
+    rank: { type: String, default: 'CADET v1.0' }
   }
 });
 
