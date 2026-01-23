@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     FaGraduationCap, FaEnvelope, FaClipboardList, FaSignOutAlt,
-    FaChartLine, FaUserGraduate, FaChalkboardTeacher, FaBook, FaLayerGroup, FaBullhorn, FaRobot, FaCog, FaCalendarAlt, FaFileAlt, FaShieldAlt
+    FaChartLine, FaUserGraduate, FaChalkboardTeacher, FaBook, FaLayerGroup, FaBullhorn, FaRobot, FaCog, FaCalendarAlt, FaFileAlt, FaShieldAlt,
+    FaChevronLeft, FaChevronRight, FaBars
 } from 'react-icons/fa';
 
 /**
@@ -16,6 +17,8 @@ const AdminHeader = ({
     openModal,
     onLogout
 }) => {
+    const [collapsed, setCollapsed] = useState(false);
+
     const localHandleLogout = (e) => {
         e.preventDefault();
         if (window.confirm('Terminate Sentinel session and purge local buffers?')) {
@@ -59,29 +62,45 @@ const AdminHeader = ({
     ];
 
     return (
-        <aside className="admin-sidebar sentinel-animate" style={{ animationDelay: '0s' }}>
+        <aside className={`admin-sidebar sentinel-animate ${collapsed ? 'collapsed' : ''}`} style={{ animationDelay: '0s' }}>
             <div className="admin-sidebar-header">
-                <div className="admin-brand-group">
-                    <div className="admin-brand-icon"><FaShieldAlt /></div>
-                    <div>
-                        <h1 className="admin-brand-name">FBN XAI</h1>
-                        <span style={{ fontSize: '0.6rem', fontWeight: 950, color: 'var(--admin-text-muted)', letterSpacing: '0.2rem' }}>SENTINEL ADMIN</span>
+                <div
+                    className="admin-brand-group"
+                    onClick={() => setCollapsed(!collapsed)}
+                    style={{ cursor: 'pointer', justifyContent: collapsed ? 'center' : 'flex-start' }}
+                    title={collapsed ? "Expand Dashboard" : "Collapse Dashboard"}
+                >
+                    <div className="admin-brand-icon">
+                        {collapsed ? <FaBars /> : <FaShieldAlt />}
                     </div>
+                    {!collapsed && (
+                        <div className="fade-in-text">
+                            <h1 className="admin-brand-name">FBN XAI</h1>
+                            <span style={{ fontSize: '0.6rem', fontWeight: 950, color: 'var(--admin-text-muted)', letterSpacing: '0.2rem' }}>SENTINEL ADMIN</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <nav className="admin-nav">
                 {navGroups.map((group, idx) => (
                     <div key={idx} className="admin-nav-group">
-                        <span className="admin-nav-label">{group.label}</span>
+                        {!collapsed && <span className="admin-nav-label fade-in-text">{group.label}</span>}
                         {group.items.map(item => (
                             <div
                                 key={item.id}
                                 onClick={() => setView(item.id)}
-                                className={`admin-nav-item ${view === item.id ? 'active' : ''}`}
+                                className={`
+                                    admin-nav-item 
+                                    ${view === item.id ? 'active' : ''}
+                                    ${item.id === 'ai-agent' ? 'ai-core-item' : ''}
+                                    ${collapsed ? 'collapsed' : ''}
+                                `}
+                                title={collapsed ? item.label : ''}
                             >
-                                {item.icon}
-                                <span>{item.label}</span>
+                                <div className="nav-icon">{item.icon}</div>
+                                {!collapsed && <span className="fade-in-text">{item.label}</span>}
+                                {!collapsed && item.id === 'ai-agent' && <div className="ai-pulse-dot"></div>}
                             </div>
                         ))}
                     </div>
@@ -89,23 +108,28 @@ const AdminHeader = ({
             </nav>
 
             <div className="admin-sidebar-footer">
-                <div style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid var(--admin-border)' }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{adminData.name}</div>
-                    <div style={{ fontSize: '0.65rem', fontWeight: 850, color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>{adminData.role}</div>
-                </div>
+                {!collapsed && (
+                    <div className="fade-in-text" style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid var(--admin-border)' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{adminData.name}</div>
+                        <div style={{ fontSize: '0.65rem', fontWeight: 850, color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>{adminData.role}</div>
+                    </div>
+                )}
+
                 <button
                     onClick={() => openModal('about')}
-                    className="admin-btn admin-btn-outline"
+                    className={`admin-btn admin-btn-outline ${collapsed ? 'icon-only' : ''}`}
                     style={{ width: '100%', justifyContent: 'center', marginBottom: '0.75rem', height: '45px' }}
+                    title="System Config"
                 >
-                    <FaCog /> SYSTEM CONFIG
+                    <FaCog /> {!collapsed && "SYSTEM CONFIG"}
                 </button>
                 <button
                     onClick={localHandleLogout}
-                    className="admin-btn"
+                    className={`admin-btn ${collapsed ? 'icon-only' : ''}`}
                     style={{ width: '100%', justifyContent: 'center', background: '#fef2f2', color: '#dc2626', border: 'none', height: '45px' }}
+                    title="Terminate Session"
                 >
-                    <FaSignOutAlt /> TERMINATE
+                    <FaSignOutAlt /> {!collapsed && "TERMINATE"}
                 </button>
             </div>
         </aside>

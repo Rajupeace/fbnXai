@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     FaVideo, FaFileAlt, FaBrain,
     FaClock, FaRocket, FaTerminal, FaQuestionCircle,
@@ -41,11 +41,7 @@ const AdvancedLearning = ({ userData, overviewData }) => {
         ]
     };
 
-    useEffect(() => {
-        fetchAdvancedMaterials();
-    }, [selectedTech]);
-
-    const fetchAdvancedMaterials = async () => {
+    const fetchAdvancedMaterials = useCallback(async () => {
         setLoading(true);
         try {
             // Fetching materials filtered by tech name and isAdvanced flag
@@ -56,7 +52,11 @@ const AdvancedLearning = ({ userData, overviewData }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedTech]);
+
+    useEffect(() => {
+        fetchAdvancedMaterials();
+    }, [fetchAdvancedMaterials]);
 
     const renderResources = (type) => {
         const filtered = materials.filter(m => m.type === type);
@@ -212,20 +212,39 @@ const AdvancedLearning = ({ userData, overviewData }) => {
 
                 {activeTab === 'exams' && (
                     <div className="exam-nexus">
-                        <div className="exam-status-banner">
-                            <FaShieldAlt /> NEXT ASSESSMENT CRITICAL: DATA STRUCTURES (24h REMAINS)
-                        </div>
-                        <div className="exam-grid">
-                            <div className="exam-card">
-                                <h3>MODULE ASSESSMENT 04</h3>
-                                <p>Python Neural Networks & Graph Theory</p>
-                                <div className="exam-meta">
-                                    <span>TIME: 90m</span>
-                                    <span>TYPE: PRACTICAL</span>
-                                </div>
-                                <button className="exam-btn">INITIATE TEST</button>
+                        {loading ? (
+                            <div className="nexus-loading-ring"></div>
+                        ) : materials.filter(m => m.type === 'exam' || m.type === 'assignment').length === 0 ? (
+                            <div className="nexus-empty-journal">
+                                <FaShieldAlt className="no-synced-icon" />
+                                <h3>NO ACTIVE ASSESSMENTS</h3>
+                                <p>No scheduled evaluations detected in the neural mesh.</p>
                             </div>
-                        </div>
+                        ) : (
+                            <>
+                                {materials.filter(m => m.type === 'exam').sort((a, b) => new Date(a.date) - new Date(b.date))[0] && (
+                                    <div className="exam-status-banner">
+                                        <FaShieldAlt /> NEXT ASSESSMENT CRITICAL: {materials.filter(m => m.type === 'exam').sort((a, b) => new Date(a.date) - new Date(b.date))[0].title.toUpperCase()}
+                                    </div>
+                                )}
+                                <div className="exam-grid">
+                                    {materials.filter(m => m.type === 'exam' || m.type === 'assignment').map((exam, idx) => (
+                                        <div key={idx} className="exam-card">
+                                            <h3>{exam.title}</h3>
+                                            <p>{exam.subject} - {exam.desc || 'Scheduled Assessment'}</p>
+                                            <div className="exam-meta">
+                                                <span>TIME: {exam.duration || '60m'}</span>
+                                                <span>TYPE: {exam.mode || 'THEORETICAL'}</span>
+                                            </div>
+                                            <div className="exam-meta" style={{ marginTop: '0.5rem', color: '#64748b' }}>
+                                                <FaCalendarAlt /> {new Date(exam.date || Date.now()).toLocaleDateString()}
+                                            </div>
+                                            <button className="exam-btn" onClick={() => window.open(exam.link || '#', '_blank')}>INITIATE TEST</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 )}
             </div>

@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaPaperPlane, FaRobot } from 'react-icons/fa';
-import { apiPost } from '../../utils/apiClient';
-import { apiGet } from '../../utils/apiClient';
+import { apiPost, apiGet } from '../../utils/apiClient';
+import './VuAiAgent.css';
 
 const VuAiAgent = () => {
     const defaultBotMessage = React.useMemo(() => ({
         id: 'vuai-greeting',
         sender: 'bot',
-        text: 'Hello! I am your VuAiAgent. I can help you with syllabus, schedules, and academic queries. What\'s on your mind?'
+        text: 'Hello! I am your VuAiAgent (Neural Core). I can assist with syllabus, schedules, and academic intelligence. How may I help?'
     }), []);
 
     const [messages, setMessages] = useState([defaultBotMessage]);
@@ -28,11 +28,7 @@ const VuAiAgent = () => {
 
     const resolveUserProfile = () => {
         if (typeof window === 'undefined' || !window.localStorage) {
-            return {
-                role: 'student',
-                userId: 'guest',
-                context: {}
-            };
+            return { role: 'student', userId: 'guest', context: {} };
         }
 
         const userDataStr = window.localStorage.getItem('userData');
@@ -43,35 +39,22 @@ const VuAiAgent = () => {
         let userRole = 'student';
 
         const safeParse = (value) => {
-            try {
-                return JSON.parse(value);
-            } catch (err) {
-                console.error('[VuAiAgent] Failed to parse localStorage value:', err);
-                return null;
-            }
+            try { return JSON.parse(value); }
+            catch (err) { return null; }
         };
 
         if (userDataStr) {
             const parsed = safeParse(userDataStr);
-            if (parsed) {
-                userData = parsed;
-                userRole = parsed.role || 'student';
-            }
+            if (parsed) { userData = parsed; userRole = parsed.role || 'student'; }
         }
 
         if (!userData.role) {
             if (facultyDataStr) {
                 const parsed = safeParse(facultyDataStr);
-                if (parsed) {
-                    userData = parsed;
-                    userRole = 'faculty';
-                }
+                if (parsed) { userData = parsed; userRole = 'faculty'; }
             } else if (studentDataStr) {
                 const parsed = safeParse(studentDataStr);
-                if (parsed) {
-                    userData = parsed;
-                    userRole = 'student';
-                }
+                if (parsed) { userData = parsed; userRole = 'student'; }
             }
         }
 
@@ -80,7 +63,7 @@ const VuAiAgent = () => {
             userRole = 'admin';
         }
 
-        const profile = {
+        return {
             role: userRole,
             userId: userData.sid || userData.facultyId || userData.adminId || 'guest',
             context: {
@@ -90,9 +73,6 @@ const VuAiAgent = () => {
                 name: userData.studentName || userData.name || 'User'
             }
         };
-
-        console.log('[VuAiAgent] Detected profile:', profile, 'Raw user data:', userData);
-        return profile;
     };
 
     useEffect(() => {
@@ -118,14 +98,16 @@ const VuAiAgent = () => {
                             reconstructed.push({
                                 id: `${entry.id || entry.timestamp}-user`,
                                 sender: 'user',
-                                text: entry.message
+                                text: entry.message,
+                                timestamp: entry.timestamp
                             });
                         }
                         if (entry.response) {
                             reconstructed.push({
                                 id: `${entry.id || entry.timestamp}-bot`,
                                 sender: 'bot',
-                                text: entry.response
+                                text: entry.response,
+                                timestamp: entry.timestamp
                             });
                         }
                     });
@@ -163,8 +145,6 @@ const VuAiAgent = () => {
                 context: userProfile.context || {}
             };
 
-            console.log('[VuAiAgent] Sending payload:', payload);
-
             const data = await apiPost('/api/chat', payload);
 
             if (data && (data.response || data.text || data.message)) {
@@ -175,12 +155,9 @@ const VuAiAgent = () => {
             }
 
         } catch (error) {
-            console.error("[VuAiAgent] Error:", error);
-            console.error("[VuAiAgent] Error details:", error.message, error.stack);
-
             const errorText = error.message
-                ? `I'm having trouble connecting: ${error.message}`
-                : "I'm having trouble connecting to my brain right now. Please try again in a moment!";
+                ? `Connection error: ${error.message}`
+                : "Neural Core offline. Please retry.";
 
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
@@ -194,67 +171,65 @@ const VuAiAgent = () => {
     };
 
     return (
-        <div className="vu-ai-agent-container" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
-
+        <div className="vu-ai-container">
             {/* Header */}
-            <div style={{ padding: '1rem', background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)', color: 'white', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ background: 'rgba(255,255,255,0.2)', padding: '0.5rem', borderRadius: '50%' }}>
-                    <FaRobot size={20} />
+            <div className="vu-header">
+                <div className="vu-bot-avatar">
+                    <FaRobot size={22} />
                 </div>
-                <div>
-                    <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>VuAiAgent</h3>
-                    <div style={{ fontSize: '0.75rem', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                        <span style={{ width: '6px', height: '6px', background: '#4ade80', borderRadius: '50%' }}></span> Online
+                <div className="vu-title-group">
+                    <h3>VuAiAgent</h3>
+                    <div className="vu-status">
+                        <div className="vu-status-dot"></div>
+                        <span>Neural Core Online</span>
                     </div>
                 </div>
             </div>
 
             {/* Messages Area */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '1rem', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="vu-messages">
+                {isHistoryLoading && (
+                    <div style={{ textAlign: 'center', opacity: 0.6, fontSize: '0.8rem' }}>Syncing Neural Archives...</div>
+                )}
+
                 {messages.map((msg, idx) => (
-                    <div key={idx} style={{
-                        alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                        maxWidth: '80%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start'
-                    }}>
-                        <div style={{
-                            padding: '0.8rem 1.2rem',
-                            borderRadius: '16px',
-                            borderTopRightRadius: msg.sender === 'user' ? '4px' : '16px',
-                            borderTopLeftRadius: msg.sender === 'bot' ? '4px' : '16px',
-                            background: msg.sender === 'user' ? '#3b82f6' : (msg.isError ? '#fee2e2' : 'white'),
-                            color: msg.sender === 'user' ? 'white' : (msg.isError ? '#ef4444' : '#1e293b'),
-                            boxShadow: msg.sender === 'bot' ? '0 2px 5px rgba(0,0,0,0.05)' : '0 2px 5px rgba(59, 130, 246, 0.3)',
-                            fontSize: '0.95rem',
-                            lineHeight: '1.5'
-                        }}>
+                    <div key={idx} className={`vu-msg-wrapper ${msg.sender}`}>
+                        <div className={`vu-bubble ${msg.sender} ${msg.isError ? 'error' : ''}`}>
                             {msg.text}
+                        </div>
+                        <div className="vu-timestamp">
+                            {msg.sender === 'user' ? 'You' : 'AI Core'}
                         </div>
                     </div>
                 ))}
-                {isHistoryLoading && (
-                    <div style={{ alignSelf: 'center', background: '#fefce8', padding: '0.6rem 1rem', borderRadius: '999px', color: '#a16207', fontSize: '0.85rem' }}>
-                        Loading your previous chats...
-                    </div>
-                )}
+
                 {isLoading && (
-                    <div style={{ alignSelf: 'flex-start', background: 'white', padding: '0.8rem 1.2rem', borderRadius: '16px', borderTopLeftRadius: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', color: '#94a3b8', fontStyle: 'italic' }}>
-                        Thinking...
+                    <div className="vu-typing">
+                        <span>Thinking</span>
+                        <span className="dot-pulse">...</span>
                     </div>
                 )}
                 <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSend} style={{ padding: '1rem', background: 'white', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '0.75rem' }}>
-                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Ask about syllabus, tasks..." style={{ flex: 1, padding: '0.8rem 1rem', borderRadius: '50px', border: '1px solid #cbd5e1', outline: 'none' }} disabled={isLoading || isHistoryLoading} />
-                <button type="submit" disabled={isLoading || !input.trim() || isHistoryLoading} style={{ width: '45px', height: '45px', borderRadius: '50%', border: 'none', background: (isLoading || !input.trim() || isHistoryLoading) ? '#e2e8f0' : '#3b82f6', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+            <form onSubmit={handleSend} className="vu-input-area">
+                <input
+                    type="text"
+                    className="vu-input-field"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask about syllabus, schedules, or analytics..."
+                    disabled={isLoading || isHistoryLoading}
+                />
+                <button
+                    type="submit"
+                    className="vu-send-btn"
+                    disabled={isLoading || !input.trim() || isHistoryLoading}
+                >
                     <FaPaperPlane />
                 </button>
             </form>
-
         </div>
     );
 };

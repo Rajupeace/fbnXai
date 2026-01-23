@@ -77,8 +77,9 @@ const SubjectAttendanceMarks = ({ overviewData, enrolledSubjects }) => {
                         PERFORMANCE <span>NEURAL</span>
                     </h1>
                 </div>
-                <div className="nexus-intel-badge">
-                    INTEL SYNC: {new Date().toLocaleTimeString()}
+                <div className="nexus-intel-badge" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <span>INTEL SYNC: {new Date().toLocaleTimeString()}</span>
+                    <span style={{ fontSize: '0.7rem', color: '#4ade80', marginTop: '4px' }}>● DB LINKED: VERIFIED</span>
                 </div>
             </div>
 

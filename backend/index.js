@@ -262,6 +262,19 @@ const scheduleRoutes = require('./routes/scheduleRoutes');
 const chatRoutes = require('./routes/chat');
 const examRoutes = require('./routes/examRoutes');
 
+// Import Student Dashboard Routes
+const academicPulseRoutes = require('./routes/academicPulseRoutes');
+const studentProfileRoutes = require('./routes/studentProfileRoutes');
+const studentNotesRoutes = require('./routes/studentNotesRoutes');
+const studentGradesRoutes = require('./routes/studentGradesRoutes');
+const studentProgressRoutes = require('./routes/studentProgressRoutes');
+
+// Import User-Type-Specific Data Routes
+const adminDataRoutes = require('./routes/adminDataRoutes');
+const facultyDataRoutes = require('./routes/facultyDataRoutes');
+const studentDataRoutes = require('./routes/studentDataRoutes');
+const adminMessagesRoutes = require('./routes/adminMessagesRoutes');
+
 const courseRoutes = require('./routes/courseRoutes');
 app.use('/api/courses', courseRoutes);
 // app.use('/api/teaching-assignments', teachingAssignmentRoutes);
@@ -269,6 +282,19 @@ app.use('/api/students', studentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/chat', chatRoutes);
+
+// Register Student Dashboard API Routes
+app.use('/api/academic-pulse', academicPulseRoutes);
+app.use('/api/student-profile', studentProfileRoutes);
+app.use('/api/student-notes', studentNotesRoutes);
+app.use('/api/student-grades', studentGradesRoutes);
+app.use('/api/student-progress', studentProgressRoutes);
+
+// Register User-Type-Specific Data Routes (Admin, Faculty, Student Data Folders)
+app.use('/api/admin-data', adminDataRoutes);
+app.use('/api/faculty-data', facultyDataRoutes);
+app.use('/api/student-data', studentDataRoutes);
+app.use('/api/admin-messages', adminMessagesRoutes);
 app.get('/api/labs/schedule', async (req, res) => {
   try {
     const { year, section, branch } = req.query;
@@ -1848,7 +1874,35 @@ app.post('/api/students/login', async (req, res) => {
           student.studentToken = token;
           student.tokenIssuedAt = new Date();
           student.stats = student.stats || {};
-          student.stats.lastLogin = new Date();
+
+          // Streak Logic
+          const now = new Date();
+          const last = student.stats.lastLogin ? new Date(student.stats.lastLogin) : null;
+
+          if (last) {
+            const prevDate = new Date(last);
+            prevDate.setHours(0, 0, 0, 0);
+
+            const currDate = new Date(now);
+            currDate.setHours(0, 0, 0, 0);
+
+            const diffTime = Math.abs(currDate - prevDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+              // Consecutive day
+              student.stats.streak = (student.stats.streak || 0) + 1;
+            } else if (diffDays > 1) {
+              // Broken streak
+              student.stats.streak = 1;
+            }
+            // If diffDays === 0 (same day), do nothing
+          } else {
+            // First ever login
+            student.stats.streak = 1;
+          }
+
+          student.stats.lastLogin = now;
           await student.save();
 
           const studentWithRole = student.toObject();
@@ -2770,34 +2824,11 @@ const initializeApp = async () => {
       console.error('Unexpected error while connecting to MongoDB:', e);
     }
 
-    // --- DEPLOYMENT SUPPORT: Serve Static Frontend ---
-    // This allows the backend to serve the React app in production (Monolithic Deployment)
-    const buildPath = path.join(__dirname, '..', 'build');
-    if (fs.existsSync(buildPath)) {
-      console.log('📂 Serving static frontend from:', buildPath);
-      app.use(express.static(buildPath));
-
-      // Catch-all handler for React SPA (must be after API routes)
-      app.get('*', (req, res) => {
-        // Don't interfere with API routes checking
-        if (req.path.startsWith('/api')) {
-          return res.status(404).json({ error: 'API route not found' });
-        }
-        res.sendFile(path.join(buildPath, 'index.html'));
-      });
-    } else {
-      console.log('⚠️ No frontend build found at:', buildPath);
-      console.log('   (This is normal in development if running separate servers)');
-    }
-
     const PORT = process.env.PORT || 5000;
     console.log(`Attempting to listen on port ${PORT}...`);
-    server = app.listen(PORT, '0.0.0.0', () => { // Listen on 0.0.0.0 for external access
+    server = app.listen(PORT, () => {
       console.log(`🚀 Backend server running on port ${PORT}`);
       console.log(`🌍 Access the API at http://localhost:${PORT}`);
-      if (fs.existsSync(buildPath)) {
-        console.log(`💻 Website available at http://localhost:${PORT}`);
-      }
       console.log('Server started successfully, testing...');
       console.log('Server listening callback executed');
     });

@@ -1,55 +1,13 @@
 [
   {
-    "id": "0c44696c-1465-4698-aa21-1b1385d13ab7",
+    "id": "98030792-b5d4-4915-81f0-cc6ccd23ec4e",
     "userId": "guest",
     "role": "admin",
-    "message": "hi",
+    "message": "hi]",
     "response": "Hello Administrator! Welcome to VuAiAgent. I'm here to help you manage the entire system, users, and administrative tasks. What can I assist you with today?",
     "context": {
-      "name": "User"
+      "name": "Administrator"
     },
-    "timestamp": "2026-01-18T12:49:11.607Z"
-  },
-  {
-    "id": "4294d863-79b5-4306-bdaa-0367beb12b18",
-    "userId": "123456",
-    "role": "student",
-    "message": "hi",
-    "response": "Hello! I see you are a Year 3 student in CSE, Section 13. How can I assist you with your studies today?",
-    "context": {
-      "year": "3",
-      "branch": "CSE",
-      "section": "13",
-      "name": "Badisa Srikanth "
-    },
-    "timestamp": "2026-01-20T09:26:39.927Z"
-  },
-  {
-    "id": "9cbd3f26-bcce-4df1-9496-fa8a5d90f8a7",
-    "userId": "123456",
-    "role": "student",
-    "message": "yes",
-    "response": "I received your query about \"yes\". While I don't have specific information on this, I recommend:\n1. Checking the 'Advanced Learning' section\n2. Contacting your faculty advisor\n3. Visiting the student help desk\n\nIs there anything else I can help you with?",
-    "context": {
-      "year": "3",
-      "branch": "CSE",
-      "section": "13",
-      "name": "Badisa Srikanth "
-    },
-    "timestamp": "2026-01-20T09:26:54.207Z"
-  },
-  {
-    "id": "8348ec25-5a3e-40bf-baae-e0d9168b8514",
-    "userId": "123456",
-    "role": "admin",
-    "message": "hi",
-    "response": "Hello Administrator! Welcome to VuAiAgent. I'm here to help you manage the entire system, users, and administrative tasks. What can I assist you with today?",
-    "context": {
-      "year": "3",
-      "branch": "CSE",
-      "section": "13",
-      "name": "Badisa Srikanth "
-    },
-    "timestamp": "2026-01-20T11:19:01.000Z"
+    "timestamp": "2026-01-23T16:39:18.391Z"
   }
 ]

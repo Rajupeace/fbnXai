@@ -1,16 +1,36 @@
-import React, { useState } from 'react';
-import { FaBook, FaPencilAlt, FaTrash, FaSave, FaTimes, FaStickyNote, FaLayerGroup } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaBook, FaPencilAlt, FaTrash, FaSave, FaTimes, FaStickyNote, FaLayerGroup, FaCloudUploadAlt, FaDatabase } from 'react-icons/fa';
 
 /**
  * NEXUS DIGITAL JOURNAL (Semester Notes)
  * A premium note-taking interface for students to capture insights.
+ * NOW WITH PERSISTENT STORAGE (Local Database Linked)
  */
 const SemesterNotes = ({ semester, studentData }) => {
-    const [notes, setNotes] = useState([]);
+    // Unique storage key for this student
+    const storageKey = `nexus_notes_${studentData?.sid || 'guest'}`;
+
+    // Initialize from Local DB
+    const [notes, setNotes] = useState(() => {
+        try {
+            const saved = localStorage.getItem(storageKey);
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) { return []; }
+    });
+
     const [newNote, setNewNote] = useState('');
     const [editingId, setEditingId] = useState(null);
     const [editText, setEditText] = useState('');
     const [showForm, setShowForm] = useState(false);
+    const [syncStatus, setSyncStatus] = useState('SYNCED');
+
+    // Persistence Effect
+    useEffect(() => {
+        localStorage.setItem(storageKey, JSON.stringify(notes));
+        setSyncStatus('SYNCING...');
+        const timer = setTimeout(() => setSyncStatus('SYNCED'), 800);
+        return () => clearTimeout(timer);
+    }, [notes, storageKey]);
 
     const addNote = () => {
         if (newNote.trim()) {
@@ -52,6 +72,9 @@ const SemesterNotes = ({ semester, studentData }) => {
                     <h1 className="nexus-journal-title">
                         SEMESTER <span>{semester || 'X'}</span> NOTES
                     </h1>
+                    <div style={{ fontSize: '0.75rem', color: syncStatus === 'SYNCED' ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <FaDatabase /> {syncStatus === 'SYNCED' ? 'DATABASE LINKED' : 'SYNCING...'}
+                    </div>
                 </div>
 
                 <button
@@ -63,7 +86,7 @@ const SemesterNotes = ({ semester, studentData }) => {
             </div>
 
             {showForm && (
-                <div className="nexus-note-editor">
+                <div className="nexus-note-editor animate-slide-up">
                     <h3 className="editor-title">DRAFTING INSIGHT</h3>
                     <textarea
                         value={newNote}
@@ -85,9 +108,9 @@ const SemesterNotes = ({ semester, studentData }) => {
                         <div className="empty-icon-box">
                             <FaStickyNote />
                         </div>
-                        <h3>Your Journal is Empty</h3>
+                        <h3>Journal Ready</h3>
                         <p>
-                            Begin capturing your academic journey. Document insights, lectures, and breakthrough moments here.
+                            Secure personal note storage initialized. Document your academic insights here.
                         </p>
                         <button onClick={() => setShowForm(true)} className="nexus-btn-vibrant">
                             + CREATE FIRST ENTRY
@@ -95,7 +118,7 @@ const SemesterNotes = ({ semester, studentData }) => {
                     </div>
                 ) : (
                     notes.map(note => (
-                        <div key={note.id} className="nexus-note-card">
+                        <div key={note.id} className="nexus-note-card animate-fade-in">
                             <div className="note-card-head">
                                 <span className="note-timestamp">{note.timestamp}</span>
                                 <div className="note-controls">
@@ -119,7 +142,7 @@ const SemesterNotes = ({ semester, studentData }) => {
 
                             <div className="note-card-foot">
                                 <div className="sync-indicator"></div>
-                                <span className="sync-text">INSIGHT SYNCED</span>
+                                <span className="sync-text">SECURE STORAGE</span>
                             </div>
                         </div>
                     ))

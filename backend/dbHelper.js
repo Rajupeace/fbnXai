@@ -1,71 +1,49 @@
 const fs = require('fs');
 const path = require('path');
-const { RESOURCE_MAP, DASHBOARD_PATHS } = require('./dashboardConfig');
 
-// Helper to ensure directory exists
-const ensureDir = (filePath) => {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-};
-
-// Ensure basic structure exists on load
-try {
-  Object.values(DASHBOARD_PATHS).forEach(p => {
-    if (typeof p === 'string') {
-      if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
-    } else if (typeof p === 'object' && p !== null) {
-      Object.values(p).forEach(sub => {
-        if (typeof sub === 'string' && !fs.existsSync(sub)) {
-          fs.mkdirSync(sub, { recursive: true });
-        }
-      });
+// Ensure data directory exists
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+    try {
+        fs.mkdirSync(dataDir, { recursive: true });
+    } catch (e) {
+        console.error("Failed to create data directory:", e);
     }
-  });
-} catch (e) {
-  console.error("Failed to initialize database folder structure:", e);
 }
 
-// Simple file-based DB helper
-const dbFile = (name, initial) => {
-  // Determine path from map, or default to Admin Sections
-  let p = RESOURCE_MAP[name];
+/**
+ * Simple file-based database helper
+ * @param {string} collectionName - Name of the JSON file (without extension)
+ * @param {any} defaultData - Default data if file doesn't exist
+ */
+const dbHelper = (collectionName, defaultData = []) => {
+    const filePath = path.join(dataDir, `${collectionName}.json`);
 
-  if (!p) {
-    // Fallback for unknown collections
-    p = path.join(DASHBOARD_PATHS.admin.sections, 'Misc', `${name}.json`);
-  }
-
-  ensureDir(p);
-
-  // Initialize file with empty array or object if it doesn't exist
-  if (!fs.existsSync(p)) {
-    fs.writeFileSync(p, JSON.stringify(initial, null, 2));
-  }
-
-  return {
-    read: () => {
-      try {
-        const data = fs.readFileSync(p, 'utf8');
-        return data ? JSON.parse(data) : initial;
-      } catch (e) {
-        // console.error(`Error reading ${name}.json:`, e); 
-        // Suppress error log for cleaner console, usually means fresh start
-        return initial;
-      }
-    },
-    write: (data) => {
-      try {
-        ensureDir(p); // Ensure dir exists before write (in case it was deleted)
-        fs.writeFileSync(p, JSON.stringify(data, null, 2));
-      } catch (e) {
-        console.error(`Error writing to ${name}.json:`, e);
-        throw e;
-      }
-    },
-    path: p // Expose path for watchers
-  };
+    return {
+        read: () => {
+            try {
+                if (!fs.existsSync(filePath)) {
+                    // Initialize if missing
+                    fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2));
+                    return defaultData;
+                }
+                const raw = fs.readFileSync(filePath, 'utf-8');
+                return JSON.parse(raw);
+            } catch (error) {
+                console.error(`[dbHelper] Read Error (${collectionName}):`, error.message);
+                return defaultData;
+            }
+        },
+        write: (data) => {
+            try {
+                fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+                return true;
+            } catch (error) {
+                console.error(`[dbHelper] Write Error (${collectionName}):`, error.message);
+                return false;
+            }
+        }
+    };
 };
 
-module.exports = dbFile;
+module.exports = dbHelper;
