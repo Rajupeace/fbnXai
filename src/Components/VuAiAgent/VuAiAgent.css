@@ -1,97 +1,175 @@
-/* VU AI AGENT - NEURAL CORE THEME */
+/* VU AI AGENT - NEURAL CORE THEME (SENTINEL v7.0) */
 
 .vu-ai-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: #ffffff;
-    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 32px;
     overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    font-family: 'Inter', sans-serif;
-    border: 1px solid rgba(99, 102, 241, 0.1);
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* HEADER */
 .vu-header {
-    padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
-    background-size: 200% 200%;
-    animation: gradientFlow 6s ease infinite;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%);
     color: white;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    gap: 1.25rem;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-@keyframes gradientFlow {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+.vu-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
 }
 
 .vu-bot-avatar {
-    background: rgba(255, 255, 255, 0.2);
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.ai-icon-spin {
+    animation: iconFloat 4s ease-in-out infinite;
+}
+
+@keyframes iconFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
 }
 
 .vu-title-group h3 {
     margin: 0;
-    font-size: 1.1rem;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    font-size: 1.2rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: white;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+}
+
+.vu-version-tag {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
 .vu-status {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.75rem;
-    opacity: 0.95;
-    font-weight: 600;
+    gap: 0.6rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 0.2rem;
 }
 
 .vu-status-dot {
-    width: 8px;
-    height: 8px;
-    background: #4ade80; /* Green */
+    width: 10px;
+    height: 10px;
+    background: #10b981;
     border-radius: 50%;
-    box-shadow: 0 0 8px #4ade80;
-    animation: pulseGreen 2s infinite;
+    box-shadow: 0 0 12px #10b981;
+    animation: activePulse 2s infinite;
 }
 
-@keyframes pulseGreen {
-    0% { transform: scale(0.95); opacity: 0.8; }
-    50% { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(0.95); opacity: 0.8; }
+@keyframes activePulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.vu-header-decor {
+    margin-left: auto;
+    display: flex;
+    gap: 0.75rem;
+    opacity: 0.5;
+}
+
+.vu-decor-dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 50%;
+    background: white;
+}
+
+.vu-decor-dot {
+    opacity: 0.4;
 }
 
 /* MESSAGES AREA */
 .vu-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 1.5rem;
-    background: #f8fafc;
-    background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
-    background-size: 20px 20px; /* Dot pattern */
+    padding: 2rem;
+    background: #ffffff;
+    background-image:
+        radial-gradient(circle at 2px 2px, #f1f5f9 1px, transparent 0);
+    background-size: 24px 24px;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
 }
 
 .vu-msg-wrapper {
     display: flex;
     flex-direction: column;
-    max-width: 80%;
+    max-width: 85%;
+    position: relative;
 }
 
 .vu-msg-wrapper.user {
@@ -105,137 +183,224 @@
 }
 
 .vu-bubble {
-    padding: 1rem 1.4rem;
+    padding: 1.25rem 1.75rem;
     font-size: 0.95rem;
-    line-height: 1.6;
-    border-radius: 18px;
+    line-height: 1.7;
+    border-radius: 20px;
     position: relative;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.3s;
 }
 
 .vu-bubble.user {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #4338ca 0%, #312e81 100%);
     color: white;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 10px 20px rgba(67, 56, 202, 0.15);
 }
 
 .vu-bubble.bot {
     background: white;
     color: #1e293b;
     border-bottom-left-radius: 4px;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #f1f5f9;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+}
+
+/* Markdown Specifics */
+.markdown-content p {
+    margin-bottom: 1rem;
+}
+
+.markdown-content p:last-child {
+    margin-bottom: 0;
+}
+
+.markdown-content strong {
+    font-weight: 800;
+    color: inherit;
+}
+
+.markdown-content code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.2rem 0.4rem;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+}
+
+.vu-bubble.user .markdown-content code {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .vu-bubble.error {
     background: #fef2f2;
     color: #dc2626;
-    border-color: #fecaca;
+    border-color: #fee2e2;
+    font-weight: 700;
+}
+
+.copy-btn {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 6px;
+    transition: 0.2s;
+    opacity: 0;
+}
+
+.vu-bubble.bot:hover .copy-btn {
+    opacity: 1;
+}
+
+.copy-btn:hover {
+    background: #f8fafc;
+    color: #4f46e5;
+}
+
+.copy-btn.copied {
+    color: #10b981;
 }
 
 .vu-timestamp {
     font-size: 0.65rem;
     color: #94a3b8;
-    margin-top: 0.3rem;
-    font-weight: 600;
+    margin-top: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
 }
 
-/* TYPING INDICATOR */
+/* TYPING/PULSE INDICATOR */
 .vu-typing {
-    background: rgba(255,255,255,0.8);
-    padding: 0.8rem 1.2rem;
+    background: white;
+    padding: 1rem 1.75rem;
     border-radius: 20px;
-    color: #64748b;
-    font-style: italic;
-    font-size: 0.8rem;
+    color: #6366f1;
+    font-weight: 900;
+    font-size: 0.7rem;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 1rem;
     width: fit-content;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #f1f5f9;
+    letter-spacing: 0.15em;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.02);
+}
+
+.neural-pulse-loader {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #6366f1;
+    animation: neuralPulse 1s infinite alternate;
+}
+
+@keyframes neuralPulse {
+    from {
+        transform: scale(0.8);
+        opacity: 0.4;
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+
+    to {
+        transform: scale(1.2);
+        opacity: 1;
+        box-shadow: 0 0 15px 5px rgba(99, 102, 241, 0.2);
+    }
 }
 
 /* INPUT AREA */
 .vu-input-area {
-    padding: 1.25rem;
     background: white;
-    border-top: 1px solid #e2e8f0;
+    padding: 1.5rem 2rem;
+    position: relative;
+    border-top: 1px solid #f1f5f9;
+}
+
+.vu-input-wrapper {
+    position: relative;
     display: flex;
-    gap: 0.75rem;
     align-items: center;
+    width: 100%;
 }
 
 .vu-input-field {
-    flex: 1;
-    padding: 1rem 1.25rem;
+    width: 100%;
+    padding: 1.25rem 4rem 1.25rem 2rem;
     border-radius: 50px;
-    border: 2px solid #e2e8f0;
-    background: #f8fafc;
+    border: 2px solid #f1f5f9;
+    background: #ffffff;
+    font-family: inherit;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     font-size: 0.95rem;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     outline: none;
-    color: #334155;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .vu-input-field:focus {
     border-color: #6366f1;
-    background: white;
     box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
 .vu-send-btn {
-    width: 50px;
-    height: 50px;
+    position: absolute;
+    right: 0.5rem;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    margin: 0;
     border: none;
-    background: #4f46e5;
-    color: white;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.3s;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
 }
 
-.vu-send-btn:hover:not(:disabled) {
-    transform: scale(1.05);
+.vu-send-btn.active {
     background: #4338ca;
+    color: white;
+    transform: scale(1);
 }
 
-.vu-send-btn:disabled {
-    background: #cbd5e1;
+.vu-send-btn.active:hover {
+    background: #312e81;
+    transform: scale(1.05);
+}
+
+.vu-send-btn.inactive {
+    background: #f1f5f9;
+    color: #94a3b8;
+    transform: scale(0.9);
     cursor: not-allowed;
-    box-shadow: none;
-}
-/* Dot Pulse Animation for Typing */
-.dot-pulse {
-  display: inline-block;
-  animation: dotPulse 1.5s infinite;
-  font-weight: 800;
 }
 
-@keyframes dotPulse {
-  0% { opacity: 0.2; }
-  50% { opacity: 1; }
-  100% { opacity: 0.2; }
+.vu-footer-bar {
+    height: 6px;
+    width: 100%;
+    background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+    opacity: 0.6;
 }
 
-/* Scrollbar Styling */
-.vu-messages::-webkit-scrollbar {
+/* Scrollbar Customization */
+.sentinel-scrollbar::-webkit-scrollbar {
     width: 6px;
 }
 
-.vu-messages::-webkit-scrollbar-track {
+.sentinel-scrollbar::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.vu-messages::-webkit-scrollbar-thumb {
-    background-color: rgba(99, 102, 241, 0.2);
+.sentinel-scrollbar::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
     border-radius: 10px;
 }
 
-.vu-messages::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(99, 102, 241, 0.4);
+.sentinel-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
 }
-

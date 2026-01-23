@@ -1,66 +1,66 @@
-// Faculty Knowledge Base
+// Faculty Knowledge Base (SENTINEL v7.0)
 module.exports = {
     greeting: {
         keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
-        response: (context) => `Hello Professor! Welcome to VuAiAgent. I'm here to assist you with student management, material uploads, and administrative tasks. How can I help you today?`
+        response: (context) => `🎓 **Academic Interface Active.**\n\nWelcome back, **${context?.name || 'Professor'}**. I have synchronized your departmental assets. How can I assist with your curriculum or student oversight today?`
     },
 
     students: {
-        keywords: ['student', 'students', 'my students', 'class', 'section'],
-        response: () => "You can view all your assigned students in the 'My Students' section of your Faculty Dashboard. Filter by year, section, and subject to manage specific groups."
+        keywords: ['student', 'students', 'my students', 'class', 'section', 'roster', 'cadets'],
+        response: () => "The **Student Identity Network** is online. View the profiles and contact information of students under your mentorship:\n\n{{NAVIGATE: students}}"
     },
 
     upload: {
         keywords: ['upload', 'add material', 'upload notes', 'add content', 'share material'],
-        response: () => "To upload study materials:\n1. Go to 'Upload Materials' section\n2. Select subject, module, and unit\n3. Choose file type (Notes/Videos/Assignments)\n4. Upload your file\n5. Students will see it immediately in their dashboard"
+        response: () => "The **Asset Repository** is ready for deployment. Upload course notes, lecture videos, or modular content here:\n\n{{NAVIGATE: materials}}\n\n*Note: Supported formats include PDF, DOCX, and MP4.*"
     },
 
     materials: {
         keywords: ['materials', 'notes', 'content', 'resources', 'my uploads'],
-        response: () => "All your uploaded materials are visible in the 'My Uploads' section. You can edit, delete, or update any material. Students have instant access to your latest uploads."
+        response: () => "Your **Academic Archives** are accessible. You can review, modify, or deploy course resources to your assigned sections:\n\n{{NAVIGATE: materials}}"
     },
 
     attendance: {
-        keywords: ['attendance', 'mark attendance', 'present', 'absent'],
-        response: () => "Use the 'Attendance' module to:\n- Mark daily attendance\n- View attendance reports\n- Generate defaulter lists\n- Export attendance data\n\nEnsure attendance is marked within 24 hours of the class."
+        keywords: ['attendance', 'mark attendance', 'present', 'absent', 'roster'],
+        response: () => "The **Attendance Registry** is online. You can record presence for your assigned sections or view historical data here:\n\n{{NAVIGATE: attendance}}\n\n*System suggests checking Section A's morning labs.*"
     },
 
     assignments: {
         keywords: ['assignment', 'homework', 'task', 'create assignment'],
-        response: () => "Create assignments in the 'Assignments' section:\n1. Set title and description\n2. Choose deadline\n3. Select target students (year/section)\n4. Attach reference materials\n5. Students will be notified automatically"
+        response: () => "The **Project Management Module** is active. Deploy new tasks and track submission rates in the **Materials** sector:\n\n{{NAVIGATE: materials}}"
     },
 
     grades: {
-        keywords: ['grades', 'marks', 'evaluation', 'assessment', 'score'],
-        response: () => "Access the 'Grading' module to:\n- Enter test/exam marks\n- View grade distributions\n- Generate progress reports\n- Export grade sheets\n\nAll grades are automatically reflected in student dashboards."
+        keywords: ['grades', 'marks', 'evaluation', 'assessment', 'score', 'exam'],
+        response: () => "The **Assessment Rig** is ready for simulation control. Manage your subject exams, grading keys, and performance scoring:\n\n{{NAVIGATE: exams}}"
     },
 
     schedule: {
-        keywords: ['schedule', 'timetable', 'my classes', 'teaching schedule'],
-        response: () => "Your teaching schedule is displayed on your Faculty Dashboard. You can view:\n- Daily class timings\n- Subject allocations\n- Room assignments\n- Free periods"
+        keywords: ['schedule', 'timetable', 'my classes', 'teaching schedule', 'when is my next class'],
+        response: () => "Accessing your **Academic Itinerary**...\n\nYour teaching schedule and classroom assignments are mapped in the **Schedule Control** center:\n\n{{NAVIGATE: schedule}}"
     },
 
     communication: {
-        keywords: ['message', 'notify', 'announcement', 'communicate', 'send'],
-        response: () => "Send messages to students via:\n- Broadcast announcements (all students)\n- Section-specific messages\n- Individual student messages\n\nAll messages appear in student notifications."
+        keywords: ['message', 'notify', 'announcement', 'communicate', 'send', 'broadcast'],
+        response: () => "Initiating **Broadcast Protocol**... 🛰️\n\nTransmit emergency alerts or important announcements to your entire student cohort:\n\n{{NAVIGATE: broadcast}}"
     },
 
     reports: {
         keywords: ['report', 'analytics', 'statistics', 'performance'],
-        response: () => "Generate various reports:\n- Student performance analytics\n- Attendance summaries\n- Assignment submission rates\n- Grade distributions\n\nExport reports as PDF or Excel."
+        response: () => "Detailed **Analytic Dossiers** are being compiled. You can view student performance trends in the **Exams** and **Students** sectors:\n\n1. **Performance Stats**: {{NAVIGATE: exams}}\n2. **Student Profiles**: {{NAVIGATE: students}}"
     },
 
     admin: {
         keywords: ['admin', 'administrator', 'contact admin', 'admin help'],
-        response: () => "For administrative support:\n- Contact the Admin Dashboard\n- Submit help tickets\n- Request system changes\n- Report technical issues"
+        response: () => "Administrative messages are routed through the **Nexus Messaging** system. Check your notifications for high-level directives:\n\n{{NAVIGATE: messages}}"
     },
 
     help: {
         keywords: ['help', 'support', 'how to', 'guide'],
-        response: () => "I can assist you with:\n- Managing students and sections\n- Uploading study materials\n- Marking attendance\n- Creating assignments\n- Grading and evaluation\n- Viewing schedules\n- Sending announcements\n\nWhat would you like to do?"
+        response: () => "I can assist with the following sectors:\n\n- 📊 **Attendance**: Record & Export ({{NAVIGATE: attendance}})\n- 📂 **Materials**: Upload & Manage ({{NAVIGATE: materials}})\n- 📅 **Schedule**: Personal Timetable ({{NAVIGATE: schedule}})\n- 🛰️ **Comms**: Student Broadcasts ({{NAVIGATE: broadcast}})\n- 🏆 **Assessments**: Exam Management ({{NAVIGATE: exams}})"
     },
 
     default: {
-        response: (userMessage) => `I received your query about "${userMessage}". For faculty-specific assistance:\n1. Check the Faculty Dashboard help section\n2. Contact the admin team\n3. Refer to the Faculty Handbook\n\nHow else can I assist you today?`
+        response: (userMessage) => `I have signaled your query regarding *"${userMessage}"*.\n\nWhile I don't have a specific response, I can redirect you to the **Faculty Command Hub** for full system oversight:\n\n{{NAVIGATE: overview}}`
     }
 };

@@ -6,6 +6,7 @@ import {
     FaPython, FaJava, FaCode, FaNodeJs, FaCss3Alt,
     FaDatabase, FaJs, FaChevronRight
 } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import { apiGet } from '../../../utils/apiClient';
 import '../AdvancedLearning.css';
 
@@ -84,20 +85,31 @@ const AdvancedLearning = ({ userData, overviewData }) => {
 
     return (
         <div className="nexus-advanced-container">
+            {/* Cinematic Effects */}
+            <div className="nexus-cyber-grid"></div>
+            <div className="nexus-scanline"></div>
+
             {/* Header Area */}
             <div className="nexus-adv-header">
-                <div>
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                >
                     <div className="nexus-page-subtitle">
                         <FaRocket /> Advanced Mastery Protocol
                     </div>
                     <h1 className="nexus-page-title">
                         STARSHIP <span>COMMAND</span>
                     </h1>
-                </div>
-                <div className="stat-node">
+                </motion.div>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="stat-node"
+                >
                     <span className="val">85%</span>
                     <span className="lab">SYNC LEVEL</span>
-                </div>
+                </motion.div>
             </div>
 
             {/* Main Navigation Tabs */}

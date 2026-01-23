@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaBook, FaPencilAlt, FaTrash, FaSave, FaTimes, FaStickyNote, FaLayerGroup, FaCloudUploadAlt, FaDatabase } from 'react-icons/fa';
+import { FaBook, FaPencilAlt, FaTrash, FaSave, FaTimes, FaStickyNote, FaLayerGroup, FaCloudUploadAlt, FaDatabase, FaShieldAlt } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /**
  * NEXUS DIGITAL JOURNAL (Semester Notes)
@@ -64,24 +65,33 @@ const SemesterNotes = ({ semester, studentData }) => {
 
     return (
         <div className="nexus-journal-container">
+            {/* Cinematic Effects */}
+            <div className="nexus-cyber-grid"></div>
+            <div className="nexus-scanline"></div>
+
             <div className="nexus-journal-header">
-                <div>
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                >
                     <div className="nexus-journal-subtitle">
                         <FaLayerGroup /> Knowledge Journal
                     </div>
                     <h1 className="nexus-journal-title">
                         SEMESTER <span>{semester || 'X'}</span> NOTES
                     </h1>
-                    <div style={{ fontSize: '0.75rem', color: syncStatus === 'SYNCED' ? '#10b981' : '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <div className={`nexus-sync-status ${syncStatus === 'SYNCED' ? 'synced' : 'syncing'}`}>
+                        <div className="status-dot"></div>
                         <FaDatabase /> {syncStatus === 'SYNCED' ? 'DATABASE LINKED' : 'SYNCING...'}
                     </div>
-                </div>
+                </motion.div>
 
                 <button
                     onClick={() => setShowForm(!showForm)}
-                    className="nexus-btn-vibrant"
+                    className={`nexus-btn-vibrant ${showForm ? 'active' : ''}`}
                 >
-                    {showForm ? <FaTimes /> : <FaPencilAlt />} {showForm ? 'CLOSE EDITOR' : 'NEW INSIGHT'}
+                    {showForm ? <FaTimes /> : <FaPencilAlt />}
+                    <span className="ml-2">{showForm ? 'CLOSE EDITOR' : 'NEW INSIGHT'}</span>
                 </button>
             </div>
 
@@ -118,14 +128,25 @@ const SemesterNotes = ({ semester, studentData }) => {
                     </div>
                 ) : (
                     notes.map(note => (
-                        <div key={note.id} className="nexus-note-card animate-fade-in">
+                        <motion.div
+                            key={note.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="nexus-note-card"
+                        >
                             <div className="note-card-head">
-                                <span className="note-timestamp">{note.timestamp}</span>
+                                <div className="note-meta">
+                                    <span className="note-timestamp">{note.timestamp}</span>
+                                    <span className="note-category">{note.category}</span>
+                                </div>
                                 <div className="note-controls">
                                     <button onClick={() => startEdit(note.id, note.text)} className="note-action"><FaPencilAlt /></button>
                                     <button onClick={() => deleteNote(note.id)} className="note-action del"><FaTrash /></button>
                                 </div>
                             </div>
+
+                            <div className="note-sentiment-bar"></div>
 
                             {editingId === note.id ? (
                                 <div className="note-editing-wrap">
@@ -133,18 +154,24 @@ const SemesterNotes = ({ semester, studentData }) => {
                                         value={editText}
                                         onChange={(e) => setEditText(e.target.value)}
                                         className="note-edit-area"
+                                        autoFocus
                                     />
-                                    <button onClick={() => saveEdit(note.id)} className="nexus-btn-primary small">SAVE CHANGES</button>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => saveEdit(note.id)} className="nexus-btn-primary small">SAVE</button>
+                                        <button onClick={() => setEditingId(null)} className="nexus-btn-ghost small">CANCEL</button>
+                                    </div>
                                 </div>
                             ) : (
                                 <p className="note-content-text">{note.text}</p>
                             )}
 
                             <div className="note-card-foot">
-                                <div className="sync-indicator"></div>
-                                <span className="sync-text">SECURE STORAGE</span>
+                                <div className="storage-badge">
+                                    <FaShieldAlt /> VERIFIED ON CHAIN
+                                </div>
+                                <div className="sync-pulse"></div>
                             </div>
-                        </div>
+                        </motion.div>
                     ))
                 )}
             </div>

@@ -1,6 +1,6 @@
 # FBN XAI - Complete Master Documentation
 
-**Status:** 🟢 PRODUCTION READY | **Version:** 6.0 | **Date:** January 23, 2026
+**Status:** 🟢 PRODUCTION READY | **Version:** 7.0 | **Date:** January 24, 2026
 
 ---
 
@@ -74,9 +74,10 @@ Password: Martin@FNB09
 ✅ Backend API                   RUNNING (port 5000)
 ✅ Frontend Dashboard            RUNNING (port 3000)
 ✅ Real-Time Updates             ACTIVE (SSE <100ms)
-✅ Admin Dashboard               10/10 SECTIONS
+✅ Admin Dashboard               10/10 SECTIONS (SENTINEL UPGRADE)
 ✅ Faculty Dashboard             9/9 SECTIONS
-✅ Student Dashboard             10/10 SECTIONS
+✅ Student Dashboard             10/10 SECTIONS (NEURAL ACCESS)
+✅ AI Neural Core & Sentinel     ACTIVE (v7.0)
 ✅ Authentication                JWT SECURE
 ✅ API Endpoints                 44+ WORKING
 ✅ Data Synchronization          HYBRID (MongoDB + File)
@@ -231,6 +232,7 @@ fbn_xai_system (MongoDB Database)
 ✅ **Issue 4:** Faculty data not organized  
 ✅ **Issue 5:** Student data not organized  
 ✅ **Issue 6:** Admin messaging not working  
+✅ **NEW (v7.0):** Neural Core UI & Sentinel Sidebar implemented for premium experience.  
 
 ### Files Created/Modified
 
@@ -653,11 +655,25 @@ node scripts/init-new-data.js
 
 ## Commands Reference
 
+### Quick Database Commands
+
+```powershell
+# 1. Full Backup (Local + Latest Sync)
+node scripts/backup_vault.js
+
+# 2. Sync to GitHub (Backup + Commit + Push)
+node scripts/git_sync_db.js
+
+# 3. Restore from GitHub (Reset DB to Latest tracked version)
+node scripts/restore_db.js
+```
+
 ### Quick Commands
 
 ```powershell
 # Start everything
 .\bobbymartin.ps1
+```
 
 # Start frontend only
 npm start --prefix src
@@ -724,6 +740,7 @@ npm update
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 7.0 | Jan 24, 2026 | Sentinel Upgrade: Neural Core UI, Collapsible Sidebar, Premium Aesthetics |
 | 6.0 | Jan 23, 2026 | Complete implementation with 4 new models, 44 endpoints |
 | 5.0 | Jan 21, 2026 | Student Dashboard database models (5) |
 | 4.0 | Earlier | API routes and integration |

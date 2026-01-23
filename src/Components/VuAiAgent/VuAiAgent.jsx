@@ -1,20 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaRobot } from 'react-icons/fa';
+import { FaPaperPlane, FaRobot, FaMicrophone, FaRegCopy, FaCheck } from 'react-icons/fa';
 import { apiPost, apiGet } from '../../utils/apiClient';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { motion, AnimatePresence } from 'framer-motion';
 import './VuAiAgent.css';
 
-const VuAiAgent = () => {
-    const defaultBotMessage = React.useMemo(() => ({
+const VuAiAgent = ({ onNavigate }) => {
+    const defaultBotMessage = {
         id: 'vuai-greeting',
         sender: 'bot',
-        text: 'Hello! I am your VuAiAgent (Neural Core). I can assist with syllabus, schedules, and academic intelligence. How may I help?'
-    }), []);
+        text: 'Neural Core Online. Strategic interface initialized. How can I assist with your objectives today?',
+        timestamp: new Date().toISOString()
+    };
 
     const [messages, setMessages] = useState([defaultBotMessage]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [userProfile, setUserProfile] = useState(null);
+    const [copiedId, setCopiedId] = useState(null);
     const messagesEndRef = useRef(null);
     const historyLoadedRef = useRef(false);
 
@@ -24,7 +29,7 @@ const VuAiAgent = () => {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, isLoading]);
 
     const resolveUserProfile = () => {
         if (typeof window === 'undefined' || !window.localStorage) {
@@ -112,8 +117,6 @@ const VuAiAgent = () => {
                         }
                     });
                     setMessages(reconstructed);
-                } else {
-                    setMessages([defaultBotMessage]);
                 }
             } catch (error) {
                 console.error('[VuAiAgent] Failed to load chat history:', error);
@@ -123,23 +126,42 @@ const VuAiAgent = () => {
         };
 
         fetchHistory();
-    }, [userProfile, defaultBotMessage]);
+    }, [userProfile]);
+
+    const handleActionTags = (text) => {
+        // Detect {{NAVIGATE: section}}
+        const navMatch = text.match(/{{NAVIGATE:\s*([^}]+)}}/);
+        if (navMatch && navMatch[1] && onNavigate) {
+            const section = navMatch[1].trim();
+            console.log('[NeuralCore] Executing navigation directive:', section);
+            setTimeout(() => onNavigate(section), 1000);
+        }
+
+        // Clean text from tags for cleaner UI if needed, 
+        // or just let the markdown handle it if they are invisible
+        return text.replace(/{{NAVIGATE:\s*[^}]+}}/, '');
+    };
 
     const handleSend = async (e) => {
         if (e) e.preventDefault();
-        if (!input.trim() || !userProfile) return;
+        if (!input.trim() || !userProfile || isLoading) return;
 
         const userText = input;
         setInput('');
 
-        const userMsg = { id: Date.now(), sender: 'user', text: userText };
+        const userMsg = {
+            id: Date.now(),
+            sender: 'user',
+            text: userText,
+            timestamp: new Date().toISOString()
+        };
+
         setMessages(prev => [...prev, userMsg]);
         setIsLoading(true);
 
         try {
             const payload = {
                 prompt: userText,
-                query: userText,
                 userId: userProfile.userId || 'guest',
                 role: userProfile.role || 'student',
                 context: userProfile.context || {}
@@ -148,88 +170,134 @@ const VuAiAgent = () => {
             const data = await apiPost('/api/chat', payload);
 
             if (data && (data.response || data.text || data.message)) {
-                const botResponse = data.response || data.text || data.message;
-                setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: botResponse }]);
+                let botResponse = data.response || data.text || data.message;
+
+                // Process navigation tags
+                botResponse = handleActionTags(botResponse);
+
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    sender: 'bot',
+                    text: botResponse,
+                    timestamp: new Date().toISOString()
+                }]);
             } else {
-                setMessages(prev => [...prev, { id: Date.now() + 1, sender: 'bot', text: "I processed that, but I don't have a specific answer." }]);
+                setMessages(prev => [...prev, {
+                    id: Date.now() + 1,
+                    sender: 'bot',
+                    text: "Strategic buffer empty. Command not recognized.",
+                    timestamp: new Date().toISOString()
+                }]);
             }
 
         } catch (error) {
-            const errorText = error.message
-                ? `Connection error: ${error.message}`
-                : "Neural Core offline. Please retry.";
-
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 sender: 'bot',
-                text: errorText,
-                isError: true
+                text: "Neural Link Interrupted. Strategic assets unreachable.",
+                isError: true,
+                timestamp: new Date().toISOString()
             }]);
         } finally {
             setIsLoading(false);
         }
     };
 
+    const copyToClipboard = (text, id) => {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
+
     return (
-        <div className="vu-ai-container">
+        <div className="vu-ai-container sentinel-animate">
             {/* Header */}
             <div className="vu-header">
                 <div className="vu-bot-avatar">
-                    <FaRobot size={22} />
+                    <FaRobot size={22} className="ai-icon-spin" />
                 </div>
                 <div className="vu-title-group">
-                    <h3>VuAiAgent</h3>
+                    <h3>NEURAL CORE <span className="vu-version-tag">v7.0</span></h3>
                     <div className="vu-status">
                         <div className="vu-status-dot"></div>
-                        <span>Neural Core Online</span>
+                        <span>SYNCED WITH SENTINEL</span>
                     </div>
+                </div>
+                <div className="vu-header-decor">
+                    <div className="vu-decor-dot"></div>
+                    <div className="vu-decor-dot"></div>
+                    <div className="vu-decor-dot"></div>
                 </div>
             </div>
 
             {/* Messages Area */}
-            <div className="vu-messages">
-                {isHistoryLoading && (
-                    <div style={{ textAlign: 'center', opacity: 0.6, fontSize: '0.8rem' }}>Syncing Neural Archives...</div>
-                )}
-
-                {messages.map((msg, idx) => (
-                    <div key={idx} className={`vu-msg-wrapper ${msg.sender}`}>
-                        <div className={`vu-bubble ${msg.sender} ${msg.isError ? 'error' : ''}`}>
-                            {msg.text}
-                        </div>
-                        <div className="vu-timestamp">
-                            {msg.sender === 'user' ? 'You' : 'AI Core'}
-                        </div>
-                    </div>
-                ))}
+            <div className="vu-messages sentinel-scrollbar">
+                <AnimatePresence initial={false}>
+                    {messages.map((msg) => (
+                        <motion.div
+                            key={msg.id}
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            className={`vu-msg-wrapper ${msg.sender}`}
+                        >
+                            <div className={`vu-bubble ${msg.sender} ${msg.isError ? 'error' : ''}`}>
+                                <div className="markdown-content">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {msg.text}
+                                    </ReactMarkdown>
+                                </div>
+                                {msg.sender === 'bot' && !msg.isError && (
+                                    <button
+                                        className={`copy-btn ${copiedId === msg.id ? 'copied' : ''}`}
+                                        onClick={() => copyToClipboard(msg.text, msg.id)}
+                                        title="Copy response"
+                                    >
+                                        {copiedId === msg.id ? <FaCheck /> : <FaRegCopy />}
+                                    </button>
+                                )}
+                            </div>
+                            <div className="vu-timestamp">
+                                {msg.sender === 'user' ? 'AUTHD_USER' : 'CORE_INTEL'} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
 
                 {isLoading && (
-                    <div className="vu-typing">
-                        <span>Thinking</span>
-                        <span className="dot-pulse">...</span>
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="vu-typing"
+                    >
+                        <div className="neural-pulse-loader"></div>
+                        <span>SYNTHESIZING...</span>
+                    </motion.div>
                 )}
                 <div ref={messagesEndRef} />
             </div>
 
             {/* Input Area */}
             <form onSubmit={handleSend} className="vu-input-area">
-                <input
-                    type="text"
-                    className="vu-input-field"
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask about syllabus, schedules, or analytics..."
-                    disabled={isLoading || isHistoryLoading}
-                />
-                <button
-                    type="submit"
-                    className="vu-send-btn"
-                    disabled={isLoading || !input.trim() || isHistoryLoading}
-                >
-                    <FaPaperPlane />
-                </button>
+                <div className="vu-input-wrapper">
+                    <input
+                        type="text"
+                        className="vu-input-field"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder="Inquire Neural Core personnel archives or curriculum maps..."
+                        disabled={isLoading || isHistoryLoading}
+                    />
+                    <button
+                        type="submit"
+                        className={`vu-send-btn ${input.trim() && !isLoading ? 'active' : 'inactive'}`}
+                        disabled={isLoading || !input.trim() || isHistoryLoading}
+                    >
+                        <FaPaperPlane size={18} />
+                    </button>
+                </div>
             </form>
+
+            <div className="vu-footer-bar"></div>
         </div>
     );
 };

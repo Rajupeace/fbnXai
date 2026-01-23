@@ -21,6 +21,7 @@ import CourseSection from './Sections/CourseSection';
 import MaterialSection from './Sections/MaterialSection';
 import MessageSection from './Sections/MessageSection';
 import TodoSection from './Sections/TodoSection';
+import CurriculumArchSection from './Sections/CurriculumArchSection';
 
 
 // Helper for mocked API or local storage check
@@ -42,7 +43,7 @@ const ADVANCED_TOPICS = [
 
 export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStudentData }) {
   const [activeSection, setActiveSection] = useState('overview');
-  // Removed selectedBranchFilter
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Data States
   const [students, setStudents] = useState([]);
@@ -955,7 +956,17 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         setView={setActiveSection}
         openModal={openModal}
         onLogout={handleLogout}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
       />
+
+      {/* Mobile Menu Toggle */}
+      <button
+        className="admin-mobile-toggle"
+        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+      >
+        <FaRobot />
+      </button>
 
       <main className="admin-viewport">
         <div key={activeSection} className="admin-content-scroll sentinel-animate">
@@ -1225,13 +1236,19 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             </div>
           )}
 
+          {activeSection === 'curriculum' && (
+            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+              <CurriculumArchSection />
+            </div>
+          )}
+
           {activeSection === 'ai-agent' && (
             <div style={{ height: 'calc(100vh - 120px)', padding: '0 2rem' }}>
               <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
                 <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>NEURAL INTERFACE</h2>
                 <div className="admin-badge primary">VU CORE ONLINE</div>
               </div>
-              <VuAiAgent />
+              <VuAiAgent onNavigate={setActiveSection} />
             </div>
           )}
 

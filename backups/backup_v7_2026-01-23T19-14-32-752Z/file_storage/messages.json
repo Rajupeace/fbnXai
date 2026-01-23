@@ -1,0 +1,26 @@
+[
+  {
+    "id": "468bc49f-c911-4331-99f1-4000c40dce53",
+    "message": "New Student Joined: Streak V2 User (CSE-1)",
+    "target": "admin",
+    "type": "system-alert",
+    "sender": "SYSTEM",
+    "createdAt": "2026-01-23T16:46:37.729Z"
+  },
+  {
+    "id": "76bd9b74-ea90-4740-a8da-b326ff9e3b48",
+    "message": "New Student Joined: Badisa Srikanth  (CSE-3)",
+    "target": "admin",
+    "type": "system-alert",
+    "sender": "SYSTEM",
+    "createdAt": "2026-01-23T16:11:20.124Z"
+  },
+  {
+    "id": "9d90d562-bdec-43d6-94bc-23e6e2df45e4",
+    "message": "New Student Joined: Sync Test User (CSE-1)",
+    "target": "admin",
+    "type": "system-alert",
+    "sender": "SYSTEM",
+    "createdAt": "2026-01-23T15:43:03.046Z"
+  }
+]

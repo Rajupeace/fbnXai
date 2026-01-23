@@ -408,7 +408,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             <p className="nexus-page-subtitle sub-text-slate">ADVANCED INTELLIGENCE & ACADEMIC ASSISTANCE</p>
                         </header>
                         <div style={{ flex: 1, height: '100%', paddingBottom: '2rem' }}>
-                            <VuAiAgent />
+                            <VuAiAgent onNavigate={setView} />
                         </div>
                     </div>
                 )}
@@ -425,7 +425,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         <button className="nexus-modal-close" onClick={() => setShowAiModal(false)}>
                             &times;
                         </button>
-                        <VuAiAgent />
+                        <VuAiAgent onNavigate={(target) => { setView(target); setShowAiModal(false); }} />
                     </div>
                 </div>
             )}

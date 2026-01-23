@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const dataDir = path.join(__dirname, '..', 'server', 'data');
+const dataDir = path.join(__dirname, '..', 'backend', 'data');
 const materialsFile = path.join(dataDir, 'materials.json');
 
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
@@ -20,11 +20,17 @@ const subjectsBySem = {
   8: ['Professional Elective III', 'Professional Elective IV', 'Industrial Training', 'Project Work']
 };
 
+const advancedTechs = [
+  'Python', 'Java', 'Go', 'Rust', 'C++', 'Swift',
+  'React', 'Node.js', 'DevOps', 'Cloud', 'Modern CSS', 'AI Engineering'
+];
+
 function randChoice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
 function makeEntry(branch, year, subject, type, sem, extra = {}) {
   return {
     id: uuidv4(),
-    title: `${subject} - ${type} (Sample)`,
+    title: extra.title || `${subject} - ${type} (Sentinel Archive)`,
     year: String(year),
     section: 'A',
     subject,
@@ -36,30 +42,26 @@ function makeEntry(branch, year, subject, type, sem, extra = {}) {
     filename: null,
     url: extra.url || `https://example.com/${encodeURIComponent(subject)}-${type}.pdf`,
     originalName: null,
-    uploadedBy: 'seed-script',
+    uploadedBy: 'sentinel-seeder',
     uploaderId: null,
-    uploaderName: 'Seeder'
+    uploaderName: 'SENTINEL CORE',
+    isAdvanced: extra.isAdvanced || false
   };
 }
 
-const all = JSON.parse(fs.readFileSync(materialsFile, 'utf8') || '[]');
+let all = [];
 
-// create a set of sample materials for first 3 years for each branch
+// 1. Seed Standard Curriculum
 for (let year = 1; year <= 4; year++) {
   for (const branch of branches) {
-    // pick 2 semesters per year mapping: year1->sem1-2, year2->3-4, etc.
     const sem1 = (year - 1) * 2 + 1;
     const sem2 = sem1 + 1;
     [sem1, sem2].forEach(sem => {
       const subjects = subjectsBySem[sem] || ['General Subject'];
-      // for each subject add 2-3 sample materials
       subjects.forEach((subj, idx) => {
-        // add notes
         all.push(makeEntry(branch, year, subj, 'notes', sem, { module: String((idx % 2) + 1), unit: String((idx % 2) + 1) }));
-        // add video
-        all.push(makeEntry(branch, year, subj, 'videos', sem, { module: String((idx % 2) + 1) , url: `https://example.com/video/${encodeURIComponent(subj)}.mp4`}));
-        // add model paper occasionally
-        if (Math.random() > 0.6) {
+        all.push(makeEntry(branch, year, subj, 'videos', sem, { module: String((idx % 2) + 1), url: `https://www.youtube.com/embed/example` }));
+        if (Math.random() > 0.7) {
           all.push(makeEntry(branch, year, subj, 'modelPapers', sem, {}));
         }
       });
@@ -67,14 +69,40 @@ for (let year = 1; year <= 4; year++) {
   }
 }
 
-// remove duplicates by title/url
-const byUrl = new Map();
+// 2. Seed Advanced Learning Track (High-Fidelity)
+advancedTechs.forEach(tech => {
+  // Add 3 Videos
+  for (let i = 1; i <= 3; i++) {
+    all.push(makeEntry('CSE', '3', tech, 'videos', '5', {
+      title: `${tech} Mastery: Module ${i}`,
+      isAdvanced: true,
+      url: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+    }));
+  }
+  // Add 2 Notes
+  for (let i = 1; i <= 2; i++) {
+    all.push(makeEntry('CSE', '3', tech, 'notes', '5', {
+      title: `${tech} Technical Specification v${i}.0`,
+      isAdvanced: true
+    }));
+  }
+  // Add 3 Interview Q&A
+  for (let i = 1; i <= 3; i++) {
+    all.push(makeEntry('CSE', '3', tech, 'interviewQnA', '5', {
+      title: `${tech} Elite Interview Intel - Sector ${i}`,
+      isAdvanced: true
+    }));
+  }
+});
+
+// Deduplicate and Write
+const byTitleUrl = new Map();
 const deduped = all.filter(item => {
-  if (!item.url) return true;
-  if (byUrl.has(item.url)) return false;
-  byUrl.set(item.url, true);
+  const key = `${item.title}-${item.url}`;
+  if (byTitleUrl.has(key)) return false;
+  byTitleUrl.set(key, true);
   return true;
 });
 
 fs.writeFileSync(materialsFile, JSON.stringify(deduped, null, 2));
-console.log(`Seeded ${deduped.length} materials into ${materialsFile}`);
+console.log(`🚀 SENTINEL CORE: Seeded ${deduped.length} materials into ${materialsFile}`);

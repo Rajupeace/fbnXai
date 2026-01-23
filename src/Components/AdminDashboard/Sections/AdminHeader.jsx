@@ -15,9 +15,10 @@ const AdminHeader = ({
     view,
     setView,
     openModal,
-    onLogout
+    onLogout,
+    collapsed,
+    setCollapsed
 }) => {
-    const [collapsed, setCollapsed] = useState(false);
 
     const localHandleLogout = (e) => {
         e.preventDefault();
@@ -39,6 +40,7 @@ const AdminHeader = ({
                 { id: 'students', label: 'CADET REGISTRY', icon: <FaUserGraduate /> },
                 { id: 'faculty', label: 'INSTRUCTOR GARRISON', icon: <FaChalkboardTeacher /> },
                 { id: 'courses', label: 'CURRICULUM ARCH', icon: <FaBook /> },
+                { id: 'curriculum', label: 'CURRICULUM MGMT', icon: <FaLayerGroup /> },
             ]
         },
         {

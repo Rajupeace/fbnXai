@@ -174,36 +174,38 @@ router.post('/', async (req, res) => {
                 // Build role-specific system context
                 let systemContext = '';
                 if (role === 'admin') {
-                    systemContext = `You are VuAiAgent, a helpful university administrative assistant.
-            You are speaking with an Administrator.
-            Help them with system management, user administration, and oversight tasks.
-            Be professional and efficient.`;
+                    systemContext = `You are VuAiAgent (SENTINEL ADMIN MODE 🦾). 
+                    Focus on strategic oversight, system analytics, and governance. 
+                    If relevant, use {{NAVIGATE: section}} where section is one of: overview, students, faculty, courses, materials, attendance, schedule, todos, messages, broadcast, exams.
+                    Use Markdown and professional tone.`;
                 } else if (role === 'faculty') {
-                    systemContext = `You are VuAiAgent, a helpful university assistant for faculty.
-            You are speaking with a Faculty Member.
-            Help them with student management, material uploads, and teaching tasks.
-            Be respectful and supportive.`;
+                    systemContext = `You are VuAiAgent (FACULTY NEXUS MODE 🎓). 
+                    Assist with curriculum, student performance, and material management.
+                    If relevant, use {{NAVIGATE: section}} where section is one of: overview, materials, attendance, exams, schedule, students, broadcast, messages.
+                    Use Markdown and academic tone.`;
                 } else {
-                    systemContext = `You are VuAiAgent, a friendly university assistant for students.
-            You are speaking with a Year ${context?.year || 'N/A'} student in ${context?.branch || 'Engineering'}, Section ${context?.section || 'N/A'}.
-            Help them with studies, schedules, and academic queries.
-            Be encouraging and helpful.`;
+                    systemContext = `You are VuAiAgent (LUMINA STUDENT MODE ✨). 
+                    Help students with studies, syllabus, and academic queries.
+                    If relevant, use {{NAVIGATE: section}} where section is one of: overview, semester, journal, advanced, attendance, exams, faculty, schedule, marks.
+                    Use Markdown, emojis, and encouraging tone.`;
                 }
 
+                const localKnowledge = findKnowledgeMatch(userMessage, knowledgeBase, context);
                 const completion = await openai.chat.completions.create({
                     messages: [
                         { role: "system", content: systemContext },
+                        { role: "system", content: `Local Knowledge Base Match: ${localKnowledge}` },
                         { role: "user", content: rawMessage }
                     ],
-                    model: "gpt-3.5-turbo",
+                    model: "gpt-4o-mini", // Higher capability
                     temperature: 0.7,
-                    max_tokens: 200
+                    max_tokens: 400
                 });
 
                 reply = completion.choices[0].message.content;
-                console.log('[VuAiAgent] Response from OpenAI');
+                console.log('[VuAiAgent] Response from OpenAI (Integrated with local knowledge)');
             } catch (aiError) {
-                console.error("[VuAiAgent] OpenAI API Error (Falling back to other models):", aiError.message);
+                console.error("[VuAiAgent] OpenAI API Error:", aiError.message);
             }
         }
 
@@ -216,31 +218,24 @@ router.post('/', async (req, res) => {
 
                 let systemContext = '';
                 if (role === 'admin') {
-                    systemContext = `You are VuAiAgent (ADMIN MODE 🔑). 
-                    Your goal is to assist the University Administrator in strategic oversight.
-                    1. Focus on system health, user analytics, and INNOVATION.
-                    2. Suggest tips for managing faculty and students efficiently.
-                    3. Act as a visionary strategic partner.
-                    Tone: Authoritative, strategic, and professional.`;
+                    systemContext = `You are VuAiAgent (SENTINEL ADMIN MODE 🦾). 
+                    Goal: Strategic oversight and system health.
+                    Action: Use {{NAVIGATE: section}} for fast jumping. Sections: overview, students, faculty, courses, materials, attendance, schedule, todos, messages, broadcast, exams.
+                    Tone: Strategic, professional, concise. Use Markdown.`;
                 } else if (role === 'faculty') {
-                    systemContext = `You are VuAiAgent (FACULTY MODE 👨‍🏫). 
-                    Your goal is to assist a Professor/Faculty member.
-                    1. Help with lesson planning, student performance tracking, and material management.
-                    2. Assist in creating quizzes, assignments, and curriculum updates.
-                    3. Act as an efficient teaching assistant.
-                    Tone: Respectful, organized, and academic.`;
+                    systemContext = `You are VuAiAgent (FACULTY NEXUS MODE 🎓). 
+                    Goal: Assist teaching and content management.
+                    Action: Use {{NAVIGATE: section}} for navigation. Sections: overview, materials, attendance, exams, schedule, students, broadcast, messages.
+                    Tone: Organized, academic, helpful. Use Markdown.`;
                 } else {
-                    systemContext = `You are VuAiAgent (STUDENT MODE 🎓). 
-                    Your goal is to assist a Year ${context?.year || 'N/A'} student in ${context?.branch || 'Engineering'}.
-                    1. Be extremely WARM, FRIENDLY, and ENCOURAGING. Use emojis like ✨🎓🚀.
-                    2. Prioritize solving subject doubts (Math, CSE, ECE, AI). Use analogies for complex concepts.
-                    3. Help with homework and navigating course notes.
-                    4. Identify the user as ${context?.name || 'Friend'}. 
-                    Tone: Encouraging, motivating study companion.`;
+                    systemContext = `You are VuAiAgent (LUMINA STUDENT MODE ✨). 
+                    Goal: Motivating academic companion. 
+                    Action: Use {{NAVIGATE: section}} to guide the student. Sections: overview, semester, journal, advanced, attendance, exams, faculty, schedule, marks.
+                    Tone: Encouraging, friendly, emoji-rich. Use Markdown.`;
                 }
 
                 const promptWithContext = `SYSTEM INSTRUCTIONS: ${systemContext}\n\nKNOWLEDGE BASE MATCH: ${findKnowledgeMatch(userMessage, knowledgeBase, context)}\n\nUser Message: ${userMessage}`;
-                console.log('[VuAiAgent] Dispatched to Gemini with role-specific persona:', role);
+                console.log('[VuAiAgent] Dispatched to Gemini with navigation-aware persona:', role);
                 const result = await model.generateContent(promptWithContext);
                 reply = result.response.text();
                 console.log('[VuAiAgent] Response from Google Gemini');

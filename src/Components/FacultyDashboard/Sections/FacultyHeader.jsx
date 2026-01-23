@@ -36,6 +36,7 @@ const FacultyHeader = ({
         { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt />, color: '#f59e0b' },
         { id: 'schedule', label: 'SCHEDULE', icon: <FaBolt />, color: '#ec4899' },
         { id: 'students', label: 'STUDENTS', icon: <FaUserGraduate />, color: '#3b82f6' },
+        { id: 'curriculum', label: 'CURRICULUM', icon: <FaLayerGroup />, color: '#6366f1' },
         { id: 'broadcast', label: 'BROADCAST', icon: <FaBullhorn />, color: '#f43f5e' },
         { id: 'messages', label: 'ANNOUNCEMENTS', icon: <FaEnvelope />, color: '#8b5cf6' },
         { id: 'settings', label: 'SYSTEM', icon: <FaGraduationCap />, color: '#64748b' }

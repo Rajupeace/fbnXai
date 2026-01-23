@@ -51,7 +51,6 @@ const studentSchema = new mongoose.Schema({
     lastLogin: { type: Date },
     aiUsageCount: { type: Number, default: 0 },
     tasksCompleted: { type: Number, default: 0 },
-    tasksCompleted: { type: Number, default: 0 },
     advancedProgress: { type: Number, default: 0 }, // % completed
     totalClasses: { type: Number, default: 0 },
     totalPresent: { type: Number, default: 0 }

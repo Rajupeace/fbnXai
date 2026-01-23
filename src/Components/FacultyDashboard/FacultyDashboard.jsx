@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaChevronRight, FaFilter, FaUserGraduate
+  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaChevronRight, FaFilter, FaUserGraduate, FaRobot
 } from 'react-icons/fa';
 import '../StudentDashboard/StudentDashboard.css'; // Global Nexus tokens
 import './FacultyDashboard.css';
@@ -18,6 +18,7 @@ import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 // Sections
 import FacultyHeader from './Sections/FacultyHeader';
 import FacultyHome from './Sections/FacultyHome';
+import FacultyCurriculumArch from './Sections/FacultyCurriculumArch';
 
 const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => {
   const [view, setView] = useState('overview');
@@ -343,6 +344,12 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           </div>
         )}
 
+        {view === 'curriculum' && (
+          <div className="nexus-hub-viewport">
+            <FacultyCurriculumArch />
+          </div>
+        )}
+
         {view === 'settings' && (
           <div className="nexus-hub-viewport">
             <FacultySettings facultyData={facultyData} />
@@ -514,7 +521,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
       {view === 'ai-agent' && (
         <div className="nexus-modal-overlay" onClick={() => setView('overview')}>
           <div className="nexus-modal-content" onClick={e => e.stopPropagation()}>
-            <VuAiAgent />
+            <VuAiAgent onNavigate={setView} />
           </div>
         </div>
       )}
