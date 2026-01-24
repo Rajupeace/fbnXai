@@ -111,8 +111,6 @@ router.get('/:studentId/courses/:courseId', async (req, res) => {
         year: student.year,
         branch: student.branch
       });
-    if (!course) {
-      return res.status(404).json({ error: 'Course not found or access denied' });
     }
 
     if (!course) {
@@ -159,6 +157,7 @@ router.get('/:studentId/courses/:courseId', async (req, res) => {
         uploadedAt: m.createdAt,
         uploaderName: m.uploadedBy?.name || 'Unknown'
       }));
+    }
     // courseMaterials already populated from MongoDB above
 
     res.json({
