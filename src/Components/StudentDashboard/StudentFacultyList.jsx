@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { FaEnvelope, FaPhone, FaBook, FaUserTie, FaFilter, FaShieldAlt, FaLinkedin, FaGithub } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
 import { apiGet } from '../../utils/apiClient';
 
 /**
@@ -13,49 +12,49 @@ const StudentFacultyList = ({ studentData }) => {
     const [selectedSector, setSelectedSector] = useState('all');
 
     useEffect(() => {
+        const fetchFacultyList = async () => {
+            setLoading(true);
+            if (!studentData || !studentData.year) {
+                setFacultyList([]);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                // Fetch faculty teaching this specific student's year/section/branch
+                const response = await apiGet(`/api/faculty/teaching?year=${studentData.year}&section=${studentData.section}&branch=${studentData.branch}`);
+                const list = (response || []).map(f => {
+                    const assignment = (f.assignments || []).find(a =>
+                        String(a.year) === String(studentData.year) &&
+                        String(a.section).toUpperCase() === String(studentData.section).toUpperCase() &&
+                        String(a.branch).toUpperCase() === String(studentData.branch).toUpperCase());
+
+                    return {
+                        id: f.facultyId,
+                        name: f.name || f.facultyName || 'Unknown Instructor',
+                        subject: assignment?.subject || f.subject || 'Specialized Topic',
+                        email: f.email || 'mentor@vignan.edu',
+                        phone: f.phone || f.contact || 'No contact sync',
+                        semester: assignment?.semester || f.semester || 'Current Semester',
+                        branch: f.department || f.branch || 'Core Engineering',
+                        image: f.image || f.profilePic || null,
+                        qualification: f.qualification || 'PhD Scholar',
+                        experience: f.experience || '8+ Academic Years',
+                        specialization: f.specialization || 'Distributed Systems',
+                        isAvailable: Math.random() > 0.3 // Mock availability
+                    };
+                });
+                setFacultyList(list);
+            } catch (error) {
+                console.error('Mentor Network Synchronization Failed:', error);
+                setFacultyList([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchFacultyList();
     }, [studentData]);
-
-    const fetchFacultyList = async () => {
-        setLoading(true);
-        if (!studentData || !studentData.year) {
-            setFacultyList([]);
-            setLoading(false);
-            return;
-        }
-
-        try {
-            // Fetch faculty teaching this specific student's year/section/branch
-            const response = await apiGet(`/api/faculty/teaching?year=${studentData.year}&section=${studentData.section}&branch=${studentData.branch}`);
-            const list = (response || []).map(f => {
-                const assignment = (f.assignments || []).find(a =>
-                    String(a.year) === String(studentData.year) &&
-                    String(a.section).toUpperCase() === String(studentData.section).toUpperCase() &&
-                    String(a.branch).toUpperCase() === String(studentData.branch).toUpperCase());
-
-                return {
-                    id: f.facultyId,
-                    name: f.name || f.facultyName || 'Unknown Instructor',
-                    subject: assignment?.subject || f.subject || 'Specialized Topic',
-                    email: f.email || 'mentor@vignan.edu',
-                    phone: f.phone || f.contact || 'No contact sync',
-                    semester: assignment?.semester || f.semester || 'Current Semester',
-                    branch: f.department || f.branch || 'Core Engineering',
-                    image: f.image || f.profilePic || null,
-                    qualification: f.qualification || 'PhD Scholar',
-                    experience: f.experience || '8+ Academic Years',
-                    specialization: f.specialization || 'Distributed Systems',
-                    isAvailable: Math.random() > 0.3 // Mock availability
-                };
-            });
-            setFacultyList(list);
-        } catch (error) {
-            console.error('Mentor Network Synchronization Failed:', error);
-            setFacultyList([]);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const getFilteredFaculty = () => {
         if (selectedSector === 'all') return facultyList;
@@ -76,28 +75,17 @@ const StudentFacultyList = ({ studentData }) => {
 
     return (
         <div className="nexus-page-container">
-            {/* Cinematic Effects */}
-            <div className="nexus-cyber-grid"></div>
-            <div className="nexus-scanline"></div>
-
             {/* Header Area */}
             <div className="nexus-page-header">
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                >
+                <div>
                     <div className="nexus-page-subtitle"><FaUserTie /> Academic Sovereignty</div>
                     <h1 className="nexus-page-title">MENTOR <span>CIRCLE</span></h1>
-                </motion.div>
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="hub-stats"
-                >
+                </div>
+                <div className="hub-stats">
                     <div className="nexus-intel-badge">
                         ACTIVE NODES: {filtered.length}
                     </div>
-                </motion.div>
+                </div>
             </div>
 
             {/* Sector Navigation */}
@@ -119,23 +107,9 @@ const StudentFacultyList = ({ studentData }) => {
             </div>
 
             {/* Mentor Grid */}
-            <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={{
-                    visible: { transition: { staggerChildren: 0.1 } }
-                }}
-                className="mentor-quantum-grid"
-            >
+            <div className="mentor-quantum-grid">
                 {filtered.map((mentor, index) => (
-                    <motion.div
-                        key={index}
-                        variants={{
-                            hidden: { opacity: 0, y: 20 },
-                            visible: { opacity: 1, y: 0 }
-                        }}
-                        className="quantum-mentor-card"
-                    >
+                    <div key={index} className="quantum-mentor-card">
                         <div className="card-top">
                             <div className="mentor-portrait">
                                 {mentor.image ? (
@@ -186,9 +160,9 @@ const StudentFacultyList = ({ studentData }) => {
                                 INITIATE LINK <FaShieldAlt />
                             </button>
                         </div>
-                    </motion.div>
+                    </div>
                 ))}
-            </motion.div>
+            </div>
 
             {
                 filtered.length === 0 && (

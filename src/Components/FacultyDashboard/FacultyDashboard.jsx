@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaChevronRight, FaFilter, FaUserGraduate, FaRobot
+  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaUserGraduate, FaRobot
 } from 'react-icons/fa';
 import '../StudentDashboard/StudentDashboard.css'; // Global Nexus tokens
 import './FacultyDashboard.css';
@@ -16,22 +16,24 @@ import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 
 // Sections
-import FacultyHeader from './Sections/FacultyHeader';
+import FacultySidebar from './Sections/FacultySidebar';
 import FacultyHome from './Sections/FacultyHome';
 import FacultyCurriculumArch from './Sections/FacultyCurriculumArch';
 
 const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => {
   const [view, setView] = useState('overview');
   const [activeContext, setActiveContext] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [messages, setMessages] = useState([]);
   const [materialsList, setMaterialsList] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
-  const [syncing, setSyncing] = useState(false);
+  const [, setSyncing] = useState(false); // syncing unused
   const [bootSequence, setBootSequence] = useState(true);
   const [showMsgModal, setShowMsgModal] = useState(false);
 
   const navigate = useNavigate();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const refreshAll = async () => {
     setSyncing(true);
     try {
@@ -85,6 +87,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
       clearInterval(interval);
       clearInterval(msgInterval);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -95,6 +98,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
       }
     });
     return unsub;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facultyData.facultyId]);
 
   const myClasses = useMemo(() => {
@@ -183,12 +187,13 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
   return (
     <div className="student-dashboard-layout animate-fade-in">
-      <FacultyHeader
+      <FacultySidebar
         facultyData={facultyData}
         view={view}
         setView={setView}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
         onLogout={handleLogout}
-        toggleMsgModal={() => setShowMsgModal(!showMsgModal)}
       />
 
       <div className="dashboard-content-area">

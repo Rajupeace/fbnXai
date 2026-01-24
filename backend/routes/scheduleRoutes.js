@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Schedule = require('../models/Schedule');
 
-const dbFile = require('../dbHelper');
+// File DB helper removed; schedule routes are MongoDB-only
 
 // Get all schedules (with optional filters)
 router.get('/', async (req, res) => {
@@ -24,24 +24,8 @@ router.get('/', async (req, res) => {
         const schedules = await Schedule.find(query).sort({ day: 1, time: 1 });
         res.json(schedules);
     } catch (error) {
-        console.error('MongoDB Schedule fetch failed, trying file DB:', error.message);
-        try {
-            let all = dbFile('schedule').read() || [];
-
-            // Apply Filters manually
-            const { year, section, branch, day, semester, faculty } = req.query;
-            if (year) all = all.filter(s => s.year === year);
-            if (section) all = all.filter(s => s.section === section);
-            if (branch) all = all.filter(s => s.branch === branch);
-            if (day) all = all.filter(s => s.day === day);
-            if (semester) all = all.filter(s => s.semester === semester);
-            if (faculty) all = all.filter(s => s.faculty && s.faculty.toLowerCase().includes(faculty.toLowerCase()));
-
-            res.json(all);
-        } catch (fileErr) {
-            console.error('[SCHEDULE FETCH ERROR]:', fileErr);
-            res.status(500).json({ error: 'Failed to fetch schedules', details: fileErr.message });
-        }
+        console.error('MongoDB Schedule fetch failed:', error.message);
+        return res.status(503).json({ error: 'Database error fetching schedules', details: error.message });
     }
 });
 
@@ -72,20 +56,8 @@ router.post('/', async (req, res) => {
 
         res.status(201).json(schedule);
     } catch (error) {
-        console.error('MongoDB Schedule save failed, trying file DB:', error.message);
-        try {
-            const all = dbFile('schedule').read() || [];
-            const newItem = {
-                ...req.body,
-                id: Date.now().toString(),
-                createdAt: new Date().toISOString()
-            };
-            all.push(newItem);
-            dbFile('schedule').write(all);
-            res.status(201).json(newItem);
-        } catch (fileErr) {
-            res.status(500).json({ error: 'Failed to create schedule', details: error.message });
-        }
+        console.error('MongoDB Schedule save failed:', error.message);
+        return res.status(500).json({ error: 'Failed to create schedule', details: error.message });
     }
 });
 

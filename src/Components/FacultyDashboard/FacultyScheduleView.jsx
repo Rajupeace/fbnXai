@@ -7,49 +7,54 @@ import { apiGet } from '../../utils/apiClient';
  * High-fidelity timetable management and weekly session analytics.
  * Theme: Luxe Pearl / Nexus
  */
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const weekDays = daysOfWeek.filter(day => day !== 'Sunday');
+
+/**
+ * CHRONOS SCHEDULE (FACULTY EDITION)
+ * High-fidelity timetable management and weekly session analytics.
+ * Theme: Luxe Pearl / Nexus
+ */
 const FacultyScheduleView = ({ facultyData }) => {
     const [schedule, setSchedule] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState(new Date().getDay());
     const [myClasses, setMyClasses] = useState([]);
 
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const weekDays = daysOfWeek.filter(day => day !== 'Sunday');
-
-    const fetchSchedule = async () => {
-        setLoading(true);
-        try {
-            const response = await apiGet(`/api/schedule?faculty=${encodeURIComponent(facultyData.name)}`);
-            if (response && response.length > 0) {
-                setSchedule(response);
-                const classesMap = new Map();
-                response.forEach(item => {
-                    const key = `${item.year}-${item.section}-${item.branch}`;
-                    if (!classesMap.has(key)) {
-                        classesMap.set(key, { year: item.year, section: item.section, branch: item.branch, subjects: new Set() });
-                    }
-                    classesMap.get(key).subjects.add(item.subject);
-                });
-                setMyClasses(Array.from(classesMap.values()).map(c => ({ ...c, subjects: Array.from(c.subjects) })));
-            } else {
-                setSchedule([]);
-                setMyClasses([]);
-            }
-        } catch (error) {
-            console.error('Failed to fetch faculty schedule:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     useEffect(() => {
+        const fetchSchedule = async () => {
+            setLoading(true);
+            try {
+                const response = await apiGet(`/api/schedule?faculty=${encodeURIComponent(facultyData.name)}`);
+                if (response && response.length > 0) {
+                    setSchedule(response);
+                    const classesMap = new Map();
+                    response.forEach(item => {
+                        const key = `${item.year}-${item.section}-${item.branch}`;
+                        if (!classesMap.has(key)) {
+                            classesMap.set(key, { year: item.year, section: item.section, branch: item.branch, subjects: new Set() });
+                        }
+                        classesMap.get(key).subjects.add(item.subject);
+                    });
+                    setMyClasses(Array.from(classesMap.values()).map(c => ({ ...c, subjects: Array.from(c.subjects) })));
+                } else {
+                    setSchedule([]);
+                    setMyClasses([]);
+                }
+            } catch (error) {
+                console.error('Failed to fetch faculty schedule:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchSchedule();
     }, [facultyData]);
 
     const todaySchedule = useMemo(() => {
         const todayStr = daysOfWeek[selectedDay];
         return schedule.filter(item => item.day === todayStr);
-    }, [schedule, selectedDay, daysOfWeek]);
+    }, [schedule, selectedDay]);
 
     if (loading) return <div className="no-content">Synchronizing Timetable...</div>;
 

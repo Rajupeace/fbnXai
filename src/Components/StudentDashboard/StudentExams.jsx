@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCheckCircle, FaTimesCircle, FaClock, FaClipboardCheck, FaListAlt, FaArrowLeft, FaPlay, FaRocket, FaShieldAlt, FaHistory, FaChevronRight } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FaClock, FaListAlt, FaArrowLeft, FaRocket, FaShieldAlt, FaHistory, FaChevronRight } from 'react-icons/fa';
 import { apiGet, apiPost } from '../../utils/apiClient';
 
 /**
@@ -76,6 +75,7 @@ const StudentExams = ({ studentData }) => {
     useEffect(() => {
         if (view === 'list') fetchExams();
         if (view === 'history') fetchHistory();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [view]);
 
     useEffect(() => {
@@ -93,6 +93,7 @@ const StudentExams = ({ studentData }) => {
             }, 1000);
         }
         return () => clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [view, timeLeft]);
 
     const formatTime = (seconds) => {
@@ -219,23 +220,16 @@ const StudentExams = ({ studentData }) => {
 
     // --- DEFAULT LIST VIEW ---
     return (
-        <div className="nexus-exams-list">
-            {/* Cinematic Effects */}
-            <div className="nexus-cyber-grid"></div>
-            <div className="nexus-scanline"></div>
-
+        <div className="nexus-exams-list animate-fade-in">
             <div className="nexus-exams-header">
-                <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                >
+                <div>
                     <div className="nexus-journal-subtitle">
                         <FaShieldAlt /> Proving Grounds <div className="pulse-dot"></div>
                     </div>
                     <h1 className="nexus-journal-title">
                         ACTIVE <span>CHALLENGES</span>
                     </h1>
-                </motion.div>
+                </div>
                 <div className="header-actions">
                     <button onClick={fetchExams} className="nexus-history-trigger">
                         <FaClock /> RE-SYNC
@@ -256,23 +250,9 @@ const StudentExams = ({ studentData }) => {
                             <button onClick={fetchExams} className="nexus-btn-pri-mini">RE-SCAN SECTOR</button>
                         </div>
                     ) : (
-                        <motion.div
-                            initial="hidden"
-                            animate="visible"
-                            variants={{
-                                visible: { transition: { staggerChildren: 0.1 } }
-                            }}
-                            className="nexus-notes-grid"
-                        >
+                        <div className="nexus-notes-grid">
                             {exams.map(exam => (
-                                <motion.div
-                                    key={exam._id}
-                                    variants={{
-                                        hidden: { opacity: 0, y: 10 },
-                                        visible: { opacity: 1, y: 0 }
-                                    }}
-                                    className="challenge-node-card"
-                                >
+                                <div key={exam._id} className="challenge-node-card">
                                     <div className="node-accent"></div>
                                     <div className="node-head">
                                         <span className="subject-tag">{exam.subject.toUpperCase()}</span>
@@ -286,9 +266,9 @@ const StudentExams = ({ studentData }) => {
                                     <button onClick={() => startExam(exam)} className="node-launch-btn">
                                         INITIATE SEQUENCE <FaChevronRight />
                                     </button>
-                                </motion.div>
+                                </div>
                             ))}
-                        </motion.div>
+                        </div>
                     )}
                 </div>
             )}

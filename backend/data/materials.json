@@ -3608,5 +3608,33 @@
     "uploaderId": null,
     "uploaderName": "SENTINEL CORE",
     "isAdvanced": true
+  },
+  {
+    "id": "6973d9c8b0ecf11982b4bd21",
+    "_id": "6973d9c8b0ecf11982b4bd21",
+    "title": "Test Upload Material",
+    "subject": "Computer Science",
+    "year": "1",
+    "section": "A",
+    "type": "notes",
+    "fileUrl": "/uploads/1769200072042-test_upload.txt",
+    "uploadedBy": {
+      "id": "6973d9bcb0ecf11982b4bd1a"
+    },
+    "createdAt": "2026-01-23T20:27:52.057Z"
+  },
+  {
+    "id": "6973d9d5b0ecf11982b4bd30",
+    "_id": "6973d9d5b0ecf11982b4bd30",
+    "title": "Test Material 1769200085263",
+    "subject": "Mathematics",
+    "year": "1",
+    "section": "A",
+    "type": "notes",
+    "fileUrl": "/uploads/1769200085266-test_material.txt",
+    "uploadedBy": {
+      "id": "6973d9bcb0ecf11982b4bd1a"
+    },
+    "createdAt": "2026-01-23T20:28:05.280Z"
   }
 ]

@@ -38,7 +38,7 @@ class SystemHealthCheck {
       'ℹ': '\x1b[36m',   // Cyan
       '🔄': '\x1b[35m'    // Magenta
     };
-    
+
     const color = levels[level] || '\x1b[0m';
     const reset = '\x1b[0m';
     console.log(`${color}${level}${reset} ${message}`);
@@ -46,11 +46,11 @@ class SystemHealthCheck {
 
   async checkMongoDB() {
     this.log('ℹ', 'Checking MongoDB connection...');
-    
+
     try {
       const mongoose = require('mongoose');
       const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/friendly_notebook';
-      
+
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error('MongoDB connection timeout'));
@@ -60,29 +60,29 @@ class SystemHealthCheck {
           serverSelectionTimeoutMS: 5000,
           socketTimeoutMS: 5000
         })
-        .then(() => {
-          clearTimeout(timeout);
-          this.log('✅', 'MongoDB connected successfully');
-          this.results.database = { status: 'connected', uri: mongoUri };
-          resolve();
-        })
-        .catch(err => {
-          clearTimeout(timeout);
-          reject(err);
-        });
+          .then(() => {
+            clearTimeout(timeout);
+            this.log('✅', 'MongoDB connected successfully');
+            this.results.database = { status: 'connected', uri: mongoUri };
+            resolve();
+          })
+          .catch(err => {
+            clearTimeout(timeout);
+            reject(err);
+          });
       });
     } catch (err) {
       this.log('❌', `MongoDB connection failed: ${err.message}`);
       this.results.database = { status: 'disconnected', error: err.message };
       return false;
     }
-    
+
     return true;
   }
 
   async checkBackendAPI() {
     this.log('ℹ', 'Checking backend API endpoints...');
-    
+
     const endpoints = [
       { name: 'Health Check', path: '/api/health' },
       { name: 'Students', path: '/api/students' },
@@ -98,7 +98,7 @@ class SystemHealthCheck {
     for (const endpoint of endpoints) {
       const available = await this.checkEndpoint(endpoint.path);
       this.results.api[endpoint.name] = available;
-      
+
       if (available) {
         this.log('✅', `${endpoint.name.padEnd(20)} → ${endpoint.path}`);
       } else {
@@ -110,7 +110,7 @@ class SystemHealthCheck {
   checkEndpoint(path) {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => resolve(false), 2000);
-      
+
       const req = http.get(`http://localhost:5000${path}`, (res) => {
         clearTimeout(timeout);
         resolve(res.statusCode < 500);
@@ -127,7 +127,7 @@ class SystemHealthCheck {
 
   async checkDashboardConnectivity() {
     this.log('ℹ', 'Checking dashboard connectivity...');
-    
+
     const dashboards = [
       { name: 'Admin Dashboard', port: 3000, path: '/admin' },
       { name: 'Student Dashboard', port: 3000, path: '/dashboard' },
@@ -137,7 +137,7 @@ class SystemHealthCheck {
     for (const dashboard of dashboards) {
       const available = await this.checkService(dashboard.port);
       this.results.dashboards[dashboard.name] = available;
-      
+
       if (available) {
         this.log('✅', `${dashboard.name.padEnd(25)} → http://localhost:${dashboard.port}${dashboard.path}`);
       } else {
@@ -149,7 +149,7 @@ class SystemHealthCheck {
   checkService(port) {
     return new Promise((resolve) => {
       const timeout = setTimeout(() => resolve(false), 2000);
-      
+
       const req = http.get(`http://localhost:${port}`, (res) => {
         clearTimeout(timeout);
         resolve(true);
@@ -166,7 +166,7 @@ class SystemHealthCheck {
 
   async testRealtimeSync() {
     this.log('ℹ', 'Testing real-time synchronization (SSE)...');
-    
+
     try {
       const available = await this.checkEndpoint('/api/stream');
       if (available) {
@@ -183,15 +183,15 @@ class SystemHealthCheck {
 
   async testDataOperations() {
     this.log('ℹ', 'Testing database data operations...');
-    
+
     try {
       const axios = require('axios');
-      
+
       // Test reading faculty data
       const response = await axios.get('http://localhost:5000/api/faculty', {
         timeout: 3000
       }).catch(() => ({ status: 500 }));
-      
+
       if (response && response.status === 200) {
         this.log('✅', `Faculty data retrieval successful (${response.data?.length || 0} records)`);
       } else {
@@ -207,7 +207,7 @@ class SystemHealthCheck {
     this.log('ℹ', '═══════════════════════════════════════════════════════════');
     this.log('ℹ', '           📊 SYSTEM HEALTH CHECK REPORT');
     this.log('ℹ', '═══════════════════════════════════════════════════════════');
-    
+
     // Database Status
     console.log('\n🗄️  DATABASE STATUS:');
     if (this.results.database?.status === 'connected') {
@@ -237,18 +237,18 @@ class SystemHealthCheck {
 
     // Recommendations
     console.log('\n💡 RECOMMENDATIONS:');
-    
+
     if (this.results.database?.status !== 'connected') {
       this.log('⚠️', 'Start MongoDB');
     }
-    
+
     const frontendRunning = this.results.dashboards['Admin Dashboard'];
     const backendRunning = Object.values(this.results.api).some(v => v);
-    
+
     if (!backendRunning) {
       this.log('⚠️', 'Start backend: cd backend && npm run dev');
     }
-    
+
     if (!frontendRunning) {
       this.log('⚠️', 'Start frontend: npm start');
     }
@@ -287,7 +287,7 @@ class SystemHealthCheck {
       await this.checkDashboardConnectivity();
       await this.testRealtimeSync();
       await this.testDataOperations();
-      
+
       this.generateReport();
     } catch (err) {
       this.log('❌', `Health check error: ${err.message}`);

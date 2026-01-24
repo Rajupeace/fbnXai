@@ -11,21 +11,21 @@ const StudentLabsSchedule = ({ studentData }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const fetchLabSchedule = async () => {
+            setLoading(true);
+            try {
+                const response = await apiGet(`/api/labs/schedule?year=${studentData.year}&section=${studentData.section}&branch=${studentData.branch}`);
+                setLabSchedule(response || []);
+            } catch (error) {
+                console.error('Forge Sync Failed:', error);
+                setLabSchedule([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchLabSchedule();
     }, [studentData]);
-
-    const fetchLabSchedule = async () => {
-        setLoading(true);
-        try {
-            const response = await apiGet(`/api/labs/schedule?year=${studentData.year}&section=${studentData.section}&branch=${studentData.branch}`);
-            setLabSchedule(response || []);
-        } catch (error) {
-            console.error('Forge Sync Failed:', error);
-            setLabSchedule([]);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     if (loading) {
         return (

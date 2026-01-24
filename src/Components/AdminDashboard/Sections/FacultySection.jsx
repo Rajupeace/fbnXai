@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { FaPlus, FaEye, FaEdit, FaTrash, FaChalkboardTeacher, FaUsers, FaBook } from 'react-icons/fa';
 
 /**
@@ -49,7 +49,7 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty }) =
                                 faculty.map(f => {
                                     // Ensure assignments is an array
                                     const assignments = Array.isArray(f.assignments) ? f.assignments : [];
-                                    
+
                                     // Calculate accurate student count based on assignments
                                     const teachingCount = students.filter(s =>
                                         assignments.some(a =>

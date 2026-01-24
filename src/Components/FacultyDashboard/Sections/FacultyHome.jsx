@@ -130,13 +130,13 @@ const FacultyHome = ({
                         ))}
                         {studentsList.length === 0 && <div className="no-content">No students assigned to your classes.</div>}
                         {studentsList.length > 8 && (
-                            <button 
+                            <button
                                 onClick={() => setView && setView('students')}
-                                style={{ 
-                                    width: '100%', 
-                                    padding: '0.75rem', 
-                                    marginTop: '1rem', 
-                                    background: 'rgba(59,130,246,0.1)', 
+                                style={{
+                                    width: '100%',
+                                    padding: '0.75rem',
+                                    marginTop: '1rem',
+                                    background: 'rgba(59,130,246,0.1)',
                                     border: '1px solid rgba(59,130,246,0.3)',
                                     borderRadius: '8px',
                                     color: '#3b82f6',

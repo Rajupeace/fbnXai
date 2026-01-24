@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaChartLine, FaCheckCircle, FaClock, FaFire, FaRobot, FaClipboardList, FaGraduationCap, FaShieldAlt, FaWaveSquare } from 'react-icons/fa';
+import { FaChartLine, FaClock, FaFire, FaRobot, FaGraduationCap, FaShieldAlt, FaWaveSquare } from 'react-icons/fa';
 import './AcademicPulse.css';
 
 /**

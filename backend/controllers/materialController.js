@@ -11,6 +11,11 @@ exports.getMaterials = async (req, res) => {
     const { year, section, subject, type, course } = req.query;
     let allMaterials = [];
 
+    // Require MongoDB
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ message: 'Database not connected' });
+    }
+
     // 1. MongoDB Fetch
     if (mongoose.connection.readyState === 1) {
       try {
@@ -51,53 +56,7 @@ exports.getMaterials = async (req, res) => {
       }
     }
 
-    // 2. File DB Fetch & Merge
-    try {
-      const dbFile = require('../dbHelper');
-      const fileMats = dbFile('materials').read() || [];
-
-      const filteredFile = fileMats.filter(m => {
-        if (year && String(m.year) !== String(year)) return false;
-
-        // Advanced section matching: handles 'All', single strings, and comma-separated lists
-        if (section && section !== 'All') {
-          const mSec = String(m.section || 'All');
-          if (mSec !== 'All' && mSec !== section) {
-            const sections = mSec.split(',').map(s => s.trim());
-            if (!sections.includes(section)) return false;
-          }
-        }
-
-        if (subject && m.subject !== subject) return false;
-        if (type && m.type !== type) return false;
-        return true;
-      });
-
-      filteredFile.forEach(fm => {
-        // Check for duplicates by ID
-        if (!allMaterials.find(am => String(am.id) === String(fm.id) || String(am.id) === String(fm._id))) {
-          allMaterials.push({
-            id: fm.id || fm._id,
-            _id: fm.id || fm._id,
-            title: fm.title,
-            description: fm.description,
-            url: fm.fileUrl || fm.url,
-            type: fm.type,
-            subject: fm.subject,
-            year: fm.year,
-            section: fm.section,
-            module: fm.module,
-            unit: fm.unit,
-            topic: fm.topic,
-            uploadedAt: fm.uploadedAt || fm.createdAt,
-            uploaderName: fm.uploadedBy?.name || 'System',
-            source: 'file'
-          });
-        }
-      });
-    } catch (fileErr) {
-      console.warn('File Material Fetch Error:', fileErr);
-    }
+    // No file DB merge: already returned results from MongoDB
 
     res.json(allMaterials);
   } catch (error) {
@@ -235,68 +194,31 @@ exports.uploadMaterial = async (req, res) => {
 
     await material.save();
 
-    // SYNC TO FILE (Hybrid Persistence)
-    try {
-      const { v4: uuidv4 } = require('uuid');
-      const dbFile = require('../dbHelper');
-      const materialsDB = dbFile('materials');
-      const all = materialsDB.read() || [];
-
-      all.push({
-        id: material._id.toString(),
-        _id: material._id.toString(),
-        title: material.title,
-        description: material.description,
-        subject: material.subject,
-        year: material.year,
-        section: material.section,
-        type: material.type,
-        fileUrl: material.fileUrl,
-        uploadedBy: { id: uploaderId.toString() },
-        createdAt: new Date().toISOString()
-      });
-      materialsDB.write(all);
-    } catch (err) { console.error("File sync failed", err); }
+    // No file sync: materials persist in MongoDB only
 
     // Populate the response
     await material.populate('course', 'courseCode courseName');
     await material.populate('uploadedBy', 'name email');
 
-    // AUTO-NOTIFICATION: Create a message for students
+    // AUTO-NOTIFICATION: Create a message for students in MongoDB
     try {
       const Message = require('../models/Message');
+      const uploaderDoc = uploaderId ? await Faculty.findById(uploaderId).lean() : null;
       const notificationText = `New ${type} added: "${title}" in ${subject} (Year ${year})`;
 
-      const msgItem = {
-        id: require('uuid').v4(), // Generate ID for file-db
-        message: notificationText,
-        target: 'students-specific',
-        targetYear: year,
-        targetSections: section ? [section] : [],
-        type: 'material-alert',
-        sender: faculty.name || `Prof. ${faculty.facultyId}`,
-        facultyId: faculty.facultyId,
-        createdAt: new Date().toISOString()
-      };
-
-      // 1. Write to File DB (Always)
-      try {
-        const dbFile = require('../dbHelper');
-        const messagesDB = dbFile('messages');
-        const allMsgs = messagesDB.read() || [];
-        allMsgs.unshift(msgItem);
-        messagesDB.write(allMsgs);
-      } catch (e) {
-        console.warn('File DB Message save failed:', e);
-      }
-
-      // 2. Write to MongoDB (if connected)
       if (mongoose.connection.readyState === 1) {
         await Message.create({
-          ...msgItem,
-          createdAt: new Date() // Mongo prefers Date object
+          message: notificationText,
+          target: 'students-specific',
+          targetYear: year,
+          targetSections: section ? [section] : [],
+          type: 'material-alert',
+          sender: uploaderDoc?.name || (req.user && req.user.name) || 'System',
+          senderRole: req.user?.role || 'faculty',
+          facultyId: uploaderDoc?.facultyId || null,
+          createdAt: new Date()
         });
-        console.log('[Notification] Logic Dispatched to MongoDB Mesh');
+        console.log('[Notification] Message created in MongoDB');
       }
     } catch (e) {
       console.warn('Pedagogical Notification Deferred:', e.message);
@@ -381,34 +303,7 @@ exports.updateMaterial = async (req, res) => {
     await material.populate('course', 'courseCode courseName');
     await material.populate('uploadedBy', 'name email');
 
-    // Update file in local DB (Hybrid Persistence)
-    try {
-      const dbFile = require('../dbHelper');
-      const materialsDB = dbFile('materials');
-      const all = materialsDB.read() || [];
-      const idx = all.findIndex(m => String(m.id) === String(req.params.id) || String(m._id) === String(req.params.id));
-
-      if (idx !== -1) {
-        // Update existing item fields
-        const updatedItem = {
-          ...all[idx],
-          title: material.title,
-          description: material.description,
-          year: material.year,
-          section: material.section,
-          subject: material.subject,
-          type: material.type,
-          fileUrl: material.fileUrl,
-          fileType: material.fileType,
-          fileSize: material.fileSize
-        };
-        all[idx] = updatedItem;
-        materialsDB.write(all);
-        console.log('[Update] Synced change to materials.json');
-      }
-    } catch (e) {
-      console.warn('[Update] File sync warning:', e.message);
-    }
+    // No local file sync: update persisted in MongoDB only
 
     res.json(material);
   } catch (error) {
@@ -468,20 +363,7 @@ exports.deleteMaterial = async (req, res) => {
 
     await material.deleteOne();
 
-    // Remove from File DB (Hybrid Persistence)
-    try {
-      const dbFile = require('../dbHelper');
-      const materialsDB = dbFile('materials');
-      const all = materialsDB.read() || [];
-      const newAll = all.filter(m => String(m.id) !== String(req.params.id) && String(m._id) !== String(req.params.id));
-
-      if (all.length !== newAll.length) {
-        materialsDB.write(newAll);
-        console.log('[Delete] Synced removal with materials.json');
-      }
-    } catch (e) {
-      console.warn('[Delete] File sync warning:', e.message);
-    }
+    // No local file sync: deletion persisted in MongoDB only
 
     res.json({ message: 'Material removed' });
   } catch (error) {

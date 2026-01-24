@@ -169,90 +169,143 @@ watcher.on('all', (event, filePath) => {
   }
 });
 
-const studentsDB = dbFile('students', []);
-const facultyDB = dbFile('faculty', []);
-const materialsDB = dbFile('materials', []);
-const messagesDB = dbFile('messages', []);
-const adminDB = dbFile('admin', { adminId: process.env.ADMIN_ID || 'BobbyFNB@09=', password: process.env.ADMIN_PASSWORD || 'Martin@FNB09' });
-const coursesDB = dbFile('courses', []);
-const studentFacultyDB = dbFile('studentFaculty', []); // Store student-faculty relationships
-const todosDB = dbFile('todos', []);
+// ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+// const studentsDB = dbFile('students', []);
+// const facultyDB = dbFile('faculty', []);
+// const materialsDB = dbFile('materials', []);
+// const messagesDB = dbFile('messages', []);
+// const adminDB = dbFile('admin', { adminId: process.env.ADMIN_ID || 'BobbyFNB@09=', password: process.env.ADMIN_PASSWORD || 'Martin@FNB09' });
+// const coursesDB = dbFile('courses', []);
+// const studentFacultyDB = dbFile('studentFaculty', []);
+// const todosDB = dbFile('todos', []);
 
-// --- MESSAGE ROUTES ---
-app.get('/api/messages', (req, res) => {
-  const all = messagesDB.read() || [];
-  res.json(all);
-});
-
-app.post('/api/messages', (req, res) => {
-  const all = messagesDB.read() || [];
-  const msg = {
-    id: Date.now(),
-    date: new Date().toISOString(),
-    ...req.body
-  };
-  all.push(msg);
-  messagesDB.write(all);
-  try { broadcastEvent({ resource: 'messages', action: 'create', data: msg }); } catch (e) { }
-  res.status(201).json(msg);
-});
-
-app.delete('/api/messages/:id', (req, res) => {
-  const all = messagesDB.read() || [];
-  const next = all.filter(m => String(m.id) !== String(req.params.id));
-  messagesDB.write(next);
-  res.json({ ok: true });
-});
-
-// --- TODO ROUTES ---
-app.get('/api/todos', (req, res) => {
-  const { role } = req.query;
-  let all = todosDB.read();
-  if (role && role !== 'admin') {
-    all = all.filter(t => t.target === 'all' || t.target === role);
-  }
-  res.json(all);
-});
-
-app.post('/api/todos', (req, res) => {
-  const { text, target, dueDate } = req.body;
-  const all = todosDB.read();
-  const item = {
-    id: uuidv4(),
-    text,
-    target: target || 'admin',
-    dueDate,
-    completed: false,
-    createdAt: new Date().toISOString()
-  };
-  all.push(item);
-  todosDB.write(all);
-  // Notify clients
-  try { broadcastEvent({ resource: 'todos', action: 'create', data: item }); } catch (e) { }
-  res.status(201).json(item);
-});
-
-app.put('/api/todos/:id', (req, res) => {
-  const { id } = req.params;
-  const all = todosDB.read();
-  const idx = all.findIndex(t => t.id === id);
-  if (idx !== -1) {
-    all[idx] = { ...all[idx], ...req.body };
-    todosDB.write(all);
-    try { broadcastEvent({ resource: 'todos', action: 'update', data: all[idx] }); } catch (e) { }
-    res.json(all[idx]);
-  } else {
-    res.status(404).json({ error: 'not found' });
+// --- MESSAGE ROUTES (MongoDB ONLY) ---
+app.get('/api/messages', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
+    }
+    const Message = require('./models/Message');
+    const messages = await Message.find({}).lean();
+    res.json(messages);
+  } catch (err) {
+    console.error('Error fetching messages:', err);
+    res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });
 
-app.delete('/api/todos/:id', (req, res) => {
-  const { id } = req.params;
-  const all = todosDB.read();
-  const next = all.filter(t => t.id !== id);
-  todosDB.write(next);
-  try { broadcastEvent({ resource: 'todos', action: 'delete', data: { id } }); } catch (e) { }
-  res.json({ ok: true });
+app.post('/api/messages', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
+    }
+    const Message = require('./models/Message');
+    const msg = new Message({
+      ...req.body,
+      createdAt: new Date()
+    });
+    await msg.save();
+    console.log('✅ Message created in MongoDB');
+    try { broadcastEvent({ resource: 'messages', action: 'create', data: msg }); } catch (e) { }
+    res.status(201).json(msg);
+  } catch (err) {
+    console.error('Error creating message:', err);
+    res.status(500).json({ error: 'Failed to create message' });
+  }
+});
+
+app.delete('/api/messages/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
+    }
+    const Message = require('./models/Message');
+    await Message.findByIdAndDelete(req.params.id);
+    console.log('✅ Message deleted from MongoDB');
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error deleting message:', err);
+    res.status(500).json({ error: 'Failed to delete message' });
+  }
+});
+
+// --- TODO ROUTES (MongoDB ONLY) ---
+app.get('/api/todos', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
+    }
+    const Todo = require('./models/Todo');
+    const { role } = req.query;
+    let query = {};
+    if (role && role !== 'admin') {
+      query = { $or: [{ target: 'all' }, { target: role }] };
+    }
+    const todos = await Todo.find(query).lean();
+    res.json(todos);
+  } catch (err) {
+    console.error('Error fetching todos:', err);
+    res.status(500).json({ error: 'Failed to fetch todos' });
+  }
+});
+
+app.post('/api/todos', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
+    }
+    const Todo = require('./models/Todo');
+    const { text, target, dueDate } = req.body;
+    const item = new Todo({
+      text,
+      target: target || 'admin',
+      dueDate,
+      completed: false
+    });
+    await item.save();
+    console.log('✅ Todo created in MongoDB');
+    try { broadcastEvent({ resource: 'todos', action: 'create', data: item }); } catch (e) { }
+    res.status(201).json(item);
+  } catch (err) {
+    console.error('Error creating todo:', err);
+    res.status(500).json({ error: 'Failed to create todo' });
+  }
+});
+
+app.put('/api/todos/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
+    }
+    const Todo = require('./models/Todo');
+    const { id } = req.params;
+    const updated = await Todo.findByIdAndUpdate(id, { ...req.body, updatedAt: new Date() }, { new: true }).lean();
+    if (!updated) {
+      return res.status(404).json({ error: 'not found' });
+    }
+    console.log('✅ Todo updated in MongoDB');
+    try { broadcastEvent({ resource: 'todos', action: 'update', data: updated }); } catch (e) { }
+    res.json(updated);
+  } catch (err) {
+    console.error('Error updating todo:', err);
+    res.status(500).json({ error: 'Failed to update todo' });
+  }
+});
+
+app.delete('/api/todos/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
+    }
+    const { id } = req.params;
+    const Todo = require('./models/Todo');
+    await Todo.deleteOne({ _id: id });
+    try { broadcastEvent({ resource: 'todos', action: 'delete', data: { id } }); } catch (e) { }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error deleting todo:', err);
+    res.status(500).json({ error: 'Failed to delete todo' });
+  }
 });
 
 // Import routes
@@ -313,15 +366,9 @@ app.get('/api/labs/schedule', async (req, res) => {
       } catch (e) { }
     }
 
-    // 2. Fallback to File
-    if (schedules.length === 0) {
-      const all = require('./dbHelper')('schedule').read() || [];
-      schedules = all.filter(s =>
-        s.year === year &&
-        s.section === section &&
-        s.branch === branch &&
-        /lab|practical/i.test(s.type || '')
-      );
+    // No file-based fallback: require MongoDB
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
     }
 
     // Transform to frontend format if needed (though frontend seems to match DB schema closely)
@@ -452,21 +499,11 @@ app.get('/api/courses', async (req, res) => {
       }
     }
 
-    const fileCourses = coursesDB.read() || [];
-    const transformedFile = fileCourses.map(c => ({
-      ...c,
-      id: c.id || c.courseCode,
-      source: 'file'
-    }));
-
-    const final = [...allCourses];
-    transformedFile.forEach(fc => {
-      if (!final.find(mc => (mc.courseCode && mc.courseCode === fc.courseCode) || mc.id === fc.id)) {
-        final.push(fc);
-      }
-    });
-
-    res.json(final);
+    // File DB disabled: return MongoDB-only courses or 503 if DB not connected
+    if (mongoose.connection.readyState === 1) {
+      return res.json(allCourses);
+    }
+    return res.status(503).json({ error: 'MongoDB not connected. Courses unavailable.' });
   } catch (err) {
     console.error('[GET /api/courses] Error:', err);
     res.status(500).json({ error: 'Failed to fetch courses', details: err.message });
@@ -537,35 +574,14 @@ app.get('/api/materials', async (req, res, next) => {
       }
     }
 
-    // 2. Also get from file-based storage
-    try {
-      const fileMaterials = materialsDB.read() || [];
-      let filtered = fileMaterials;
-
-      if (year && year !== 'All') {
-        filtered = filtered.filter(m => String(m.year) === String(year));
-      }
-
-      if (section && section !== 'All') {
-        filtered = filtered.filter(m => !m.section || m.section === 'All' || String(m.section) === String(section));
-      }
-
-      if (branch && branch !== 'All') {
-        filtered = filtered.filter(m => !m.branch || m.branch === 'All' || m.branch === branch);
-      }
-
-      if (subject) filtered = filtered.filter(m => String(m.subject) === String(subject));
-      if (type) filtered = filtered.filter(m => String(m.type) === String(type));
-      if (course) filtered = filtered.filter(m => String(m.course) === String(course));
-      if (req.query.isAdvanced !== undefined) filtered = filtered.filter(m => m.isAdvanced === (req.query.isAdvanced === 'true'));
-
-      const fileWithSource = filtered.map(m => ({ ...m, source: 'file' }));
-      const existingIds = new Set(allMaterials.map(m => String(m.id)));
-      const uniqueFileMaterials = fileWithSource.filter(m => !existingIds.has(String(m.id)) && !existingIds.has(String(m._id)));
-      allMaterials.push(...uniqueFileMaterials);
-    } catch (fileErr) {
-      console.warn('[GET /api/materials] File read error:', fileErr.message);
-    }
+    // 2. File-based storage DISABLED - MongoDB ONLY
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // try {
+    //   const fileMaterials = materialsDB.read() || [];
+    //   // ... file DB operations removed ...
+    // } catch (fileErr) {
+    //   console.warn('[GET /api/materials] File read error:', fileErr.message);
+    // }
 
     // Sort by createdAt/uploadedAt descending
     allMaterials.sort((a, b) => new Date(b.createdAt || b.uploadedAt || 0) - new Date(a.createdAt || a.uploadedAt || 0));
@@ -599,19 +615,11 @@ const uploadLocal = multer({ storage: storageLocal, limits: { fileSize: 200 * 10
 const handleFileBasedUpload = async (req, res) => {
   try {
     const { title, year, section, subject, type, course, branch, module, unit, topic, link, message, dueDate, semester, isAdvanced } = req.body;
-
-    // Basic Validation
-    if (!title && !req.file && !link) {
-      console.error('Upload Validation Failed: Missing Title/File/Link', req.body);
-      return res.status(400).json({ message: 'Title, File, or Link is required' });
-    }
-    if (!subject || !type) {
-      console.error('Upload Validation Failed: Missing Subject/Type', req.body);
-      return res.status(400).json({ message: 'Subject and Type are required' });
-    }
-
-    const all = materialsDB.read();
-    const id = uuidv4();
+        // File DB disabled: Only return MongoDB courses
+        return res.json(allCourses);
+      } catch (err) {
+        console.error('[GET /api/courses] Error:', err);
+        res.status(500).json({ error: 'Failed to fetch courses', details: err.message });
 
     // File info from uploadMongo middleware
     let fileUrl = null;
@@ -668,7 +676,8 @@ const handleFileBasedUpload = async (req, res) => {
     if ((type === 'modelPapers' || type === 'previousQuestions') && dueDate) item.examYear = dueDate;
 
     all.push(item);
-    materialsDB.write(all);
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // materialsDB.write(all);
     try { broadcastEvent({ resource: 'materials', action: 'create', data: item }); } catch (e) { }
     res.status(201).json(item);
   } catch (err) {
@@ -772,8 +781,11 @@ app.post('/api/debug-upload', uploadLocal.single('file'), (req, res) => {
 
 const handleFileBasedUpdate = async (req, res) => {
   try {
-    const { id } = req.params;
-    const all = materialsDB.read();
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    console.warn('[Material Update] File-based update not available in MongoDB-only mode');
+    return res.status(503).json({ error: 'MongoDB-only mode active, updates must use MongoDB' });
+    // const { id } = req.params;
+    // const all = materialsDB.read();
     // Normalize ID comparison to handle string/ObjectId mismatches
     const idx = all.findIndex(m =>
       String(m.id) === String(id) ||
@@ -821,7 +833,8 @@ const handleFileBasedUpdate = async (req, res) => {
     }
 
     all[idx] = updatedItem;
-    materialsDB.write(all);
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // materialsDB.write(all);
     res.json(updatedItem);
   } catch (err) {
     console.error('File-based update error:', err);
@@ -852,8 +865,11 @@ app.delete('/api/materials/:id', async (req, res, next) => {
 
     // File-based delete
     try {
-      const { id } = req.params;
-      const all = materialsDB.read();
+      // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+      console.warn('[Material Delete] File-based delete not available in MongoDB-only mode');
+      throw new Error('MongoDB-only mode active');
+      // const { id } = req.params;
+      // const all = materialsDB.read();
       // Normalize ID comparison
       const idx = all.findIndex(m =>
         String(m.id) === String(id) ||
@@ -871,7 +887,8 @@ app.delete('/api/materials/:id', async (req, res, next) => {
       }
 
       const newAll = all.filter((_, i) => i !== idx);
-      materialsDB.write(newAll);
+      // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+      // materialsDB.write(newAll);
       res.json({ message: 'Material removed' });
     } catch (err) {
       console.error('File-based delete error:', err);
@@ -958,6 +975,7 @@ const requireAdmin = async (req, res, next) => {
     try {
       const adminDoc = await Admin.findOne({ adminToken: token });
       if (adminDoc) {
+        console.log('[Auth] ✅ Admin authenticated via MongoDB token match');
         req.user = { id: adminDoc.adminId, _id: adminDoc._id, role: 'admin', name: adminDoc.name };
         return next();
       }
@@ -968,20 +986,16 @@ const requireAdmin = async (req, res, next) => {
 
   // 2. Stateless: Verify Valid Signature (Fallback if DB cleared or restarted)
   const decoded = verifyJWT(token);
-  if (decoded && (decoded.id === process.env.ADMIN_ID || decoded.id === 'ReddyFBN@1228' || decoded.role === 'admin')) {
-    console.log('[Auth] Stateless Admin JWT accepted (DB mismatch ignored).');
+  if (decoded && decoded.role === 'admin') {
+    console.log('[Auth] Admin authenticated via valid JWT signature (role: admin)');
     req.user = { id: decoded.id, role: 'admin', name: 'Administrator' };
     return next();
   }
 
-  // 3. File-Based Fallback
-  const adminFile = adminDB.read() || {};
-  if (adminFile.adminToken === token) {
-    req.user = { id: adminFile.adminId || 'admin', role: 'admin', name: 'Administrator' };
-    return next();
-  }
+  // 3. File-Based Fallback disabled: MongoDB is the single source of truth
+  // (No file-based admin token fallback allowed in MongoDB-only mode)
 
-  console.warn(`[Auth] Admin authentication failed. Token invalid or expired.`);
+  console.warn(`[Auth] ❌ Admin authentication failed. Token: ${token.substring(0, 20)}... | JWT Valid: ${decoded ? 'Yes' : 'No'}`);
   return res.status(401).json({ error: 'Session expired', message: 'Please log out and log in again' });
 };
 
@@ -1022,15 +1036,6 @@ function requireStudent(req, res, next) {
 
   if (!token) return res.status(401).json({ error: 'student token required' });
 
-  const checkFileDB = () => {
-    const students = studentsDB.read() || [];
-    const student = students.find(s => s.studentToken === token);
-    if (student) {
-      req.user = { ...student, id: student.sid || student.id, _id: student._id || student.id, role: 'student' };
-      return next();
-    }
-    return res.status(401).json({ error: 'invalid student token' });
-  };
   if (mongoose.connection.readyState !== 1 || !Student) {
     console.warn('[Auth] MongoDB not connected - student auth unavailable');
     return res.status(503).json({ error: 'MongoDB not connected. Student auth unavailable.' });
@@ -1147,33 +1152,9 @@ app.post('/api/admin/login', async (req, res) => {
       }
     }
 
-    // Fallback: File-based (Legacy) if MongoDB fails or not found
-    const adminFile = adminDB.read() || {};
-    // Check against file DB or hardcoded default
-    const fileId = adminFile.adminId || 'BobbyFNB@09=';
-    const filePass = adminFile.password || 'Martin@FNB09';
-
-    if (adminId === fileId && password === filePass) {
-      const token = jwt.sign(
-        { id: fileId, role: 'admin' },
-        process.env.JWT_SECRET || 'your_jwt_secret',
-        { expiresIn: '24h' }
-      );
-
-      // Update file with token
-      adminFile.adminId = fileId; // Ensure exists
-      adminFile.password = filePass; // Ensure exists
-      adminFile.adminToken = token;
-      adminFile.tokenIssuedAt = new Date().toISOString();
-      adminDB.write(adminFile);
-
-      console.log('✅ Admin login success (File/Default)');
-      return res.json({
-        ok: true,
-        token,
-        adminData: { adminId: fileId, name: 'Administrator' }
-      });
-    }
+    // MongoDB ONLY - No file DB fallback
+    console.warn('❌ Admin not found in MongoDB');
+    return res.status(401).json({ error: 'invalid admin credentials', details: 'Admin account not found in system' });
 
     console.warn('❌ Invalid admin credentials');
     return res.status(401).json({ error: 'invalid admin credentials' });
@@ -1187,17 +1168,15 @@ app.post('/api/admin/login', async (req, res) => {
 app.post('/api/admin/logout', requireAdmin, async (req, res) => {
   try {
     const user = req.user;
-    if (mongoose.connection.readyState === 1 && Admin) {
-      await Admin.findOneAndUpdate({ adminId: user.id }, { adminToken: null });
+    // MongoDB ONLY
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
     }
-    const adminFile = adminDB.read() || {};
-    if (adminFile.adminId === user.id) {
-      adminFile.adminToken = null;
-      adminDB.write(adminFile);
-    }
+    await Admin.findOneAndUpdate({ adminId: user.id }, { adminToken: null });
+    console.log(`✅ Admin logged out: ${user.id}`);
     res.json({ ok: true });
   } catch (e) {
-    console.error(e);
+    console.error('Logout error:', e);
     res.status(500).json({ error: 'Logout failed' });
   }
 });
@@ -1210,20 +1189,15 @@ app.post('/api/admin/refresh', requireAdmin, async (req, res) => {
       { expiresIn: '24h' }
     );
 
-    // Update token in storage
-    if (mongoose.connection.readyState === 1 && Admin) {
-      await Admin.findOneAndUpdate(
-        { adminId: user.id },
-        { adminToken: token, tokenIssuedAt: new Date() }
-      );
-    } else {
-      const adminFile = adminDB.read() || {};
-      if (adminFile.adminId === user.id) {
-        adminFile.adminToken = token;
-        adminFile.tokenIssuedAt = new Date().toISOString();
-        adminDB.write(adminFile);
-      }
+    // Update token in MongoDB ONLY
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' });
     }
+    await Admin.findOneAndUpdate(
+      { adminId: user.id },
+      { adminToken: token, tokenIssuedAt: new Date() }
+    );
+    console.log(`✅ Admin token refreshed: ${user.id}`);
 
     res.json({
       ok: true,
@@ -1277,22 +1251,14 @@ app.post('/api/students', async (req, res) => {
     });
 
     // HYBRID SYNC: Automatically update File DB for consistency/backup
-    try {
-      const fileStudents = studentsDB.read() || [];
-      // Only add if not exists
-      if (!fileStudents.find(s => s.sid === sid)) {
-        fileStudents.push({
-          ...newStudent.toObject(),
-          _id: newStudent._id.toString(),
-          id: sid, // Maintain legacy ID
-          source: 'file-sync'
-        });
-        studentsDB.write(fileStudents);
-        console.log(`[Hybrid Sync] Synced new student ${sid} to local file DB`);
-      }
-    } catch (syncErr) {
-      console.warn('[Hybrid Sync Warning] Failed to sync to file DB:', syncErr.message);
-    }
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // try {
+    //   const fileStudents = studentsDB.read() || [];
+    //   // Only add if not exists
+    // } catch (e) { console.warn('File sync warning:', e.message); }
+
+    // File DB disabled - MongoDB only
+    console.log(`✅ Student created in MongoDB only: ${sid}`);
 
     try { global.broadcastEvent && global.broadcastEvent({ resource: 'students', action: 'create', data: newStudent }); } catch (e) { }
     return res.status(201).json(newStudent);
@@ -1317,14 +1283,15 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
 
       if (updatedStudent) {
         // HYBRID SYNC: Update File DB
-        try {
-          const fileStudents = studentsDB.read() || [];
-          const idx = fileStudents.findIndex(s => s.sid === updatedStudent.sid || s.id === updatedStudent.sid);
-          if (idx !== -1) {
-            fileStudents[idx] = { ...fileStudents[idx], ...updates };
-            studentsDB.write(fileStudents);
-          }
-        } catch (e) { console.warn('Hybrid sync update failed', e); }
+        // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+        // try {
+        //   const fileStudents = studentsDB.read() || [];
+        //   const idx = fileStudents.findIndex(s => s.sid === updatedStudent.sid || s.id === updatedStudent.sid);
+        //   if (idx !== -1) {
+        //     fileStudents[idx] = { ...fileStudents[idx], ...updates };
+        //     studentsDB.write(fileStudents);
+        //   }
+        // } catch (e) { console.warn('Hybrid sync update skipped (MongoDB-only mode)'); }
 
         try { broadcastEvent({ resource: 'students', action: 'update', data: updatedStudent }); } catch (e) { }
         return res.json({ success: true, message: 'Student updated successfully', data: updatedStudent });
@@ -1332,17 +1299,8 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
       // If not found in Mongo, fall through to file DB check (hybrid mode)
     }
 
-    const students = studentsDB.read();
-
-    // Find student by id or sid
-    const studentIndex = students.findIndex(s => s.id === id || s.sid === id);
-
-    if (studentIndex === -1) {
-      return res.status(404).json({
-        error: 'Student not found',
-        message: `No student found with ID/SID: ${id}`
-      });
-    }
+    // Not found in MongoDB and file DB fallback disabled
+    return res.status(404).json({ error: 'Student not found in MongoDB' });
 
     // Preserve important fields that shouldn't be updated
     const updatedStudent = {
@@ -1357,8 +1315,8 @@ app.put('/api/students/:id', requireAdmin, async (req, res) => {
     // Update the student in the array
     students[studentIndex] = updatedStudent;
 
-    // Save to database
-    studentsDB.write(students);
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // studentsDB.write(students);
     try { broadcastEvent({ resource: 'students', action: 'update', data: updatedStudent }); } catch (e) { }
     res.json({
       success: true,
@@ -1392,12 +1350,13 @@ app.delete('/api/students/:sid', requireAdmin, async (req, res) => {
 
     // Sync removal from File DB (Hybrid Persistence)
     try {
-      const students = studentsDB.read() || [];
-      const newStudents = students.filter(s => s.sid !== sid);
-      if (students.length !== newStudents.length) {
-        studentsDB.write(newStudents);
-      }
-    } catch (e) { console.warn('File sync warning:', e.message); }
+      // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+      // const students = studentsDB.read() || [];
+      // const newStudents = students.filter(s => s.sid !== sid);
+      // if (students.length !== newStudents.length) {
+      //   studentsDB.write(newStudents);
+      // }
+    } catch (e) { console.warn('File sync skipped (MongoDB-only mode)'); }
 
     try { broadcastEvent({ resource: 'students', action: 'delete', data: { sid } }); } catch (e) { }
     return res.json({ ok: true });
@@ -1421,14 +1380,16 @@ app.put('/api/students/profile/:sid', async (req, res) => {
     }
 
     // Fallback: File-based
-    const arr = studentsDB.read();
-    const idx = arr.findIndex(s => s.sid === sid);
-    if (idx === -1) return res.status(404).json({ error: 'student not found' });
-
-    // Update fields
-    arr[idx] = { ...arr[idx], ...updates };
-    studentsDB.write(arr);
-    res.json(arr[idx]);
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // const arr = studentsDB.read();
+    // const idx = arr.findIndex(s => s.sid === sid);
+    // if (idx === -1) return res.status(404).json({ error: 'student not found' });
+    // 
+    // // Update fields
+    // arr[idx] = { ...arr[idx], ...updates };
+    // studentsDB.write(arr);
+    // res.json(arr[idx]);
+    return res.status(404).json({ error: 'Student not found in MongoDB' });
   } catch (err) {
     console.error('Update profile error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -1453,35 +1414,28 @@ app.put('/api/students/change-password/:sid', async (req, res) => {
       }
     }
 
-    // Fallback: File-based
-    const arr = studentsDB.read();
-    const idx = arr.findIndex(s => s.sid === sid);
-    if (idx === -1) return res.status(404).json({ error: 'student not found' });
-
-    // Verify current password (if not empty check provided)
-    if (currentPassword && arr[idx].password !== currentPassword) {
-      return res.status(401).json({ error: 'Incorrect current password' });
-    }
-
-    arr[idx].password = newPassword;
-    studentsDB.write(arr);
-    res.json({ success: true });
+    // If not found in MongoDB, do not fallback to file-based storage
+    return res.status(404).json({ error: 'Student not found in MongoDB' });
   } catch (err) {
     console.error('Change password error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
-app.post('/api/auth/forgot-password', (req, res) => {
-  const { email } = req.body;
-  const students = studentsDB.read();
-  const exists = students.find(s => s.email === email);
-  if (exists) {
-    // Mock email sending
-    console.log(`[Mock Email] Password reset link sent to ${email}`);
-    res.json({ success: true, message: 'Reset link sent to your email.' });
-  } else {
-    res.status(404).json({ error: 'Email address not found.' });
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
+    }
+    const student = await Student.findOne({ email });
+    if (student) {
+      console.log(`[Mock Email] Password reset link sent to ${email}`);
+      return res.json({ success: true, message: 'Reset link sent to your email.' });
+    }
+    return res.status(404).json({ error: 'Email address not found.' });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -1578,17 +1532,26 @@ app.get('/api/faculty', requireAdmin, async (req, res) => {
     }
 
     try {
-      const mongoFaculty = await Faculty.find().select('-password -facultyToken').lean();
+      const mongoFaculty = await Faculty.find({}).lean();
+      
       const allFaculty = mongoFaculty.map(f => ({
         ...f,
         id: f.facultyId || f._id?.toString(),
         _id: f._id?.toString(),
-        source: 'mongodb'
+        source: 'mongodb',
+        // Ensure assignments is always an array
+        assignments: Array.isArray(f.assignments) ? f.assignments : []
       }));
+
+      console.log('✅ Faculty retrieved from MongoDB:', allFaculty.length, 'faculty members');
+      allFaculty.forEach(f => {
+        console.log(`  👤 ${f.name} (${f.facultyId}): ${f.assignments?.length || 0} assignments`);
+      });
+
       return res.json(allFaculty);
     } catch (err) {
       console.error('Error fetching faculty from MongoDB:', err);
-      return res.status(500).json({ error: 'Failed to fetch faculty' });
+      return res.status(500).json({ error: 'Failed to fetch faculty', details: err.message });
     }
   } catch (err) {
     console.error('Error in /api/faculty:', err);
@@ -1598,10 +1561,24 @@ app.get('/api/faculty', requireAdmin, async (req, res) => {
 app.post('/api/faculty', requireAdmin, async (req, res) => {
   try {
     const { name, facultyId, email, password, assignments, department, designation } = req.body;
-    if (!facultyId || !name || !password) return res.status(400).json({ error: 'missing required fields: facultyId, name, password' });
+    if (!facultyId || !name || !password) {
+      return res.status(400).json({
+        error: 'Missing required fields: facultyId, name, password',
+        received: { facultyId: !!facultyId, name: !!name, password: !!password }
+      });
+    }
 
-    // Ensure assignments is an array
-    const assignmentsArray = Array.isArray(assignments) ? assignments : [];
+    // Ensure assignments is an array and properly formatted
+    let assignmentsArray = [];
+    if (Array.isArray(assignments)) {
+      assignmentsArray = assignments.map(a => ({
+        year: String(a.year),
+        section: String(a.section).toUpperCase().trim(),
+        branch: a.branch || 'CSE',
+        subject: String(a.subject).trim(),
+        semester: a.semester || ''
+      }));
+    }
 
     // Require MongoDB for faculty creation
     if (mongoose.connection.readyState !== 1) {
@@ -1609,27 +1586,56 @@ app.post('/api/faculty', requireAdmin, async (req, res) => {
     }
 
     try {
-      const existing = await Faculty.findOne({ facultyId });
-      if (existing) return res.status(409).json({ error: 'facultyId already exists' });
-
-      const newFaculty = await Faculty.create({
-        name,
-        facultyId,
-        email: email || '',
-        password,
-        assignments: assignmentsArray,
-        department: department || 'General',
-        designation: designation || 'Lecturer'
+      // Check if faculty already exists
+      const existing = await Faculty.findOne({
+        $or: [
+          { facultyId: String(facultyId).trim() },
+          { email: email?.toLowerCase()?.trim() }
+        ]
       });
 
-      console.log('✅ Faculty created in MongoDB:', facultyId);
-      // Notify SSE clients
-      try { broadcastEvent({ resource: 'faculty', action: 'create', data: { id: newFaculty._id.toString(), facultyId, name } }); } catch (e) { }
+      if (existing) {
+        const conflictField = existing.facultyId === String(facultyId).trim() ? 'Faculty ID' : 'Email';
+        return res.status(409).json({ error: `${conflictField} already exists` });
+      }
 
-      return res.status(201).json(newFaculty);
+      const newFaculty = await Faculty.create({
+        name: String(name).trim(),
+        facultyId: String(facultyId).trim(),
+        email: email?.toLowerCase()?.trim() || '',
+        password: String(password), // Should be hashed in production
+        assignments: assignmentsArray,
+        department: String(department || 'General').trim(),
+        designation: String(designation || 'Lecturer').trim()
+      });
+
+      console.log('✅ Faculty created successfully in MongoDB:', facultyId);
+
+      // Format response for frontend compatibility
+      const response = {
+        ...newFaculty.toObject(),
+        id: newFaculty.facultyId,
+        _id: newFaculty._id.toString()
+      };
+
+      try {
+        broadcastEvent({
+          resource: 'faculty',
+          action: 'create',
+          data: {
+            id: newFaculty._id.toString(),
+            facultyId: newFaculty.facultyId,
+            name: newFaculty.name
+          }
+        });
+      } catch (e) {
+        console.warn('SSE broadcast failed:', e.message);
+      }
+
+      return res.status(201).json(response);
     } catch (err) {
       console.error('Mongo Faculty Create Error:', err);
-      return res.status(500).json({ error: 'Failed to create faculty' });
+      return res.status(500).json({ error: 'Failed to create faculty', details: err.message });
     }
   } catch (err) {
     console.error('Faculty creation error:', err);
@@ -1637,44 +1643,39 @@ app.post('/api/faculty', requireAdmin, async (req, res) => {
   }
 });
 
-// GET Single Faculty (Public/Protected mixed use)
+// GET Single Faculty (MongoDB ONLY - No File Fallback)
 app.get('/api/faculty/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1. MongoDB
-    if (mongoose.connection.readyState === 1) {
-      try {
-        const Faculty = require('./models/Faculty');
-        // Try finding by facultyId (string) or _id (ObjectId)
-        let faculty = await Faculty.findOne({ facultyId: id }).select('-password -facultyToken').lean();
-        if (!faculty && mongoose.isValidObjectId(id)) {
-          faculty = await Faculty.findById(id).select('-password -facultyToken').lean();
-        }
+    // MongoDB ONLY
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Faculty data unavailable.' });
+    }
 
-        if (faculty) {
-          return res.json({
-            ...faculty,
-            id: faculty.facultyId,
-            _id: faculty._id.toString(),
-            source: 'mongodb'
-          });
-        }
-      } catch (e) {
-        console.warn('Mongo faculty fetch error:', e);
+    try {
+      const Faculty = require('./models/Faculty');
+      // Try finding by facultyId (string) or _id (ObjectId)
+      let faculty = await Faculty.findOne({ facultyId: id }).select('-password -facultyToken').lean();
+      if (!faculty && mongoose.isValidObjectId(id)) {
+        faculty = await Faculty.findById(id).select('-password -facultyToken').lean();
       }
-    }
 
-    // 2. File Fallback
-    const all = dbFile('faculty').read() || [];
-    const faculty = all.find(f => f.facultyId === id || f.id === id);
-    if (faculty) {
-      // remove sensitivity
-      const { password, facultyToken, ...rest } = faculty;
-      return res.json({ ...rest, source: 'file' });
-    }
+      if (faculty) {
+        console.log(`[Faculty] Retrieved from MongoDB: ${faculty.facultyId || faculty._id}`);
+        return res.json({
+          ...faculty,
+          id: faculty.facultyId,
+          _id: faculty._id.toString(),
+          source: 'mongodb'
+        });
+      }
 
-    res.status(404).json({ error: 'Faculty not found' });
+      res.status(404).json({ error: 'Faculty not found in MongoDB' });
+    } catch (e) {
+      console.error('Mongo faculty fetch error:', e);
+      res.status(500).json({ error: 'Failed to fetch faculty', details: e.message });
+    }
   } catch (err) {
     console.error('Get Faculty Error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -1692,19 +1693,69 @@ app.put('/api/faculty/:fid', requireAdmin, async (req, res) => {
     }
 
     try {
-      let updatedFaculty = await Faculty.findOneAndUpdate({ facultyId: fid }, updates, { new: true });
-      if (!updatedFaculty) {
-        updatedFaculty = await Faculty.findByIdAndUpdate(fid, updates, { new: true });
+      // Don't update password if it's empty (for security)
+      if (!updates.password) {
+        delete updates.password;
       }
 
-      if (!updatedFaculty) return res.status(404).json({ error: 'faculty not found' });
+      // Ensure assignments is properly formatted
+      if (updates.assignments) {
+        updates.assignments = updates.assignments.map(a => ({
+          year: String(a.year),
+          section: String(a.section).toUpperCase().trim(),
+          branch: a.branch || 'CSE',
+          subject: String(a.subject).trim(),
+          semester: a.semester || ''
+        }));
+      }
 
-      console.log('✅ Faculty updated in MongoDB:', fid);
-      try { broadcastEvent({ resource: 'faculty', action: 'update', data: { id: updatedFaculty._id.toString(), facultyId: updatedFaculty.facultyId } }); } catch (e) { }
-      return res.json(updatedFaculty);
+      console.log('🔄 Updating faculty:', fid, 'with updates:', { ...updates, password: updates.password ? '***' : 'unchanged' });
+
+      let updatedFaculty = await Faculty.findOneAndUpdate(
+        { facultyId: fid },
+        updates,
+        { new: true, runValidators: true }
+      ).select('-password').lean();
+
+      if (!updatedFaculty) {
+        updatedFaculty = await Faculty.findByIdAndUpdate(
+          fid,
+          updates,
+          { new: true, runValidators: true }
+        ).select('-password').lean();
+      }
+
+      if (!updatedFaculty) {
+        return res.status(404).json({ error: 'Faculty not found' });
+      }
+
+      console.log('✅ Faculty updated successfully in MongoDB:', fid);
+      
+      // Format response for frontend compatibility
+      const response = {
+        ...updatedFaculty,
+        id: updatedFaculty.facultyId || updatedFaculty._id?.toString(),
+        _id: updatedFaculty._id?.toString()
+      };
+
+      try {
+        broadcastEvent({
+          resource: 'faculty',
+          action: 'update',
+          data: {
+            id: updatedFaculty._id.toString(),
+            facultyId: updatedFaculty.facultyId,
+            name: updatedFaculty.name
+          }
+        });
+      } catch (e) {
+        console.warn('SSE broadcast failed:', e.message);
+      }
+
+      return res.json(response);
     } catch (err) {
       console.error('Mongo Faculty Update Error:', err);
-      return res.status(500).json({ error: 'Failed to update faculty' });
+      return res.status(500).json({ error: 'Failed to update faculty', details: err.message });
     }
   } catch (err) {
     console.error('Faculty update error:', err);
@@ -1731,28 +1782,20 @@ app.delete('/api/faculty/:fid', requireAdmin, async (req, res) => {
       console.log('✅ Faculty deleted from MongoDB:', fid);
       try { broadcastEvent({ resource: 'faculty', action: 'delete', data: { id: faculty._id.toString(), facultyId: fid } }); } catch (e) { }
 
-      // Optionally clean up related collections (materials/messages) asynchronously
+      // Clean up related collections (MongoDB ONLY)
       try {
         const Material = require('./models/Material');
         await Material.deleteMany({ uploaderId: fid }).catch(() => { });
+        console.log('✅ Related materials cleaned up for faculty:', fid);
       } catch (e) { }
 
       try {
         const MessageModel = require('./models/Message');
         await MessageModel.deleteMany({ facultyId: fid }).catch(() => { });
+        console.log('✅ Related messages cleaned up for faculty:', fid);
       } catch (e) { }
 
-      // Sync removal from File DB (Hybrid Persistence)
-      try {
-        const FacultyModel = require('./models/Faculty'); // redundant if up top but safe
-        const fList = facultyDB.read() || [];
-        const newFList = fList.filter(f => f.facultyId !== fid);
-        if (fList.length !== newFList.length) {
-          facultyDB.write(newFList);
-        }
-      } catch (e) { console.warn('File sync warning:', e.message); }
-
-      return res.json({ message: 'Faculty removed' });
+      return res.json({ message: 'Faculty removed from MongoDB only' });
     } catch (err) {
       console.error('Faculty delete error:', err);
       return res.status(500).json({ error: 'Failed to delete faculty' });
@@ -1766,94 +1809,78 @@ app.delete('/api/faculty/:fid', requireAdmin, async (req, res) => {
 app.get('/api/faculty-stats/:facultyId/students', async (req, res) => {
   try {
     const { facultyId } = req.params;
-    let assignments = [];
 
-    // 1. Try MongoDB
-    if (mongoose.connection.readyState === 1) {
-      const faculty = await Faculty.findOne({ facultyId });
-      if (faculty && faculty.assignments) assignments = faculty.assignments;
-    }
-    // 2. Fallback to File
-    if (assignments.length === 0) {
-      const fList = facultyDB.read();
-      const f = fList.find(i => i.facultyId === facultyId);
-      if (f && f.assignments) assignments = f.assignments;
+    // MongoDB ONLY - No File Fallback
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Faculty stats unavailable.' });
     }
 
-    if (assignments.length === 0) return res.json([]);
-
-    // Get Students (Mongo + File)
-    let allStudents = [];
-    if (mongoose.connection.readyState === 1) {
-      const queries = assignments.map(a => ({ year: String(a.year), section: String(a.section).toUpperCase() }));
-      // Use $or for Mongo
-      if (queries.length > 0) {
-        const mongoStudents = await Student.find({ $or: queries }).select('-password').lean();
-        allStudents = mongoStudents.map(s => ({ ...s, source: 'mongo' }));
-      }
+    const faculty = await Faculty.findOne({ facultyId }).lean();
+    if (!faculty || !faculty.assignments || faculty.assignments.length === 0) {
+      return res.json([]);
     }
 
-    // Merge with File Students
-    const fileStudents = studentsDB.read();
-    const studentsFromFile = fileStudents.filter(s => {
-      return assignments.some(a => String(s.year) === String(a.year) && String(s.section).toUpperCase() === String(a.section).toUpperCase());
-    }).map(s => ({ ...s, source: 'file' }));
+    const assignments = faculty.assignments;
 
-    // Dedup by SID
-    const merged = [...allStudents, ...studentsFromFile];
-    const unique = [];
-    const seen = new Set();
-    merged.forEach(s => {
-      if (!seen.has(s.sid)) {
-        seen.add(s.sid);
-        unique.push(s);
-      }
-    });
+    // Get Students from MongoDB only
+    const queries = assignments.map(a => ({ year: String(a.year), section: String(a.section).toUpperCase() }));
+    
+    if (queries.length === 0) return res.json([]);
 
-    res.json(unique);
-  } catch (err) { console.error('Faculty stats error:', err); res.status(500).json({ error: 'Stats error' }); }
+    const students = await Student.find({ $or: queries }).select('-password').lean();
+    
+    const result = students.map(s => ({
+      ...s,
+      _id: s._id?.toString ? s._id.toString() : s._id,
+      source: 'mongodb'
+    }));
+
+    console.log(`[Faculty Stats] Retrieved ${result.length} students for faculty ${facultyId} from MongoDB`);
+    return res.json(result);
+  } catch (err) {
+    console.error('Faculty stats error:', err);
+    res.status(500).json({ error: 'Failed to fetch faculty statistics', details: err.message });
+  }
 });
 
 app.get('/api/faculty-stats/:facultyId/materials-downloads', async (req, res) => {
   try {
     const { facultyId } = req.params;
-    let materials = [];
 
-    // 1. Try MongoDB
-    if (mongoose.connection.readyState === 1 && Material) {
-      try {
-        const f = await Faculty.findOne({ facultyId });
-        // Search by Mongo Object ID or Custom facultyId
-        const query = f ? { $or: [{ uploadedBy: f._id }, { uploaderId: facultyId }] } : { uploaderId: facultyId };
-        const mongoMats = await Material.find(query).lean();
-        materials = mongoMats.map(m => ({ ...m, source: 'mongo' }));
-      } catch (e) { console.warn("Mongo stats fetch failed", e); }
+    // MongoDB ONLY - No File Fallback
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected. Faculty stats unavailable.' });
     }
 
-    // 2. File Fallback (Merge)
-    const fileMats = materialsDB.read() || [];
-    const myFileMats = fileMats.filter(m => String(m.uploaderId) === String(facultyId)).map(m => ({ ...m, source: 'file' }));
-
-    // Merge & Dedup
-    const merged = [...materials, ...myFileMats];
-    const unique = [];
-    const seen = new Set();
-    merged.forEach(m => {
-      const id = m.id || m._id;
-      if (!seen.has(String(id))) {
-        seen.add(String(id));
-        unique.push(m);
+    try {
+      const f = await Faculty.findOne({ facultyId });
+      if (!f) {
+        return res.json([]);
       }
-    });
 
-    res.json(unique);
-  } catch (err) { res.status(500).json({ error: 'Stats error' }); }
+      // Search by MongoDB ObjectID
+      const materials = await Material.find({ uploadedBy: f._id }).lean();
+      
+      const result = materials.map(m => ({
+        ...m,
+        _id: m._id?.toString ? m._id.toString() : m._id,
+        source: 'mongodb'
+      }));
+
+      console.log(`[Faculty Stats] Retrieved ${result.length} materials for faculty ${facultyId} from MongoDB`);
+      return res.json(result);
+    } catch (err) {
+      console.error('Materials fetch error:', err);
+      return res.status(500).json({ error: 'Failed to fetch materials', details: err.message });
+    }
+  } catch (err) {
+    console.error('Faculty materials stats error:', err);
+    res.status(500).json({ error: 'Stats error', details: err.message });
+  }
 });
 
 
 // Admin Auth Endpoints
-// admin auth endpoints
-// [Admin Auth Routes removed (duplicates)]
 
 // student auth endpoints
 app.post('/api/students/login', async (req, res) => {
@@ -1941,8 +1968,7 @@ app.post('/api/students/register', async (req, res) => {
           studentName, sid, email, year, section, branch, password, avatar
         });
 
-        // No file sync: MongoDB is the source of truth
-
+        // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
         // AUTO-ANNOUNCEMENT: Notify Admin
         try {
           const notificationMsg = `New Student Joined: ${studentName} (${branch}-${year})`;
@@ -1954,10 +1980,10 @@ app.post('/api/students/register', async (req, res) => {
             sender: 'SYSTEM',
             createdAt: new Date().toISOString()
           };
-          // Write Msg to File
-          const allMsgs = messagesDB.read() || [];
-          allMsgs.unshift(msgItem);
-          messagesDB.write(allMsgs);
+          // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+          // const allMsgs = messagesDB.read() || [];
+          // allMsgs.unshift(msgItem);
+          // messagesDB.write(allMsgs);
 
           // Write Msg to Mongo
           try {
@@ -1982,8 +2008,10 @@ app.post('/api/students/register', async (req, res) => {
     }
 
     // 2. Fallback: File-based
-    const arr = studentsDB.read();
-    if (arr.find(s => s.sid === sid)) return res.status(409).json({ error: 'Student ID already exists' });
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // const arr = studentsDB.read();
+    // if (arr.find(s => s.sid === sid)) return res.status(409).json({ error: 'Student ID already exists' });
+    return res.status(409).json({ error: 'Student already registered (MongoDB)' });
 
     const item = {
       id: uuidv4(),
@@ -2184,8 +2212,9 @@ app.post('/api/materials', upload.single('file'), (req, res) => {
   if (!authorized) {
     return res.status(403).json({ error: 'unauthorized to upload for this subject/section' });
   }
- 
-  const all = materialsDB.read();
+
+  const all = null; // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+  // const all = materialsDB.read();
   const id = uuidv4();
   // Determine url path relative to /uploads
   let fileUrl = null;
@@ -2234,16 +2263,28 @@ app.post('/api/materials', upload.single('file'), (req, res) => {
 });
  
 // faculty upload history (for faculty themselves)
-app.get('/api/faculty/uploads', requireFaculty, (req, res) => {
-  const all = materialsDB.read();
-  const mine = all.filter(m => m.uploaderId === req.facultyData.facultyId);
-  res.json(mine);
+app.get('/api/faculty/uploads', requireFaculty, async (req, res) => {
+  // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+  try {
+    const materials = await require('./models/Material').find({ uploaderId: req.facultyData.facultyId }).lean();
+    res.json(materials || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch uploads' });
+  }
 });
- 
+
 // admin view of a faculty's uploads
-app.get('/api/faculty/:fid/uploads', requireAdmin, (req, res) => {
+app.get('/api/faculty/:fid/uploads', requireAdmin, async (req, res) => {
   const fid = req.params.fid;
-  const all = materialsDB.read();
+  // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+  try {
+    const materials = await require('./models/Material').find({ uploaderId: fid }).lean();
+    res.json(materials || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch faculty uploads' });
+  }
+  return;
+  const all = null; // FILE DB DISABLED
   const userUploads = all.filter(m => m.uploaderId === fid);
   res.json(userUploads);
 });
@@ -2288,7 +2329,8 @@ app.delete('/api/materials/:id', (req, res) => {
     } catch (e) { console.warn('Error while deleting material file:', e); }
  
     const next = all.filter((_, i) => i !== idx);
-    materialsDB.write(next);
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // materialsDB.write(next);
     return res.json({ ok: true });
   } catch (err) {
     console.error('Delete material error:', err);
@@ -2332,9 +2374,10 @@ app.post('/api/messages', requireAdmin, async (req, res) => {
   };
 
   // 1. JSON Persistence
-  const all = messagesDB.read();
-  all.unshift(item);
-  messagesDB.write(all);
+  // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+  // const all = messagesDB.read();
+  // all.unshift(item);
+  // messagesDB.write(all);
 
   // 2. MongoDB Persistence
   if (mongoose.connection.readyState === 1) {
@@ -2397,9 +2440,10 @@ app.post('/api/faculty/messages', requireFaculty, async (req, res) => {
     };
 
     // 1. JSON Persistence
-    const all = messagesDB.read();
-    all.unshift(item);
-    messagesDB.write(all);
+    // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+    // const all = messagesDB.read();
+    // all.unshift(item);
+    // messagesDB.write(all);
 
     // 2. MongoDB Persistence
     if (mongoose.connection.readyState === 1) {
@@ -2577,11 +2621,13 @@ app.post('/api/courses', requireAdmin, async (req, res) => {
       });
     } else {
       // File-based fallback
-      const arr = coursesDB.read();
-      if (arr.find(c => c.code === code)) {
-        console.warn(`[POST /api/courses] Course code already exists (FileDB): ${code}`);
-        return res.status(409).json({ error: 'Course code already exists' });
-      }
+      // ⚠️ FILE DB DISABLED - MongoDB ONLY Mode
+      // const arr = coursesDB.read();
+      // if (arr.find(c => c.code === code)) {
+      //   console.warn(`[POST /api/courses] Course code already exists (FileDB): ${code}`);
+      //   return res.status(409).json({ error: 'Course code already exists' });
+      // }
+      return res.status(404).json({ error: 'MongoDB not connected - cannot create course' });
       const item = {
         id: uuidv4(),
         name,
@@ -2782,6 +2828,157 @@ app.delete('/api/subjects/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// ============ DASHBOARD DATA ENDPOINTS ============
+
+// Get todos by role
+app.get('/api/todos', async (req, res) => {
+  try {
+    const { role } = req.query;
+    let todos = [];
+    
+    try {
+      const todoData = dbFile('todos').read() || [];
+      if (role) {
+        todos = todoData.filter(t => !t.role || t.role === role);
+      } else {
+        todos = todoData;
+      }
+    } catch (e) {
+      console.log('Todos file not found, returning empty');
+    }
+    
+    res.json(todos || []);
+  } catch (err) {
+    console.error('Error fetching todos:', err);
+    res.json([]);
+  }
+});
+
+// Faculty analytics - students count
+app.get('/api/faculty-stats/:facultyId/students', async (req, res) => {
+  try {
+    const { facultyId } = req.params;
+    
+    let students = [];
+    if (mongoose.connection.readyState === 1) {
+      try {
+        // Find all students taught by this faculty
+        const faculty = await Faculty.findOne({
+          $or: [{ facultyId }, { _id: facultyId }]
+        }).lean();
+        
+        if (faculty) {
+          // Get students from faculty's assignments
+          const allStudents = await Student.find({
+            year: { $in: faculty.assignments?.map(a => a.year) || [] }
+          }).lean();
+          students = allStudents;
+        }
+      } catch (e) {
+        console.log('MongoDB error:', e.message);
+      }
+    }
+    
+    if (students.length === 0) {
+      // Fallback to file DB
+      students = dbFile('students').read() || [];
+    }
+    
+    res.json({
+      total: students.length,
+      students: students.slice(0, 100) // Limit response
+    });
+  } catch (err) {
+    console.error('Error fetching faculty stats:', err);
+    res.status(500).json({ error: 'Failed to fetch faculty stats', details: err.message });
+  }
+});
+
+// Faculty analytics - materials downloads
+app.get('/api/faculty-stats/:facultyId/materials-downloads', async (req, res) => {
+  try {
+    const { facultyId } = req.params;
+    
+    let materials = [];
+    if (mongoose.connection.readyState === 1) {
+      try {
+        materials = await Material.find({ uploadedBy: facultyId }).lean();
+      } catch (e) {
+        console.log('MongoDB error:', e.message);
+      }
+    }
+    
+    if (materials.length === 0) {
+      materials = dbFile('materials').read() || [];
+      if (facultyId) {
+        materials = materials.filter(m => m.uploadedBy === facultyId || m.faculty === facultyId);
+      }
+    }
+    
+    res.json({
+      total: materials.length,
+      downloads: materials.reduce((sum, m) => sum + (m.downloads || 0), 0),
+      materials: materials.slice(0, 50)
+    });
+  } catch (err) {
+    console.error('Error fetching materials stats:', err);
+    res.status(500).json({ error: 'Failed to fetch materials stats', details: err.message });
+  }
+});
+
+// Generic faculty stats endpoint
+app.get('/api/faculty-stats/:facultyId/:endpoint', async (req, res) => {
+  try {
+    const { facultyId, endpoint } = req.params;
+    
+    let data = {};
+    
+    switch(endpoint) {
+      case 'attendance':
+        // Get attendance stats
+        if (mongoose.connection.readyState === 1) {
+          const attendance = await Attendance.find().lean();
+          data = {
+            totalSessions: attendance.length,
+            average: 85
+          };
+        } else {
+          const attFile = dbFile('attendance').read() || [];
+          data = {
+            totalSessions: attFile.length,
+            average: 85
+          };
+        }
+        break;
+        
+      case 'exams':
+        // Get exam stats
+        if (mongoose.connection.readyState === 1) {
+          const exams = await Exam.find().lean();
+          data = {
+            totalExams: exams.length,
+            scheduled: exams.filter(e => e.status === 'scheduled').length
+          };
+        } else {
+          const examFile = dbFile('exams').read() || [];
+          data = {
+            totalExams: examFile.length,
+            scheduled: examFile.filter(e => e.status === 'scheduled').length
+          };
+        }
+        break;
+        
+      default:
+        data = { message: `Stats for ${endpoint}` };
+    }
+    
+    res.json(data);
+  } catch (err) {
+    console.error('Error fetching faculty stats:', err);
+    res.status(500).json({ error: 'Failed to fetch stats', details: err.message });
+  }
+});
+
 // 404 Catch-all for API
 app.use('/api/*', (req, res) => {
   console.warn(`[NOT_FOUND] Handled API Request for: ${req.method} ${req.url}`);
@@ -2816,23 +3013,28 @@ const initializeApp = async () => {
     try {
       const dbConnected = await connectDB();
       if (!dbConnected) {
-        console.warn('⚠️ MongoDB connection failed. Server will start but some routes will be read-only or return 503.');
+        console.error('❌ CRITICAL: MongoDB connection failed. Shutting down server.');
+        process.exit(1);
       } else {
-        console.log('✅ MongoDB is connected. Full functionality enabled.');
+        console.log('✅ MongoDB is CONNECTED - Source of Truth for All Data');
+        console.log('📊 Data Persistence: MongoDB ONLY (No file-based fallback for faculty data)');
       }
     } catch (e) {
       console.error('Unexpected error while connecting to MongoDB:', e);
+      process.exit(1);
     }
 
     const PORT = process.env.PORT || 5000;
     console.log(`Attempting to listen on port ${PORT}...`);
     server = app.listen(PORT, () => {
-      console.log(`🚀 Backend server running on port ${PORT}`);
+      console.log(`\n🚀 Backend server running on port ${PORT}`);
       console.log(`🌍 Access the API at http://localhost:${PORT}`);
-      console.log('Server started successfully, testing...');
-      console.log('Server listening callback executed');
+      console.log('\n📋 System Configuration:');
+      console.log('   • Faculty Data: MongoDB ONLY');
+      console.log('   • Student Data: MongoDB ONLY');
+      console.log('   • Course Data: MongoDB ONLY');
+      console.log('   • File DB: Disabled for critical operations\n');
     });
-    console.log('server.listen called, server object created:', !!server);
 
     server.on('error', (err) => {
       console.error('Server listen error:', err.message);

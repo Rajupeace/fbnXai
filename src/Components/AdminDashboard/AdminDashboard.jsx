@@ -283,51 +283,80 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
 
-    // Merge assignments
-    data.assignments = facultyAssignments;
+    // Remove empty password for updates (don't change if not provided)
+    if (editItem && !data.password) {
+      delete data.password;
+    } else if (!editItem && !data.password) {
+      // Password required for new faculty
+      alert('Password is required for new faculty');
+      return;
+    }
+
+    // Merge assignments - ensure they're formatted correctly
+    data.assignments = facultyAssignments.map(a => ({
+      year: String(a.year),
+      section: String(a.section).toUpperCase().trim(),
+      subject: String(a.subject).trim(),
+      branch: a.branch || 'CSE',
+      semester: a.semester || ''
+    }));
 
     console.log('📝 Saving Faculty:', {
       isEdit: !!editItem,
       facultyId: data.facultyId,
       name: data.name,
-      assignments: data.assignments
+      assignments: data.assignments,
+      totalAssignments: data.assignments.length,
+      hasPassword: !!data.password
     });
 
     try {
       let newFaculty = [...faculty];
       if (editItem) {
-        // EDIT
+        // EDIT - Update existing faculty in database
         if (USE_API) {
           const idToUpdate = editItem._id || editItem.facultyId;
-          const response = await api.apiPut(`/api/faculty/${idToUpdate}`, data);
-          const updatedData = response.data || response;
+          console.log('🔄 Updating faculty:', idToUpdate);
+          
+          const updatedData = await api.apiPut(`/api/faculty/${idToUpdate}`, data);
           console.log('✅ Faculty updated from server:', updatedData);
 
           // Ensure assignments is preserved in the state
           newFaculty = newFaculty.map(f => {
-            if (f._id === idToUpdate || f.facultyId === editItem.facultyId) {
+            const isSameFaculty = (f._id && updatedData._id && f._id.toString() === updatedData._id.toString()) || 
+                                  f.facultyId === editItem.facultyId;
+            if (isSameFaculty) {
               return {
                 ...f,
-                ...data,
-                assignments: Array.isArray(updatedData.assignments) ? updatedData.assignments : data.assignments
+                ...updatedData,
+                assignments: Array.isArray(updatedData.assignments) ? updatedData.assignments : data.assignments,
+                id: updatedData.facultyId || updatedData.id,
+                _id: updatedData._id
               };
             }
             return f;
           });
+          console.log('✅ Faculty list updated in state:', newFaculty.length, 'faculty members');
         } else {
           newFaculty = newFaculty.map(f => f.facultyId === editItem.facultyId ? { ...f, ...data } : f);
           await writeFaculty(newFaculty);
         }
       } else {
-        // CREATE
+        // CREATE - Add new faculty to database
         if (USE_API) {
-          const res = await api.apiPost('/api/faculty', data);
-          const newF = res.data || res;
-          console.log('✅ New Faculty created:', newF);
+          console.log('➕ Creating new faculty');
+          const newF = await api.apiPost('/api/faculty', data);
+          console.log('✅ New Faculty created from server:', newF);
 
-          // Ensure assignments is set
-          newF.assignments = Array.isArray(newF.assignments) ? newF.assignments : data.assignments;
-          newFaculty.push(newF);
+          // Ensure assignments is set and formatted correctly
+          const facultyEntry = {
+            ...newF,
+            assignments: Array.isArray(newF.assignments) ? newF.assignments : data.assignments,
+            id: newF.facultyId || newF.id,
+            _id: newF._id
+          };
+          newFaculty.push(facultyEntry);
+          console.log('✅ New faculty added to state, total:', newFaculty.length);
         } else {
           const newF = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
           newFaculty.push(newF);
@@ -336,6 +365,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       }
 
       setFaculty(newFaculty);
+      console.log('✅ Faculty state updated successfully');
       closeModal();
     } catch (err) {
       console.error('Faculty Save Error:', err);

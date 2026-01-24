@@ -9,7 +9,7 @@ import {
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 
 // Sections
-import StudentHeader from './Sections/StudentHeader';
+import StudentSidebar from './Sections/StudentSidebar';
 import StudentProfileCard from './Sections/StudentProfileCard';
 import AcademicBrowser from './Sections/AcademicBrowser';
 import SemesterNotes from './Sections/SemesterNotes';
@@ -57,6 +57,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
     const [showAiModal, setShowAiModal] = useState(false);
     // Removed showMsgModal/TaskModal as unused
     const [unreadCount, setUnreadCount] = useState(0);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // Initial load animation
     useEffect(() => {
@@ -294,7 +295,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             </div>
                         </div>
                         <button className="panel-action-btn" onClick={() => setShowAiModal(true)}>
-                            ENGAGE AI AGENT
+
                         </button>
                     </div>
                 </aside>
@@ -314,19 +315,18 @@ export default function StudentDashboard({ studentData, onLogout }) {
     return (
         <div className={`student-dashboard-layout ${isDashboardLoaded ? 'loaded' : ''}`}>
 
-            <StudentHeader
+            <StudentSidebar
                 userData={userData}
-                tasks={tasks}
                 view={view}
                 setView={setView}
-                unreadCount={unreadCount}
+                collapsed={sidebarCollapsed}
+                setCollapsed={setSidebarCollapsed}
                 onLogout={onLogout}
-                toggleTaskModal={() => setView('tasks')} // Placeholder or specific logic
-                toggleMsgModal={() => setView('messages')} // Placeholder or specific logic
             />
 
             <div className="dashboard-content-area">
                 {view === 'overview' && renderOverview()}
+
                 {view === 'messages' && (
                     <div className="nexus-hub-viewport">
                         <div className="nexus-mesh-bg"></div>
@@ -355,6 +355,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         </div>
                     </div>
                 )}
+
                 {view === 'semester' && (
                     <div className="nexus-page-container">
                         <AcademicBrowser
@@ -367,12 +368,43 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         />
                     </div>
                 )}
-                {view === 'journal' && <SemesterNotes semester={userData.semester || 'Current'} studentData={userData} />}
-                {view === 'advanced' && <AdvancedLearning userData={userData} overviewData={overviewData} />}
-                {view === 'attendance' && <StudentAttendanceView studentId={userData.sid} />}
-                {view === 'exams' && <StudentExams studentData={userData} />}
-                {view === 'faculty' && <StudentFacultyList studentData={userData} />}
-                {view === 'schedule' && <StudentSchedule studentData={userData} />}
+
+                {view === 'journal' && (
+                    <div className="nexus-page-container">
+                        <SemesterNotes semester={userData.semester || 'Current'} studentData={userData} />
+                    </div>
+                )}
+
+                {view === 'advanced' && (
+                    <div className="nexus-page-container">
+                        <AdvancedLearning userData={userData} overviewData={overviewData} />
+                    </div>
+                )}
+
+                {view === 'attendance' && (
+                    <div className="nexus-page-container">
+                        <StudentAttendanceView studentId={userData.sid} />
+                    </div>
+                )}
+
+                {view === 'exams' && (
+                    <div className="nexus-page-container">
+                        <StudentExams studentData={userData} />
+                    </div>
+                )}
+
+                {view === 'faculty' && (
+                    <div className="nexus-page-container">
+                        <StudentFacultyList studentData={userData} />
+                    </div>
+                )}
+
+                {view === 'schedule' && (
+                    <div className="nexus-page-container">
+                        <StudentSchedule studentData={userData} />
+                    </div>
+                )}
+
                 {view === 'settings' && (
                     <div className="nexus-hub-viewport">
                         <div className="nexus-mesh-bg"></div>
@@ -390,6 +422,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         </div>
                     </div>
                 )}
+
                 {view === 'marks' && (
                     <div className="nexus-hub-viewport">
                         <div className="nexus-mesh-bg"></div>
@@ -400,6 +433,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         <SubjectAttendanceMarks overviewData={overviewData} enrolledSubjects={enrolledSubjects} />
                     </div>
                 )}
+
                 {view === 'ai-agent' && (
                     <div className="nexus-hub-viewport" style={{ padding: '0 2rem', height: 'calc(100vh - 100px)' }}>
                         <div className="nexus-mesh-bg"></div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTrash, FaCheckCircle, FaClipboardList, FaArrowLeft, FaShieldAlt } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaClipboardList, FaArrowLeft, FaShieldAlt } from 'react-icons/fa';
 import { apiPost, apiGet, apiDelete } from '../../utils/apiClient';
 
 /**
@@ -26,6 +26,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
 
     useEffect(() => {
         fetchExams();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [facultyId]);
 
     const fetchExams = async () => {

@@ -1,1 +1,54 @@
-[]
+[
+  {
+    "sid": "TST1769200034902",
+    "studentName": "Test Student",
+    "email": "teststudent1769200034902@vignan.edu",
+    "password": "TestPass123",
+    "branch": "CSE",
+    "year": "1",
+    "section": "A",
+    "bio": "Elite Learner at FBN XAI Sentinel Hub.",
+    "skills": [],
+    "stats": {
+      "streak": 0,
+      "aiUsageCount": 0,
+      "tasksCompleted": 0,
+      "advancedProgress": 0,
+      "totalClasses": 0,
+      "totalPresent": 0,
+      "rank": "CADET v1.0"
+    },
+    "_id": "6973d9a2b0ecf11982b4bd09",
+    "createdAt": "2026-01-23T20:27:14.927Z",
+    "updatedAt": "2026-01-23T20:27:14.930Z",
+    "__v": 0,
+    "id": "TST1769200034902",
+    "source": "file-sync"
+  },
+  {
+    "sid": "TST1769200085225",
+    "studentName": "Test Student",
+    "email": "teststudent1769200085225@vignan.edu",
+    "password": "TestPass123",
+    "branch": "CSE",
+    "year": "1",
+    "section": "A",
+    "bio": "Elite Learner at FBN XAI Sentinel Hub.",
+    "skills": [],
+    "stats": {
+      "streak": 0,
+      "aiUsageCount": 0,
+      "tasksCompleted": 0,
+      "advancedProgress": 0,
+      "totalClasses": 0,
+      "totalPresent": 0,
+      "rank": "CADET v1.0"
+    },
+    "_id": "6973d9d5b0ecf11982b4bd26",
+    "createdAt": "2026-01-23T20:28:05.232Z",
+    "updatedAt": "2026-01-23T20:28:05.232Z",
+    "__v": 0,
+    "id": "TST1769200085225",
+    "source": "file-sync"
+  }
+]

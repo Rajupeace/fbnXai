@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-    FaGraduationCap, FaEnvelope, FaClipboardList, FaSignOutAlt,
+    FaEnvelope, FaClipboardList, FaSignOutAlt,
     FaChartLine, FaUserGraduate, FaChalkboardTeacher, FaBook, FaLayerGroup, FaBullhorn, FaRobot, FaCog, FaCalendarAlt, FaFileAlt, FaShieldAlt,
-    FaChevronLeft, FaChevronRight, FaBars
+    FaBars
 } from 'react-icons/fa';
 
 /**

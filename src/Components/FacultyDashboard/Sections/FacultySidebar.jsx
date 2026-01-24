@@ -1,147 +1,96 @@
 import React from 'react';
-import { FaUniversity, FaRobot, FaProjectDiagram, FaCalendarAlt, FaCog, FaBars, FaTimes, FaSignOutAlt } from 'react-icons/fa';
+import {
+    FaGraduationCap, FaEnvelope, FaSignOutAlt,
+    FaLayerGroup, FaBolt, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt, FaUserGraduate,
+    FaRobot
+} from 'react-icons/fa';
+import '../../StudentDashboard/StudentDashboard.css';
 
+/**
+ * PREMIUM NEXUS SIDEBAR (FACULTY)
+ * Collapsible sidebar for faculty command.
+ */
 const FacultySidebar = ({
-    sidebarCollapsed,
-    setSidebarCollapsed,
-    activeContext,
-    setActiveContext,
-    myClasses,
-    studentsList,
-    handleLogout,
-    setActiveTab // needed to switch to schedule
+    facultyData,
+    view,
+    setView,
+    collapsed,
+    setCollapsed,
+    onLogout
 }) => {
-    return (
-        <aside className={`sidebar-v2 ${sidebarCollapsed ? 'collapsed' : ''}`} style={{ width: sidebarCollapsed ? '80px' : '300px', transition: 'width 0.3s ease' }}>
-            {/* Toggle Button */}
-            <button
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                style={{
-                    position: 'absolute',
-                    right: sidebarCollapsed ? '10px' : '20px',
-                    top: '20px',
-                    zIndex: 100,
-                    background: 'var(--accent-primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: '36px',
-                    height: '36px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 10px rgba(99, 102, 241, 0.3)',
-                    transition: 'all 0.3s ease'
-                }}
-            >
-                {sidebarCollapsed ? <FaBars /> : <FaTimes />}
-            </button>
 
-            <div className="sidebar-header-v2" style={{ padding: sidebarCollapsed ? '2.5rem 0.5rem' : '2.5rem 1.8rem', textAlign: sidebarCollapsed ? 'center' : 'left', transition: 'all 0.3s ease' }}>
-                <div className="icon-box" style={{ background: 'var(--accent-primary)', color: 'white', margin: sidebarCollapsed ? '0 auto 1rem' : '0 0 1rem', width: '42px', height: '42px' }}>
-                    <FaUniversity />
+    const localHandleLogout = (e) => {
+        e.preventDefault();
+        if (window.confirm('Terminate faculty session and logout?')) {
+            if (onLogout) {
+                onLogout();
+            } else {
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+    };
+
+    const navItems = [
+        { id: 'overview', label: 'COMMAND', icon: <FaChartLine /> },
+        { id: 'materials', label: 'MATERIALS', icon: <FaLayerGroup /> },
+        { id: 'attendance', label: 'ATTENDANCE', icon: <FaUserCheck /> },
+        { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt /> },
+        { id: 'schedule', label: 'CALENDAR', icon: <FaBolt /> },
+        { id: 'students', label: 'CADETS', icon: <FaUserGraduate /> },
+        { id: 'curriculum', label: 'CURRICULUM', icon: <FaLayerGroup /> },
+        { id: 'broadcast', label: 'BROADCAST', icon: <FaBullhorn /> },
+        { id: 'messages', label: 'COMM LINK', icon: <FaEnvelope /> },
+        { id: 'ai-agent', label: 'NEURAL', icon: <FaRobot /> },
+        { id: 'settings', label: 'SYSTEM', icon: <FaGraduationCap /> }
+    ];
+
+    return (
+        <aside className={`nexus-sidebar ${collapsed ? 'collapsed' : ''}`}>
+            <div className="sidebar-header">
+                <div
+                    className="brand-toggle"
+                    onClick={() => setCollapsed(!collapsed)}
+                    title={collapsed ? "Expand" : "Collapse"}
+                >
+                    <div className="brand-icon-box">
+                        <FaGraduationCap />
+                    </div>
+                    {!collapsed && (
+                        <div className="brand-text fade-in">
+                            <h1>FBN XAI</h1>
+                            <span>FACULTY NEXUS</span>
+                        </div>
+                    )}
                 </div>
-                {!sidebarCollapsed && (
-                    <>
-                        <h2 className="brand-shimmer">FBN XAI</h2>
-                        <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '1px', opacity: 0.8 }}>FACULTY NEXUS</p>
-                    </>
-                )}
             </div>
 
-            <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-                <button
-                    className={`nav-link-v2 ${!activeContext ? 'active' : ''}`}
-                    onClick={() => setActiveContext(null)}
-                    style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '1rem 0.5rem' : '1rem 1.8rem' }}
-                    title={sidebarCollapsed ? 'Dashboard Home' : ''}
-                >
-                    <div className="icon-box"><FaUniversity /></div>
-                    {!sidebarCollapsed && <span>Dashboard Home</span>}
-                </button>
-
-                <button
-                    className={`nav-link-v2 ${activeContext === 'ai-agent' ? 'active' : ''}`}
-                    onClick={() => setActiveContext('ai-agent')}
-                    style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '1rem 0.5rem' : '1rem 1.8rem' }}
-                    title={sidebarCollapsed ? 'AI Assistant' : ''}
-                >
-                    <div className="icon-box"><FaRobot /></div>
-                    {!sidebarCollapsed && <span>AI Assistant</span>}
-                </button>
-
-                {!sidebarCollapsed && (
-                    <div style={{ padding: '2rem 1.8rem 0.8rem', fontSize: '0.65rem', fontWeight: 900, color: 'var(--text-muted)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Teaching Sections</div>
-                )}
-
-                {sidebarCollapsed && (
-                    <div style={{ height: '1px', background: 'var(--pearl-border)', margin: '1rem 0.5rem' }}></div>
-                )}
-
-                {myClasses.map((cls) => {
-                    const subjectStudents = studentsList.filter(s =>
-                        String(s.year) === String(cls.year) &&
-                        cls.sections.some(sec => String(sec).toUpperCase() === String(s.section).toUpperCase())
-                    ).length;
-
-                    return (
-                        <button
-                            key={cls.id}
-                            className={`nav-link-v2 ${activeContext?.id === cls.id ? 'active' : ''}`}
-                            onClick={() => setActiveContext(cls)}
-                            style={{ justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '1rem 0.5rem' : '1rem 1.8rem' }}
-                            title={sidebarCollapsed ? `${cls.subject} - ${subjectStudents} Students` : ''}
-                        >
-                            <div className="icon-box"><FaProjectDiagram /></div>
-                            {!sidebarCollapsed && (
-                                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: activeContext?.id === cls.id ? 'var(--accent-primary)' : 'inherit' }}>{cls.subject}</span>
-                                    <span style={{ fontSize: '0.65rem', opacity: 0.7 }}>{cls.sections.length} Sections • {subjectStudents} Students</span>
-                                </div>
-                            )}
-                        </button>
-                    );
-                })}
-
-                <button
-                    className={`nav-link-v2 ${activeContext === 'my-schedule' ? 'active' : ''}`}
-                    onClick={() => { setActiveContext('my-schedule'); setActiveTab('schedule'); }}
-                    style={{ marginTop: '2rem', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '1rem 0.5rem' : '1rem 1.8rem' }}
-                    title={sidebarCollapsed ? 'My Schedule' : ''}
-                >
-                    <div className="icon-box"><FaCalendarAlt /></div>
-                    {!sidebarCollapsed && <span>My Schedule</span>}
-                </button>
-
-                <button
-                    className={`nav-link-v2 ${activeContext === 'settings' ? 'active' : ''}`}
-                    onClick={() => setActiveContext('settings')}
-                    style={{ marginTop: '1rem', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', padding: sidebarCollapsed ? '1rem 0.5rem' : '1rem 1.8rem' }}
-                    title={sidebarCollapsed ? 'Settings' : ''}
-                >
-                    <div className="icon-box"><FaCog /></div>
-                    {!sidebarCollapsed && <span>Settings</span>}
-                </button>
+            <nav className="sidebar-nav">
+                {navItems.map(item => (
+                    <button
+                        key={item.id}
+                        onClick={() => setView(item.id)}
+                        className={`nav-item ${view === item.id ? 'active' : ''}`}
+                        title={collapsed ? item.label : ''}
+                    >
+                        <span className="nav-icon">{item.icon}</span>
+                        {!collapsed && <span className="nav-label fade-in">{item.label}</span>}
+                        {view === item.id && <div className="active-indicator"></div>}
+                    </button>
+                ))}
             </nav>
 
-            <div style={{ padding: sidebarCollapsed ? '1.2rem 0.5rem' : '1.2rem', borderTop: '1px solid var(--pearl-border)' }}>
-                <button
-                    className="nav-link-v2"
-                    onClick={handleLogout}
-                    style={{
-                        color: '#ef4444',
-                        background: 'rgba(239, 68, 68, 0.05)',
-                        margin: 0,
-                        width: '100%',
-                        borderRadius: '16px',
-                        justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                        padding: sidebarCollapsed ? '1rem' : '1rem'
-                    }}
-                    title={sidebarCollapsed ? 'Logout' : ''}
-                >
+            <div className="sidebar-footer">
+                {!collapsed && (
+                    <div className="user-profile-mini fade-in">
+                        <div className="u-name">{facultyData.name}</div>
+                        <div className="u-meta">{facultyData.department || 'ACADEMIC'}</div>
+                    </div>
+                )}
+
+                <button onClick={localHandleLogout} className="logout-btn" title="Logout">
                     <FaSignOutAlt />
-                    {!sidebarCollapsed && <span>Terminate Access</span>}
+                    {!collapsed && <span className="fade-in">LOGOUT</span>}
                 </button>
             </div>
         </aside>

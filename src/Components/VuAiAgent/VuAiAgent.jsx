@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaRobot, FaMicrophone, FaRegCopy, FaCheck } from 'react-icons/fa';
+import { FaPaperPlane, FaRobot, FaRegCopy, FaCheck } from 'react-icons/fa';
 import { apiPost, apiGet } from '../../utils/apiClient';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';

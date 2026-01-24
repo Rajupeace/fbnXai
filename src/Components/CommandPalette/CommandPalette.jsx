@@ -13,10 +13,20 @@ const CommandPalette = ({ isOpen, onClose, role, userData }) => {
 
     // Commands/Actions based on role
     const actions = [
-        { id: 'ai', name: 'Ask AI Assistant', icon: <FaRobot />, category: 'AI', action: () => { onClose(); window.dispatchEvent(new CustomEvent('open-ai-modal')); } },
-        { id: 'settings', name: 'Account Settings', icon: <FaCog />, category: 'General', action: () => { onClose(); navigate(role === 'student' ? '/dashboard?view=settings' : role === 'admin' ? '/admin' : '/faculty'); } },
-        { id: 'logout', name: 'Logout System', icon: <FaSignOutAlt />, category: 'Danger', action: () => { if (window.confirm('Logout?')) { onClose(); document.querySelector('.btn-logout')?.click() || document.querySelector('.btn-terminate')?.click(); } } }
+        { id: 'ai', name: 'Ask AI Assistant', iconType: 'robot', category: 'AI', action: () => { onClose(); window.dispatchEvent(new CustomEvent('open-ai-modal')); } },
+        { id: 'settings', name: 'Account Settings', iconType: 'cog', category: 'General', action: () => { onClose(); navigate(role === 'student' ? '/dashboard?view=settings' : role === 'admin' ? '/admin' : '/faculty'); } },
+        { id: 'logout', name: 'Logout System', iconType: 'sign-out-alt', category: 'Danger', action: () => { if (window.confirm('Logout?')) { onClose(); document.querySelector('.btn-logout')?.click() || document.querySelector('.btn-terminate')?.click(); } } }
     ];
+
+    const getCommandIcon = (iconType) => {
+        switch(iconType) {
+            case 'robot': return <FaRobot />;
+            case 'cog': return <FaCog />;
+            case 'sign-out-alt': return <FaSignOutAlt />;
+            case 'book': return <FaBook />;
+            default: return <FaSearch />;
+        }
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -43,7 +53,7 @@ const CommandPalette = ({ isOpen, onClose, role, userData }) => {
                 ).map(c => ({
                     id: c.id,
                     name: `${c.name} (${c.code || 'Course'})`,
-                    icon: <FaBook />,
+                    iconType: 'book',
                     category: 'Subjects',
                     action: () => {
                         onClose();
@@ -101,7 +111,7 @@ const CommandPalette = ({ isOpen, onClose, role, userData }) => {
                                 onMouseEnter={() => setSelectedIndex(i)}
                                 onClick={res.action}
                             >
-                                <div className="cmd-item-icon">{res.icon}</div>
+                                <div className="cmd-item-icon">{getCommandIcon(res.iconType)}</div>
                                 <div className="cmd-item-info">
                                     <span className="cmd-item-name">{res.name}</span>
                                     <span className="cmd-item-category">{res.category}</span>

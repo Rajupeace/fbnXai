@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaBook, FaPen, FaLaptop, FaGraduationCap, FaFlask, FaBrain, FaLightbulb, FaBookOpen, FaPencilAlt, FaStickyNote, FaCloud, FaSun, FaMoon, FaMeteor } from 'react-icons/fa';
 // Removed unused Gi and Md imports entirely as most were unused.
 // import { MdMenuBook } from 'react-icons/md'; // Removed problematic import
@@ -16,9 +16,8 @@ const RocketSplash = ({ onFinish }) => {
     const [notebookPhase, setNotebookPhase] = useState(0); // 0: closed, 1: opening, 2: reading, 3: learning, 4: portal
     const [particles, setParticles] = useState([]);
     const [stars, setStars] = useState([]);
-    const canvasRef = useRef(null);
-    const brandName = "FBN XAI";
-    const creatorName = "FBN Team";
+    const brandName = "FRIENDLY NOTEBOOK";
+    const creatorName = "Bobby Martin";
 
     // Generate starfield
     useEffect(() => {
@@ -127,7 +126,7 @@ const RocketSplash = ({ onFinish }) => {
                             <div className="cover-design"></div>
                             <div className="cover-title">
                                 <FaBook className="cover-icon" />
-                                <span className="title-text">FBN</span>
+                                <span className="title-text">FRIENDLY</span>
                             </div>
                         </div>
                         <div className="notebook-pages">
@@ -135,7 +134,7 @@ const RocketSplash = ({ onFinish }) => {
                                 <div className="page-content">
                                     <div className="content-header">
                                         <FaGraduationCap className="header-icon" />
-                                        <span className="header-text">FBN XAI SYSTEM</span>
+                                        <span className="header-text">FRIENDLY NOTEBOOK SYSTEM</span>
                                     </div>
                                     <div className="content-details">
                                         <div className="detail-item item-1"></div>

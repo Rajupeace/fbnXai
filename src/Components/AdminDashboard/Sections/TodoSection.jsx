@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaPlus, FaEdit, FaTrash, FaCheckCircle, FaRegCircle, FaTasks, FaClipboardList } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaCheckCircle, FaRegCircle, FaClipboardList } from 'react-icons/fa';
 
 /**
  * SENTINEL TASK ORCHESTRATOR

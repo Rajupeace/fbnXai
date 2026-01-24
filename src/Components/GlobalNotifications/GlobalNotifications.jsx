@@ -11,6 +11,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
             handleNotification(data);
         });
         return () => unsubscribe();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userRole, userData]);
 
     const handleNotification = (data) => {
@@ -28,7 +29,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                 newNotif = {
                     id: Date.now(),
                     type: 'info',
-                    icon: <FaUserPlus />,
+                    iconType: 'user-plus',
                     title: 'New Cadet Enrolled',
                     message: `${student.studentName} joined Year ${student.year} (${student.branch} - Sec ${student.section})`,
                     time: timestamp
@@ -47,7 +48,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                     newNotif = {
                         id: Date.now(),
                         type: 'success',
-                        icon: <FaUserPlus />,
+                        iconType: 'user-plus',
                         title: 'New Student in Your Class',
                         message: `${student.studentName} has been added to Year ${student.year} Section ${student.section}.`,
                         time: timestamp
@@ -67,7 +68,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                 newNotif = {
                     id: Date.now(),
                     type: 'info',
-                    icon: <FaBook />,
+                    iconType: 'book',
                     title: 'Asset Deployed',
                     message: `Faculty uploaded "${material.title}" for Year ${material.year} ${material.subject}.`,
                     time: timestamp
@@ -79,7 +80,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                     newNotif = {
                         id: Date.now(),
                         type: 'accent',
-                        icon: <FaBook />,
+                        iconType: 'book',
                         title: 'New Study Material',
                         message: `New Notes: "${material.title}" available in ${material.subject}.`,
                         time: timestamp
@@ -105,7 +106,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                 newNotif = {
                     id: Date.now(),
                     type: 'warning',
-                    icon: <FaBullhorn />,
+                    iconType: 'bullhorn',
                     title: 'System Broadcast',
                     message: msg.message || msg.text,
                     time: timestamp
@@ -140,23 +141,34 @@ const GlobalNotifications = ({ userRole, userData }) => {
 
     return (
         <div className="global-notification-container">
-            {notifications.map(n => (
-                <div key={n.id} className={`glass-toast toast-${n.type} animate-toast-in`}>
-                    <div className="toast-icon-box">
-                        {n.icon || <FaBell />}
-                    </div>
-                    <div className="toast-content">
-                        <div className="toast-header">
-                            <span className="toast-title">{n.title}</span>
-                            <span className="toast-time">{n.time}</span>
+            {notifications.map(n => {
+                const getIcon = () => {
+                    switch (n.iconType) {
+                        case 'user-plus': return <FaUserPlus />;
+                        case 'book': return <FaBook />;
+                        case 'bullhorn': return <FaBullhorn />;
+                        default: return <FaBell />;
+                    }
+                };
+
+                return (
+                    <div key={n.id} className={`glass-toast toast-${n.type} animate-toast-in`}>
+                        <div className="toast-icon-box">
+                            {getIcon()}
                         </div>
-                        <div className="toast-message">{n.message}</div>
+                        <div className="toast-content">
+                            <div className="toast-header">
+                                <span className="toast-title">{n.title}</span>
+                                <span className="toast-time">{n.time}</span>
+                            </div>
+                            <div className="toast-message">{n.message}</div>
+                        </div>
+                        <button className="toast-close" onClick={() => removeNotification(n.id)}>
+                            <FaTimes />
+                        </button>
                     </div>
-                    <button className="toast-close" onClick={() => removeNotification(n.id)}>
-                        <FaTimes />
-                    </button>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };

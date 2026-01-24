@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FaDownload, FaClipboardList, FaArrowLeft, FaChevronRight, FaRegFolder, FaRegFileAlt, FaVideo, FaLightbulb, FaFileAlt } from 'react-icons/fa';
+import { FaDownload, FaArrowLeft, FaChevronRight, FaRegFolder, FaRegFileAlt, FaVideo, FaLightbulb, FaFileAlt } from 'react-icons/fa';
 
 /**
  * PREMIUM NEXUS ACADEMIC BROWSER

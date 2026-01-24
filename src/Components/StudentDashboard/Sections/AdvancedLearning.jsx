@@ -6,7 +6,7 @@ import {
     FaPython, FaJava, FaCode, FaNodeJs, FaCss3Alt,
     FaDatabase, FaJs, FaChevronRight
 } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { apiGet } from '../../../utils/apiClient';
 import '../AdvancedLearning.css';
 

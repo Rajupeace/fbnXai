@@ -165,18 +165,220 @@
    DASHBOARD HEADER
    ========================================================================== */
 
-.sd-header {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid #f1f5f9;
-    padding: 1.25rem 4rem;
+/* ==========================================================================
+   STUDENT SIDEBAR LAYOUT
+   ========================================================================== */
+.student-dashboard-layout {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    min-height: 100vh;
+    background: #f8fafc;
+    overflow-x: hidden;
+}
+
+.nexus-sidebar {
+    width: 280px;
+    background: white;
+    border-right: 1px solid #f1f5f9;
+    height: 100vh;
     position: sticky;
     top: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.02);
+    flex-shrink: 0;
+}
+
+.nexus-sidebar.collapsed {
+    width: 80px;
+    padding: 1.5rem 0.8rem;
+}
+
+.sidebar-header {
+    margin-bottom: 2.5rem;
+}
+
+.brand-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 12px;
+    transition: 0.3s;
+}
+
+.brand-toggle:hover {
+    background: #f8fafc;
+}
+
+.brand-icon-box {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-secondary));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    flex-shrink: 0;
+}
+
+.brand-text h1 {
+    font-size: 1.4rem;
+    font-weight: 950;
+    margin: 0;
+    color: var(--nexus-text-main);
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+}
+
+.brand-text span {
+    font-size: 0.7rem;
+    font-weight: 850;
+    color: #94a3b8;
+    letter-spacing: 0.15em;
+    white-space: nowrap;
+}
+
+.sidebar-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border-radius: 14px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.2s;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: left;
+}
+
+.nexus-sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 1rem;
+}
+
+.nav-item:hover {
+    background: #f8fafc;
+    color: var(--nexus-text-main);
+}
+
+.nav-item.active {
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.08), transparent);
+    color: var(--nexus-primary);
+}
+
+.nav-icon {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.active-indicator {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    background: var(--nexus-primary);
+    border-radius: 4px 0 0 4px;
+}
+
+.sidebar-footer {
+    border-top: 1px solid #f1f5f9;
+    padding-top: 1.5rem;
+    margin-top: 1rem;
+}
+
+.user-profile-mini {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    border: 1px solid #f1f5f9;
+}
+
+.u-name {
+    font-weight: 900;
+    font-size: 0.9rem;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.u-meta {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-weight: 800;
+}
+
+.logout-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: #fef2f2;
+    color: #ef4444;
+    border: none;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
+}
+
+.logout-btn:hover {
+    background: #fee2e2;
+}
+
+.nexus-sidebar.collapsed .logout-btn {
+    padding: 1rem;
+}
+
+/* Content Area Adjustment */
+.dashboard-content-area {
+    flex: 1;
+    min-width: 0;
+    /* Prevent flex overflow */
+    height: 100vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 0;
+}
+
+/* Hide Old Header Styles if present */
+.sd-header {
+    display: none !important;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
 }
 
 .sd-brand-group {
@@ -249,14 +451,16 @@
     color: #64748b;
     border: none;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 950;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.4rem;
     transition: all 0.3s var(--nexus-ease);
     letter-spacing: 0.05em;
     white-space: nowrap;
+    min-width: 90px;
 }
 
 .sd-nav-btn:hover {
@@ -2124,10 +2328,9 @@
 
 /* STANDARDIZED PAGE LAYOUTS */
 .nexus-page-container {
-    padding: 3rem 4rem;
+    padding: 2rem 3rem 4rem 2rem;
     animation: fadeIn 0.6s var(--nexus-ease);
-    max-width: 1600px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .nexus-page-header {

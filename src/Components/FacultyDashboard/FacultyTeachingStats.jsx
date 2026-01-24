@@ -15,6 +15,7 @@ const FacultyTeachingStats = ({ facultyId }) => {
         fetchTeachingStats();
         const interval = setInterval(fetchTeachingStats, 15000); // Auto-refresh every 15s
         return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [facultyId]);
 
     const fetchTeachingStats = async () => {

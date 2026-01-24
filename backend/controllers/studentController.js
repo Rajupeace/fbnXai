@@ -10,36 +10,14 @@ exports.getStudentOverview = async (req, res) => {
   try {
     const { id } = req.params; // studentId (sid) e.g., '123'
 
-    // 1. Get Student Basic Data & Stats
-    // Try MongoDB first, fallback to file if needed (Hybrid Read)
-    let student = null;
-    try {
-      student = await Student.findOne({ sid: id });
-    } catch (err) {
-      console.log('MongoDB not available for student lookup');
+    // 1. Get Student Basic Data & Stats (MongoDB-only)
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'Database not connected' });
     }
 
+    const student = await Student.findOne({ sid: id }).lean();
     if (!student) {
-      // Fallback to File DB
-      try {
-        const dbFile = require('../dbHelper');
-        const students = dbFile('students').read();
-        student = students.find(s => s.sid === id || s.id === id);
-      } catch (err) {
-        console.log('File DB not available');
-      }
-    }
-
-    if (!student) {
-      // Return mock data if no student found
-      student = {
-        studentName: 'Demo Student',
-        sid: id,
-        branch: 'CSE',
-        year: 1,
-        section: 'A',
-        stats: {}
-      };
+      return res.status(404).json({ error: 'Student not found' });
     }
 
     // Compute attendance from Attendance collection when available
@@ -52,8 +30,34 @@ exports.getStudentOverview = async (req, res) => {
 
     try {
       const Attendance = require('../models/Attendance');
-      const records = await Attendance.find({ 'records.studentId': id }).lean();
-      if (Array.isArray(records) && records.length > 0) {
+
+      // Try both possible attendance schemas: aggregated records array or individual records
+      let records = await Attendance.find({ 'records.studentId': id }).lean();
+      if (!Array.isArray(records) || records.length === 0) {
+        // Try individual-record schema
+        records = await Attendance.find({ studentId: String(id) }).lean();
+        // Normalize single-record docs into pseudo-aggregates per subject/date
+        if (Array.isArray(records) && records.length > 0) {
+          const subjectMap = {};
+          let total = 0, present = 0;
+          for (const rec of records) {
+            total += 1;
+            if (rec.status === 'Present') present += 1;
+            const subj = rec.subject || 'Unknown';
+            if (!subjectMap[subj]) subjectMap[subj] = { total: 0, present: 0 };
+            subjectMap[subj].total += 1;
+            if (rec.status === 'Present') subjectMap[subj].present += 1;
+          }
+          attendanceSummary.totalClasses = total;
+          attendanceSummary.totalPresent = present;
+          attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : null;
+          for (const k of Object.keys(subjectMap)) {
+            const s = subjectMap[k];
+            attendanceSummary.details[k] = { total: s.total, present: s.present, percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0 };
+          }
+        }
+      } else {
+        // Aggregated records case
         const subjectMap = {};
         let total = 0, present = 0;
         for (const rec of records) {
@@ -61,13 +65,11 @@ exports.getStudentOverview = async (req, res) => {
           if (!stud) continue;
           total += 1;
           if (stud.status === 'Present') present += 1;
-
           const subj = rec.subject || 'Unknown';
           if (!subjectMap[subj]) subjectMap[subj] = { total: 0, present: 0 };
           subjectMap[subj].total += 1;
           if (stud.status === 'Present') subjectMap[subj].present += 1;
         }
-
         attendanceSummary.totalClasses = total;
         attendanceSummary.totalPresent = present;
         attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : null;
@@ -77,54 +79,15 @@ exports.getStudentOverview = async (req, res) => {
         }
       }
     } catch (attErr) {
-      // Fallback: Check file-based DB if Mongo returned nothing or failed
-      const dbFile = require('../dbHelper');
-      const fileRecords = dbFile('attendance').read() || [];
-      const studentRecords = fileRecords.filter(rec =>
-        (rec.records || []).some(r => String(r.studentId) === String(id) || String(r.studentName) === student.studentName)
-      );
-
-      if (studentRecords.length > 0) {
-        const subjectMap = {};
-        let total = 0, present = 0;
-        for (const rec of studentRecords) {
-          const stud = (rec.records || []).find(r => String(r.studentId) === String(id) || String(r.studentName) === student.studentName);
-          if (!stud) continue;
-          total += 1;
-          if (stud.status === 'Present') present += 1;
-
-          const subj = rec.subject || 'Unknown';
-          if (!subjectMap[subj]) subjectMap[subj] = { total: 0, present: 0 };
-          subjectMap[subj].total += 1;
-          if (stud.status === 'Present') subjectMap[subj].present += 1;
-        }
-        attendanceSummary.totalClasses = total;
-        attendanceSummary.totalPresent = present;
-        attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : 0;
-        for (const k of Object.keys(subjectMap)) {
-          const s = subjectMap[k];
-          attendanceSummary.details[k] = { total: s.total, present: s.present, percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0 };
-        }
-      }
+      console.error('Attendance aggregation error:', attErr);
     }
 
     // Academics: attempt to compute overall percentage from ExamResult if available
     // Academics: attempt to compute overall percentage from ExamResult (Mongo or File)
     let academicsSummary = { overallPercentage: null, details: {}, totalExamsTaken: 0 };
     try {
-      let examResults = [];
-      try {
-        const ExamResult = require('../models/ExamResult');
-        examResults = await ExamResult.find({}).lean();
-      } catch (mongoErr) {
-        // Fallback to file
-        const dbFile = require('../dbHelper');
-        examResults = dbFile('examResults').read() || [];
-      }
-
-      // Filter for this student
-      const studentResults = examResults.filter(r => String(r.studentId) === String(student._id) || String(r.studentId) === String(student.sid) || String(r.studentId) === String(id));
-
+      const examResults = await ExamResult.find({ studentId: { $in: [student._id, student.sid, id] } }).lean();
+      const studentResults = Array.isArray(examResults) ? examResults : [];
       if (studentResults.length > 0) {
         academicsSummary.totalExamsTaken = studentResults.length;
 
@@ -135,8 +98,7 @@ exports.getStudentOverview = async (req, res) => {
           const pct = (er.score / (er.totalMarks || 100)) * 100;
           totalPctAccumulator += pct;
 
-          // Subject-wise aggregation
-          const subj = er.subject || er.examTitle || 'General'; // Fallback if subject missing
+          const subj = er.subject || er.examTitle || 'General';
           if (!subjectStats[subj]) {
             subjectStats[subj] = { totalPct: 0, count: 0 };
           }
@@ -145,17 +107,15 @@ exports.getStudentOverview = async (req, res) => {
         });
 
         academicsSummary.overallPercentage = Math.round(totalPctAccumulator / studentResults.length);
-
-        // Finalize details
         Object.keys(subjectStats).forEach(s => {
           academicsSummary.details[s] = {
             percentage: Math.round(subjectStats[s].totalPct / subjectStats[s].count),
-            average: Math.round(subjectStats[s].totalPct / subjectStats[s].count) // Mapping for frontend
+            average: Math.round(subjectStats[s].totalPct / subjectStats[s].count)
           };
         });
       }
     } catch (examErr) {
-      console.log('Exam computation skipped:', examErr.message || examErr);
+      console.error('Exam computation skipped:', examErr);
     }
 
     // Activity: derive from student.stats when available, default to zeroes
@@ -174,9 +134,7 @@ exports.getStudentOverview = async (req, res) => {
         const Faculty = require('../models/Faculty');
         allFaculty = await Faculty.find().lean();
       } catch (mongoErr) {
-        // Fallback
-        const dbFile = require('../dbHelper');
-        allFaculty = dbFile('faculty').read() || [];
+        console.error('Faculty lookup failed:', mongoErr);
       }
 
       // Filter
@@ -256,63 +214,5 @@ exports.getStudentOverview = async (req, res) => {
         advancedLearning: 75
       }
     });
-  }
-};
-
-// @desc    Get Detailed Student Profile
-// @route   GET /api/students/:id/profile
-exports.getStudentProfile = async (req, res) => {
-  try {
-    const { id } = req.params;
-    let student = await Student.findOne({ sid: id }).select('-password');
-
-    if (!student) {
-      const dbFile = require('../dbHelper');
-      const students = dbFile('students').read();
-      student = students.find(s => s.sid === id || s.id === id);
-    }
-
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-    res.json(student);
-  } catch (error) {
-    res.status(500).json({ error: 'Profile fetch failed', details: error.message });
-  }
-};
-
-// @desc    Update Student Profile
-// @route   PUT /api/students/:id/profile
-exports.updateStudentProfile = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    // Safety: don't allow updating password or sid here
-    delete updates.password;
-    delete updates.sid;
-    delete updates.email;
-
-    const student = await Student.findOneAndUpdate(
-      { sid: id },
-      { $set: updates },
-      { new: true }
-    ).select('-password');
-
-    if (!student) return res.status(404).json({ error: 'Student not found in MongoDB' });
-
-    // Sync File DB if needed
-    try {
-      const dbFile = require('../dbHelper');
-      const fileDB = dbFile('students');
-      let students = fileDB.read();
-      const idx = students.findIndex(s => s.sid === id);
-      if (idx !== -1) {
-        students[idx] = { ...students[idx], ...updates };
-        fileDB.write(students);
-      }
-    } catch (e) { console.log('File DB sync skipped during profile update'); }
-
-    res.json({ message: 'Profile updated successfully', student });
-  } catch (error) {
-    res.status(500).json({ error: 'Update failed', details: error.message });
   }
 };

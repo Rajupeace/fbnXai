@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Exam = require('../models/Exam');
 const ExamResult = require('../models/ExamResult');
+const mongoose = require('mongoose');
 
 const { protect, faculty, admin } = require('../middleware/authMiddleware');
 
@@ -23,7 +24,7 @@ router.post('/create', protect, faculty, async (req, res) => {
             questions,
             durationMinutes,
             totalMarks,
-            createdBy: facultyId
+            createdBy: req.user && req.user._id ? req.user._id : facultyId
         });
 
         await newExam.save();
@@ -37,7 +38,11 @@ router.post('/create', protect, faculty, async (req, res) => {
 // Get Exams created by Faculty
 router.get('/faculty/:facultyId', protect, faculty, async (req, res) => {
     try {
-        const exams = await Exam.find({ createdBy: req.params.facultyId }).sort({ createdAt: -1 });
+        const { facultyId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(facultyId)) {
+            return res.status(400).json({ message: 'Invalid faculty id' });
+        }
+        const exams = await Exam.find({ createdBy: mongoose.Types.ObjectId(facultyId) }).sort({ createdAt: -1 });
         res.json(exams);
     } catch (err) {
         console.error("Error fetching faculty exams:", err);
@@ -163,17 +168,8 @@ router.get('/analytics', protect, admin, async (req, res) => {
             .sort({ submittedAt: -1 });
         res.json(results);
     } catch (err) {
-        console.error('MongoDB Analytics fetch failed, trying file DB:', err.message);
-        try {
-            // Fallback to file db
-            // In a real app we'd need to manually "populate" by reading student/exam files
-            // For now, we return the raw results or a simplified version
-            const results = dbFile('examResults').read() || [];
-            res.json(results);
-        } catch (fileErr) {
-            console.error("File DB Analytics fetch failed:", fileErr);
-            res.status(500).json({ message: "Failed to fetch analytics", details: err.message });
-        }
+        console.error('MongoDB Analytics fetch failed:', err.message);
+        return res.status(503).json({ message: 'Database error fetching analytics', details: err.message });
     }
 });
 

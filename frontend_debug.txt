@@ -1,0 +1,7 @@
+
+> fbn-xai-system@1.0.1 start
+> set "GENERATE_SOURCEMAP=false" && react-app-rewired start
+
+Could not find a required file.
+  Name: index.js
+  Searched in: C:\Users\rajub\Downloads\fbnXai-main\fbnXai-main\src

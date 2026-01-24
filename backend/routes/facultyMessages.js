@@ -2,21 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuthMongo } = require('../middleware/authMiddleware');
-const dbFile = require('../index').dbFile; // We'll import dbFile via require of index (circular?) but we can require directly.
-// Since dbFile is defined in index.js, we can require it via path.
-const path = require('path');
-const fs = require('fs');
-const dataDir = path.join(__dirname, '..', 'data');
-const messagesDB = (() => {
-    const p = path.join(dataDir, 'messages.json');
-    if (!fs.existsSync(p)) fs.writeFileSync(p, JSON.stringify([], null, 2));
-    return {
-        read: () => {
-            try { return JSON.parse(fs.readFileSync(p, 'utf8') || '[]'); } catch (e) { return []; }
-        },
-        write: (v) => { fs.writeFileSync(p, JSON.stringify(v, null, 2)); }
-    };
-})();
+const Message = require('../models/Message');
 
 // POST a new message from faculty to students
 router.post('/', requireAuthMongo, (req, res) => {
@@ -28,20 +14,23 @@ router.post('/', requireAuthMongo, (req, res) => {
     if (!text || !targetYear || !targetSections || !subject) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
-    const newMsg = {
-        id: Date.now(),
-        text,
-        target: 'students-specific',
-        targetYear,
-        targetSections,
-        subject,
-        sender: user.name,
-        date: new Date().toISOString()
-    };
-    const msgs = messagesDB.read();
-    msgs.push(newMsg);
-    messagesDB.write(msgs);
-    res.status(201).json(newMsg);
+    try {
+        const msgDoc = new Message({
+            sender: user.name,
+            senderRole: 'faculty',
+            facultyId: user._id || null,
+            target: 'students-specific',
+            targetYear,
+            targetSections: Array.isArray(targetSections) ? targetSections : [String(targetSections)],
+            subject,
+            message: text
+        });
+        await msgDoc.save();
+        res.status(201).json(msgDoc);
+    } catch (err) {
+        console.error('Error saving faculty message:', err);
+        res.status(500).json({ error: 'Failed to save message' });
+    }
 });
 
 module.exports = router;

@@ -30,17 +30,32 @@ const FacultyHeader = ({
     };
 
     const navItems = [
-        { id: 'overview', label: 'COMMAND HUB', icon: <FaChartLine />, color: '#6366f1' },
-        { id: 'materials', label: 'MATERIALS', icon: <FaLayerGroup />, color: '#3b82f6' },
-        { id: 'attendance', label: 'ATTENDANCE', icon: <FaUserCheck />, color: '#10b981' },
-        { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt />, color: '#f59e0b' },
-        { id: 'schedule', label: 'SCHEDULE', icon: <FaBolt />, color: '#ec4899' },
-        { id: 'students', label: 'STUDENTS', icon: <FaUserGraduate />, color: '#3b82f6' },
-        { id: 'curriculum', label: 'CURRICULUM', icon: <FaLayerGroup />, color: '#6366f1' },
-        { id: 'broadcast', label: 'BROADCAST', icon: <FaBullhorn />, color: '#f43f5e' },
-        { id: 'messages', label: 'ANNOUNCEMENTS', icon: <FaEnvelope />, color: '#8b5cf6' },
-        { id: 'settings', label: 'SYSTEM', icon: <FaGraduationCap />, color: '#64748b' }
+        { id: 'overview', label: 'COMMAND HUB', iconType: 'chart-line', color: '#6366f1' },
+        { id: 'materials', label: 'MATERIALS', iconType: 'layer-group', color: '#3b82f6' },
+        { id: 'attendance', label: 'ATTENDANCE', iconType: 'user-check', color: '#10b981' },
+        { id: 'exams', label: 'EXAMS', iconType: 'shield-alt', color: '#f59e0b' },
+        { id: 'schedule', label: 'SCHEDULE', iconType: 'bolt', color: '#ec4899' },
+        { id: 'students', label: 'STUDENTS', iconType: 'user-graduate', color: '#3b82f6' },
+        { id: 'curriculum', label: 'CURRICULUM', iconType: 'layer-group', color: '#6366f1' },
+        { id: 'broadcast', label: 'BROADCAST', iconType: 'bullhorn', color: '#f43f5e' },
+        { id: 'messages', label: 'ANNOUNCEMENTS', iconType: 'envelope', color: '#8b5cf6' },
+        { id: 'settings', label: 'SYSTEM', iconType: 'graduation-cap', color: '#64748b' }
     ];
+
+    const getFacultyNavIcon = (iconType) => {
+        switch (iconType) {
+            case 'chart-line': return <FaChartLine />;
+            case 'layer-group': return <FaLayerGroup />;
+            case 'user-check': return <FaUserCheck />;
+            case 'shield-alt': return <FaShieldAlt />;
+            case 'bolt': return <FaBolt />;
+            case 'user-graduate': return <FaUserGraduate />;
+            case 'bullhorn': return <FaBullhorn />;
+            case 'envelope': return <FaEnvelope />;
+            case 'graduation-cap': return <FaGraduationCap />;
+            default: return <FaChartLine />;
+        }
+    };
 
     return (
         <header className="sd-header animate-fade-in">
@@ -60,9 +75,8 @@ const FacultyHeader = ({
                                 key={item.id}
                                 onClick={() => setView(item.id)}
                                 className={`sd-nav-btn ${view === item.id ? 'active' : ''}`}
-                                style={{ '--nav-color': item.color }}
                             >
-                                <span className="nav-icon">{item.icon}</span>
+                                <span className="nav-icon" style={{ color: view === item.id ? 'white' : item.color }}>{getFacultyNavIcon(item.iconType)}</span>
                                 {item.label}
                             </button>
                         ))}
@@ -84,6 +98,15 @@ const FacultyHeader = ({
                 </div>
 
                 <div style={{ width: '1px', height: '30px', background: '#f1f5f9', margin: '0 0.5rem' }}></div>
+
+                <button
+                    onClick={() => window.location.href = '/student'}
+                    className="f-logout-btn"
+                    style={{ background: '#3b82f6', color: '#fff' }}
+                    title="Switch to Student View"
+                >
+                    <FaUserGraduate /> VIEW STUDENT PORTAL
+                </button>
 
                 <button onClick={localHandleLogout} className="f-logout-btn">
                     <FaSignOutAlt /> LOGOUT

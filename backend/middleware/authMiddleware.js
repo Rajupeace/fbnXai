@@ -5,7 +5,6 @@ const User = require('../models/Student');
 const Faculty = require('../models/Faculty');
 const Admin = require('../models/Admin');
 
-const dbFile = require('../dbHelper');
 
 // Middleware to protect routes
 const protect = async (req, res, next) => {
@@ -67,48 +66,7 @@ const protect = async (req, res, next) => {
       }
     }
 
-    // 2. Fallback to File DB if not found in Mongo
-    if (!req.user) {
-      // Check Students
-      const students = dbFile('students').read() || [];
-      const s = students.find(x => x.id === id || x.sid === id || x._id === id);
-      if (s) {
-        req.user = {
-          ...s,
-          _id: s.id || s._id,
-          role: 'student',
-          isAdmin: false
-        };
-      }
-
-      // Check Faculty
-      if (!req.user) {
-        const faculties = dbFile('faculty').read() || [];
-        const f = faculties.find(x => x.id === id || x.facultyId === id || x._id === id);
-        if (f) {
-          req.user = {
-            ...f,
-            _id: f.id || f._id,
-            role: 'faculty',
-            isAdmin: false
-          };
-        }
-      }
-
-      // Check Admin
-      if (!req.user) {
-        const adminData = dbFile('admin').read() || {};
-        // Admin ID might be stored variously
-        if (adminData.id === id || adminData.adminId === id || (adminData.adminToken === token)) {
-          req.user = {
-            ...adminData,
-            _id: adminData.id || adminData.adminId,
-            role: 'admin',
-            isAdmin: true
-          };
-        }
-      }
-    }
+    // No file-based fallback: if not found in MongoDB, deny access
 
     if (!req.user) {
       return res.status(401).json({ message: 'Not authorized: User not found' });

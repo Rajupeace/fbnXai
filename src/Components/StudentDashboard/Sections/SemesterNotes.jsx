@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaBook, FaPencilAlt, FaTrash, FaSave, FaTimes, FaStickyNote, FaLayerGroup, FaCloudUploadAlt, FaDatabase, FaShieldAlt } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FaPencilAlt, FaTrash, FaTimes, FaStickyNote, FaLayerGroup, FaDatabase, FaShieldAlt } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 
 /**
  * NEXUS DIGITAL JOURNAL (Semester Notes)

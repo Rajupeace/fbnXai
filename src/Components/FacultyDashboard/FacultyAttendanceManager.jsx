@@ -23,13 +23,14 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId }) => {
             fetchStudentsAndAttendance();
             fetchHistory();
         }
-    }, [subject, selectedSection, year, date]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [subject, selectedSection, year, date, facultyId]);
 
     useEffect(() => {
         if (sections && sections.length > 0 && !sections.includes(selectedSection)) {
             setSelectedSection(sections[0]);
         }
-    }, [sections]);
+    }, [sections, selectedSection]);
 
     const fetchStudentsAndAttendance = async () => {
         setLoading(true);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FaUserGraduate, FaFileAlt, FaDownload, FaChartLine, FaTimes, FaCircleNotch, FaUserAstronaut, FaSatellite, FaDatabase, FaBolt } from 'react-icons/fa';
+import { FaUserGraduate, FaTimes, FaCircleNotch, FaUserAstronaut, FaSatellite, FaDatabase, FaBolt } from 'react-icons/fa';
 import { apiGet } from '../../utils/apiClient';
 
 const FacultyAnalytics = ({ facultyId, materialsList = [] }) => {

@@ -22,5 +22,40 @@
     "type": "system-alert",
     "sender": "SYSTEM",
     "createdAt": "2026-01-23T15:43:03.046Z"
+  },
+  {
+    "id": 1769198713043,
+    "date": "2026-01-23T20:05:13.005Z",
+    "message": "hi student\n",
+    "target": "students",
+    "type": "announcement"
+  },
+  {
+    "id": 1769198778377,
+    "date": "2026-01-23T20:06:18.340Z",
+    "message": "hi student\n",
+    "target": "students",
+    "type": "announcement"
+  },
+  {
+    "id": 1769200035000,
+    "date": "2026-01-23T20:27:15.000Z",
+    "recipientId": "all",
+    "subject": "Test Message 1769200034996",
+    "message": "This is a test message from admin"
+  },
+  {
+    "id": 1769200085289,
+    "date": "2026-01-23T20:28:05.289Z",
+    "recipientId": "all",
+    "subject": "Test Message 1769200085287",
+    "message": "This is a test message from admin"
+  },
+  {
+    "id": 1769200361675,
+    "date": "2026-01-23T20:32:41.675Z",
+    "recipientId": "students",
+    "subject": "Faculty Announcement 1769200361672",
+    "message": "Important class announcement from faculty"
   }
 ]
