@@ -8,7 +8,7 @@ import { apiGet, apiPost } from '../../utils/apiClient';
  * High-fidelity roster control and attendance tracking.
  * Theme: Luxe Pearl / Nexus
  */
-const FacultyAttendanceManager = ({ subject, sections, year, facultyId }) => {
+const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyName }) => {
     const [selectedSection, setSelectedSection] = useState(sections && sections.length > 0 ? sections[0] : '');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [students, setStudents] = useState([]);
@@ -24,7 +24,7 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId }) => {
             fetchHistory();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [subject, selectedSection, year, date, facultyId]);
+    }, [subject, selectedSection, year, date, facultyId, facultyName]);
 
     useEffect(() => {
         if (sections && sections.length > 0 && !sections.includes(selectedSection)) {
@@ -98,7 +98,9 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId }) => {
             await apiPost('/api/attendance', {
                 date, subject, year, section: selectedSection,
                 branch: students[0]?.branch || 'CSE',
-                facultyId, records
+                facultyId,
+                facultyName: facultyName || '',
+                records
             });
             alert("Attendance Synced to Nexus Cloud.");
             fetchHistory();

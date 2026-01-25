@@ -18,6 +18,7 @@ const AdminAttendancePanel = () => {
     const [attendanceData, setAttendanceData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({ total: 0, present: 0 });
+    const [classStudents, setClassStudents] = useState([]);
 
     const fetchAttendance = useCallback(async () => {
         setLoading(true);
@@ -107,7 +108,12 @@ const AdminAttendancePanel = () => {
                             onChange={e => handleFilterChange('section', e.target.value)}
                         >
                             <option value="">All Sections</option>
-                            {['A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>Section {s}</option>)}
+                            {(() => {
+                                const alphaSections = Array.from({ length: 16 }, (_, i) => String.fromCharCode(65 + i)); // A-P
+                                const numSections = Array.from({ length: 20 }, (_, i) => String(i + 1)); // 1-20
+                                const SECTION_OPTIONS = [...alphaSections, ...numSections];
+                                return SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>);
+                            })()}
                         </select>
                     </div>
 
@@ -124,6 +130,17 @@ const AdminAttendancePanel = () => {
 
                     <button onClick={fetchAttendance} className="admin-btn admin-btn-primary" style={{ height: '42px', marginTop: '1.2rem' }}>
                         <FaSearch size={14} /> SCAN RECORDS
+                    </button>
+                    <button onClick={async () => {
+                        // Fetch per-student attendance for current filters
+                        try {
+                            const resp = await apiGet(`/api/admin/class-attendance/${filters.year}/${filters.section}/${filters.branch}`);
+                            setClassStudents(Array.isArray(resp.students) ? resp.students : resp.students || []);
+                        } catch (e) {
+                            console.error('Failed to fetch class attendance', e);
+                        }
+                    }} className="admin-btn admin-btn-outline" style={{ height: '42px', marginTop: '1.2rem', marginLeft: '0.6rem' }}>
+                        <FaUsers size={14} /> CLASS ROSTER ATTENDANCE
                     </button>
                 </div>
             </div>
@@ -221,6 +238,37 @@ const AdminAttendancePanel = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Per-student attendance view (if loaded) */}
+            {classStudents.length > 0 && (
+                <div className="admin-card" style={{ marginTop: '1.5rem' }}>
+                    <h3 style={{ margin: '0 0 1rem 0' }}>Class Attendance — Student Overview</h3>
+                    <div className="admin-table-wrap">
+                        <table className="admin-grid-table">
+                            <thead>
+                                <tr>
+                                    <th>STUDENT ID</th>
+                                    <th>NAME</th>
+                                    <th>TOTAL CLASSES</th>
+                                    <th>PRESENT</th>
+                                    <th>OVERALL %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {classStudents.map(s => (
+                                    <tr key={s.sid}>
+                                        <td>{s.sid}</td>
+                                        <td>{s.name}</td>
+                                        <td>{s.totalClasses}</td>
+                                        <td>{s.totalPresent}</td>
+                                        <td>{s.overallPercentage}%</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

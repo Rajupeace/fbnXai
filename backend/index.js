@@ -54,9 +54,9 @@ app.get('/api/faculty/teaching', async (req, res) => {
       const mongoFaculty = await Faculty.find({
         assignments: {
           $elemMatch: {
-            year: year,
-            section: section,
-            branch: branch
+            year: { $in: [year, String(year), Number(year)] },
+            section: { $regex: new RegExp(`^${section}$`, 'i') },
+            branch: { $regex: new RegExp(`^${branch}$`, 'i') }
           }
         }
       }).select('-password -facultyToken').lean();
@@ -290,6 +290,10 @@ const studentDataRoutes = require('./routes/studentDataRoutes');
 const adminMessagesRoutes = require('./routes/adminMessagesRoutes');
 
 const courseRoutes = require('./routes/courseRoutes');
+// Register Faculty Routes (Admin CRUD)
+const facultyRoutes = require('./routes/facultyRoutes');
+app.use('/api/faculty', facultyRoutes);
+
 app.use('/api/courses', courseRoutes);
 // app.use('/api/teaching-assignments', teachingAssignmentRoutes);
 app.use('/api/attendance', attendanceRoutes);

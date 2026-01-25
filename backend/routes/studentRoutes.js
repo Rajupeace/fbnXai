@@ -8,6 +8,45 @@ const { getStudentOverview } = require('../controllers/studentController');
 // NEW: Student Overview (Mega Stats)
 router.get('/:id/overview', getStudentOverview);
 
+// GET /api/students/:id/class-attendance
+// Returns class-level attendance summary (total students, present today, presence %)
+router.get('/:id/class-attendance', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const Student = require('../models/Student');
+    const Attendance = require('../models/Attendance');
+
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'Database not connected' });
+
+    const student = await Student.findOne({ sid: id }).lean();
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    const { year, section, branch } = student;
+
+    const totalStudents = await Student.countDocuments({ year: String(year), section: String(section), branch: String(branch) });
+
+    const today = new Date().toISOString().split('T')[0];
+    const todaysRecords = await Attendance.find({ date: today, year: String(year), section: String(section), branch: String(branch) }).lean();
+
+    const presentCount = todaysRecords.filter(r => r.status === 'Present').length;
+    const totalScans = todaysRecords.length;
+    const presencePct = totalScans > 0 ? Math.round((presentCount / totalScans) * 100) : 0;
+
+    res.json({
+      class: `${year}-${section}`,
+      branch,
+      totalStudents,
+      presentToday: presentCount,
+      totalScansToday: totalScans,
+      presencePercentage: presencePct,
+      date: today
+    });
+  } catch (err) {
+    console.error('Error fetching student class attendance:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Get all students
 router.get('/', async (req, res) => {
   try {

@@ -48,7 +48,10 @@ const SubjectAttendanceMarks = ({ overviewData, enrolledSubjects }) => {
                     lastClass: new Date().toISOString()
                 };
 
-                existing.attendance = attDetails[key]?.percentage || existing.attendance || 0;
+                const details = attDetails[key] || {};
+                existing.attendance = details.percentage || existing.attendance || 0;
+                existing.totalClasses = details.totalClasses || 0;
+                existing.attendedClasses = details.totalPresent || 0;
                 existing.marks = acaDetails[key]?.percentage || existing.marks || 0;
 
                 // Sync derived test scores based on overall percentage if not manually detailed
@@ -89,6 +92,8 @@ const SubjectAttendanceMarks = ({ overviewData, enrolledSubjects }) => {
                         key={subject.code}
                         subjectName={subject.name}
                         attendancePercentage={subject.attendance}
+                        attendedClasses={subject.attendedClasses}
+                        totalClasses={subject.totalClasses}
                         marksObtained={subject.marks}
                         marksTotal={subject.totalMarks}
                         status={subject.attendance < 75 ? 'Low Attendance' : 'Good Stand'}

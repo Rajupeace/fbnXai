@@ -424,14 +424,15 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     const year = document.getElementById('assign-year').value;
     const section = document.getElementById('assign-section').value;
     const subject = document.getElementById('assign-subject').value;
+    const branch = document.getElementById('assign-branch').value;
 
-    if (year && section && subject) {
-      setFacultyAssignments([...facultyAssignments, { year, section, subject }]);
+    if (year && section && subject && branch) {
+      setFacultyAssignments([...facultyAssignments, { year, section, subject, branch }]);
       // clear inputs
       document.getElementById('assign-section').value = '';
       document.getElementById('assign-subject').value = '';
     } else {
-      alert('Please fill Year, Section and Subject');
+      alert('Please fill Year, Branch, Section and Subject');
     }
   };
 
@@ -1726,13 +1727,25 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                                 </select>
                               </div>
                               <div>
+                                <label style={{ fontSize: '0.65rem' }}>BRANCH</label>
+                                <select id="assign-branch" className="admin-search-input" style={{ padding: '0 0.75rem', height: '40px' }}>
+                                  <option value="CSE">CSE</option>
+                                  <option value="ECE">ECE</option>
+                                  <option value="EEE">EEE</option>
+                                  <option value="IT">IT</option>
+                                  <option value="AIML">AIML</option>
+                                  <option value="MECH">MECH</option>
+                                  <option value="CIVIL">CIVIL</option>
+                                </select>
+                              </div>
+                              <div>
                                 <label style={{ fontSize: '0.65rem' }}>SECTION</label>
                                 <select id="assign-section" className="admin-search-input" style={{ padding: '0 0.75rem', height: '40px' }}>
                                   <option value="">Select</option>
                                   {SECTION_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                               </div>
-                              <div style={{ gridColumn: 'span 2' }}>
+                              <div>
                                 <label style={{ fontSize: '0.65rem' }}>SUBJECT</label>
                                 <select id="assign-subject" className="admin-search-input" style={{ padding: '0 0.75rem', height: '40px' }}>
                                   <option value="">Select Subject</option>
@@ -1747,7 +1760,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             <div className="assignments-list" style={{ marginTop: '1.5rem', display: 'grid', gap: '0.6rem' }}>
                               {facultyAssignments.map((assign, idx) => (
                                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 850 }}>Year {assign.year} <span>•</span> Sec {assign.section} <span>•</span> {assign.subject}</span>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 850 }}>Year {assign.year} <span>•</span> {assign.branch} <span>•</span> Sec {assign.section} <span>•</span> {assign.subject}</span>
                                   <button type="button" onClick={() => handleRemoveAssignment(idx)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer' }}>
                                     <FaTrash size={12} />
                                   </button>

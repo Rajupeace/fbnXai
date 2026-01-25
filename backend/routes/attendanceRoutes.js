@@ -8,6 +8,18 @@ let Attendance;
 try {
     Attendance = require('../models/Attendance');
 } catch (e) { }
+let StudentData;
+try {
+    StudentData = require('../models/StudentData');
+} catch (e) { }
+let Enrollment;
+try {
+    Enrollment = require('../models/Enrollment');
+} catch (e) { }
+let Student;
+try {
+    Student = require('../models/Student');
+} catch (e) { }
 
 // File DB helper removed; attendance routes are MongoDB-only
 
@@ -60,6 +72,89 @@ router.post('/', async (req, res) => {
                 );
             }
             console.log(`✅ Saved ${docsToInsert.length} attendance records to MongoDB`);
+
+            // Recompute aggregates for affected students and student+subject enrollments
+            try {
+                const affectedStudents = new Set(docsToInsert.map(d => String(d.studentId)));
+                const affectedPairs = new Set(docsToInsert.map(d => `${String(d.studentId)}::${d.subject}`));
+
+                // Update per-student overall stats and StudentData attendance section
+                for (const sid of affectedStudents) {
+                    try {
+                        const recordsAll = await Attendance.find({ studentId: sid }).lean();
+                        const totalAll = recordsAll.length;
+                        const presentAll = recordsAll.filter(r => r.status === 'Present').length;
+                        const absentAll = recordsAll.filter(r => r.status === 'Absent').length;
+                        const pctAll = totalAll > 0 ? Math.round((presentAll / totalAll) * 100) : 0;
+
+                        // Build attendanceRecords array for StudentData
+                        const attendanceRecords = recordsAll.map(r => ({
+                            courseId: null,
+                            courseName: r.subject,
+                            date: r.date,
+                            status: r.status,
+                            markedBy: r.facultyName || r.facultyId || 'unknown',
+                            markedTime: r.markedAt || r.updatedAt || new Date()
+                        }));
+
+                        if (StudentData) {
+                            try {
+                                // Resolve Student._id for StudentData.studentId (schema expects ObjectId)
+                                let studentObj = null;
+                                if (Student) studentObj = await Student.findOne({ sid }).select('_id').lean();
+                                if (studentObj && studentObj._id) {
+                                    await StudentData.findOneAndUpdate(
+                                        { studentId: studentObj._id },
+                                        {
+                                            $set: {
+                                                'sections.attendance.totalClasses': totalAll,
+                                                'sections.attendance.totalPresent': presentAll,
+                                                'sections.attendance.totalAbsent': absentAll,
+                                                'sections.attendance.attendancePercentage': pctAll,
+                                                'sections.attendance.attendanceRecords': attendanceRecords,
+                                                'sections.attendance.lastUpdated': new Date()
+                                            }
+                                        },
+                                        { upsert: true }
+                                    );
+                                } else {
+                                    console.warn('StudentData update skipped: Student not found for sid', sid);
+                                }
+                            } catch (sdErr) {
+                                console.error('Error updating StudentData (attendanceRoutes):', sdErr);
+                            }
+                        }
+
+                        if (Student) {
+                            await Student.findOneAndUpdate({ sid }, { $set: { 'stats.totalClasses': totalAll, 'stats.totalPresent': presentAll } });
+                        }
+                    } catch (sErr) {
+                        console.error('Error recomputing student aggregates:', sErr);
+                    }
+                }
+
+                // Update Enrollment attendance percentages per student+subject
+                for (const key of affectedPairs) {
+                    try {
+                        const [sid, subj] = key.split('::');
+                        const records = await Attendance.find({ studentId: sid, subject: subj }).lean();
+                        const total = records.length;
+                        const present = records.filter(r => r.status === 'Present').length;
+                        const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+
+                        if (Enrollment) {
+                            const enrs = await Enrollment.find({ studentId: sid, subject: subj }).lean();
+                            for (const enr of enrs) {
+                                await Enrollment.findByIdAndUpdate(enr._id, { $set: { attendancePercentage: pct, totalClasses: total, totalPresent: present, lastActivityAt: new Date() } });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error updating enrollment aggregates:', e);
+                    }
+                }
+            } catch (syncErr) {
+                console.error('Error recomputing attendance aggregates:', syncErr);
+            }
         } catch (mongoErr) {
             console.error("Mongo Attendance Save Error:", mongoErr);
             return res.status(500).json({ error: 'Failed to save attendance', details: mongoErr.message });
@@ -159,7 +254,7 @@ router.get('/subject/:subject/section/:section', async (req, res) => {
 router.get('/all', async (req, res) => {
     try {
         const { year, section, subject, date, branch } = req.query;
-        
+
         let query = {};
         if (year) query.year = String(year);
         if (section) query.section = String(section);

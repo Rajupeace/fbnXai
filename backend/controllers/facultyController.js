@@ -206,7 +206,7 @@ exports.deleteFaculty = async (req, res) => {
       return res.status(404).json({ message: 'Faculty not found' });
     }
 
-    await faculty.remove();
+    await faculty.deleteOne();
 
     res.json({ message: 'Faculty removed' });
   } catch (error) {

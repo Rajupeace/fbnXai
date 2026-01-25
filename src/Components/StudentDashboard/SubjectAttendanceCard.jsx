@@ -8,6 +8,8 @@ import './SubjectAttendanceCard.css';
 const SubjectAttendanceCard = ({
     subjectName,
     attendancePercentage,
+    attendedClasses,
+    totalClasses,
     marksObtained,
     marksTotal,
     credits,
@@ -20,8 +22,8 @@ const SubjectAttendanceCard = ({
     // Determine status class
     const getStatusClass = (type = 'border') => {
         let statusClass = 'good';
-        if (attendancePercentage < 75) statusClass = 'critical';
-        else if (marksPercentage < 60) statusClass = 'warning';
+        if (attendancePercentage < 65) statusClass = 'critical';
+        else if (attendancePercentage < 75) statusClass = 'warning';
 
         return type === 'border' ? `status-${statusClass}` : `bg-${statusClass}`;
     };
@@ -43,7 +45,14 @@ const SubjectAttendanceCard = ({
                 <div className="stat-item">
                     <label>Attendance:</label>
                     <div className="stat-value">
-                        <span className="percentage">{attendancePercentage}%</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                            <span className="percentage">{attendancePercentage}%</span>
+                            {(totalClasses > 0 || attendedClasses > 0) && (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                                    {attendedClasses}/{totalClasses} Classes
+                                </span>
+                            )}
+                        </div>
                         <div className="progress-bar">
                             <div
                                 className={`progress-fill ${getStatusClass('bg')}`}

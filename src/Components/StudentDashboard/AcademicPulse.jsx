@@ -19,9 +19,9 @@ const AcademicPulse = ({ data }) => {
             <div className="pulse-card-header">
                 <div>
                     <h3 className="pulse-brand">
-                        <FaWaveSquare className="pulse-icon-anim" /> NEXUS CORE
+                        <FaWaveSquare className="pulse-icon-anim" /> FRIENDLY NOTEBOOK
                     </h3>
-                    <span className="pulse-sub">NEURAL HEALTH MONITOR</span>
+                    <span className="pulse-sub">ACADEMIC HEALTH</span>
                 </div>
                 <div className="pulse-live-indicator">
                     <span className="dot"></span> LIVE SYNC
@@ -39,6 +39,11 @@ const AcademicPulse = ({ data }) => {
                         <div className="ring-content">
                             <span className="ring-val">{attendance}%</span>
                             <span className="ring-label">PRESENCE</span>
+                            {(data?.attendance?.totalClasses > 0) && (
+                                <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.7, marginTop: '2px' }}>
+                                    {data.attendance.totalPresent}/{data.attendance.totalClasses}
+                                </span>
+                            )}
                         </div>
                     </div>
 

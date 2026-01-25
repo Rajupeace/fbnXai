@@ -108,7 +108,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   useEffect(() => {
     const unsub = sseClient.onUpdate((ev) => {
       if (!ev || !ev.resource) return;
-      if (['materials', 'students', 'messages'].includes(ev.resource)) {
+      // Refresh when materials, students, messages or faculty assignments change
+      if (['materials', 'students', 'messages', 'faculty'].includes(ev.resource)) {
         refreshAll();
       }
     });
@@ -316,6 +317,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 year={ctx.year}
                 sections={ctx.sections}
                 facultyId={facultyData.facultyId}
+                facultyName={facultyData.name}
                 branch={facultyData.department}
               />
             </div>

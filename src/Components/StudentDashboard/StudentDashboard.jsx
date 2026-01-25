@@ -23,6 +23,9 @@ import { getYearData } from './branchData';
 import NexusCorePulse from './AcademicPulse';
 
 import './StudentDashboard.css';
+import SkillsRadar from './Sections/SkillsRadar';
+import GlobalNotifications from '../GlobalNotifications/GlobalNotifications';
+import StudyTools from './StudyTools';
 
 /**
  * Friendly Notebook Student Dashboard
@@ -288,16 +291,11 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         <h2 className="nexus-page-title">FRIENDLY <span>NOTEBOOK</span></h2>
                         <p className="nexus-page-subtitle sub-text-slate">Welcome to your personal learning space.</p>
                     </div>
-                    <div className="pulse-compact-indicator">
-                        <div className="compact-node">
-                            <span className="node-lbl">SYSTEM</span>
-                            <span className="node-val">99%</span>
-                        </div>
-                        <div className="compact-node">
-                            <span className="node-lbl">PROGRESS</span>
-                            <span className="node-val">82.4%</span>
-                        </div>
+                    <div className="header-date-display" style={{ marginLeft: 'auto', textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingRight: '2rem' }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: '900', color: '#1e293b' }}>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b' }}>{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</span>
                     </div>
+
                 </div>
             </header>
 
@@ -317,6 +315,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
             <main className="nexus-main-layout">
                 <aside className="nexus-sidebar-col">
                     <StudentProfileCard userData={userData} setView={setView} />
+                    <SkillsRadar studentData={userData} />
 
                     <div className="nexus-insight-panel">
                         <div className="panel-header">
@@ -347,17 +346,21 @@ export default function StudentDashboard({ studentData, onLogout }) {
         </div>
     );
 
-    return (
-        <div className={`student-dashboard-layout ${isDashboardLoaded ? 'loaded' : ''}`}>
+    const [focusMode, setFocusMode] = useState(false);
 
-            <StudentSidebar
-                userData={userData}
-                view={view}
-                setView={setView}
-                collapsed={sidebarCollapsed}
-                setCollapsed={setSidebarCollapsed}
-                onLogout={onLogout}
-            />
+    return (
+        <div className={`student-dashboard-layout ${isDashboardLoaded ? 'loaded' : ''} ${focusMode ? 'focus-active' : ''}`}>
+
+            {!focusMode && (
+                <StudentSidebar
+                    userData={userData}
+                    view={view}
+                    setView={setView}
+                    collapsed={sidebarCollapsed}
+                    setCollapsed={setSidebarCollapsed}
+                    onLogout={onLogout}
+                />
+            )}
 
             <div className="dashboard-content-area">
                 {view === 'overview' && renderOverview()}
@@ -502,6 +505,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     </div>
                 </div>
             )}
+
+            <GlobalNotifications userRole="student" userData={userData} />
         </div>
     );
 }

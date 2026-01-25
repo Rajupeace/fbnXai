@@ -37,7 +37,11 @@ const AdminScheduleManager = () => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const types = ['Theory', 'Lab', 'Tutorial', 'Seminar', 'Other'];
     const branches = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'AIML', 'IT'];
-    const sections = ['A', 'B', 'C', 'D', 'E'];
+
+    // Dynamic Sections: A-P and 1-20
+    const alphaSections = Array.from({ length: 16 }, (_, i) => String.fromCharCode(65 + i));
+    const numSections = Array.from({ length: 20 }, (_, i) => String(i + 1));
+    const sections = [...alphaSections, ...numSections];
 
     const fetchSchedules = React.useCallback(async () => {
         setLoading(true);
