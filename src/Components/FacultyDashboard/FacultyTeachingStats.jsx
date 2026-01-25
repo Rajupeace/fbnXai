@@ -34,12 +34,15 @@ const FacultyTeachingStats = ({ facultyId }) => {
             let totalStudents = new Set();
 
             assignments.forEach(assignment => {
-                const { year, section, subject } = assignment;
+                // Normalize assignment fields (some data uses numbers/strings/case variants)
+                const year = String(assignment.year || assignment.y || '').trim();
+                const section = String((assignment.section || assignment.sec || '')).trim().toUpperCase();
+                const subject = assignment.subject || assignment.name || 'Unknown';
 
-                // Find students matching this assignment
+                // Find students matching this assignment (normalize student fields too)
                 const matchingStudents = allStudents.filter(student =>
-                    String(student.year) === String(year) &&
-                    student.section === section
+                    String(student.year).trim() === year &&
+                    String((student.section || '')).trim().toUpperCase() === section
                 );
 
                 // Track by subject

@@ -2,20 +2,21 @@ import React from 'react';
 import { FaPlus, FaEdit, FaTrash, FaCheckCircle, FaRegCircle, FaClipboardList } from 'react-icons/fa';
 
 /**
- * SENTINEL TASK ORCHESTRATOR
- * Real-time operational task tracking and execution management.
+/**
+ * Task Management
+ * Manage and track administrative tasks.
  */
 const TodoSection = ({ todos, openModal, toggleTodo, deleteTodo }) => {
     return (
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>TASK <span>ORCHESTRATOR</span></h1>
-                    <p>Total operational objectives: {todos.length} entries tracked</p>
+                    <h1>TASK <span>MANAGER</span></h1>
+                    <p>Total Tasks: {todos.length}</p>
                 </div>
                 <div className="admin-action-bar" style={{ margin: 0 }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('todo')}>
-                        <FaPlus /> INITIALIZE OBJECTIVE
+                        <FaPlus /> ADD NEW TASK
                     </button>
                 </div>
             </header>
@@ -41,13 +42,13 @@ const TodoSection = ({ todos, openModal, toggleTodo, deleteTodo }) => {
                                     {todo.text}
                                 </span>
                                 {todo.completed && (
-                                    <div className="admin-status-indicator success">OBJECTIVE SECURED</div>
+                                    <div className="admin-status-indicator success">Completed</div>
                                 )}
                             </div>
 
                             <div className="todo-actions" style={{ display: 'flex', gap: '0.6rem' }}>
-                                <button onClick={() => openModal('todo', todo)} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="Recalibrate Scope"><FaEdit /></button>
-                                <button onClick={() => deleteTodo(todo.id)} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Purge Record"><FaTrash /></button>
+                                <button onClick={() => openModal('todo', todo)} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="Edit Task"><FaEdit /></button>
+                                <button onClick={() => deleteTodo(todo.id)} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete Task"><FaTrash /></button>
                             </div>
                         </div>
                     ))}
@@ -55,8 +56,8 @@ const TodoSection = ({ todos, openModal, toggleTodo, deleteTodo }) => {
                     {todos.length === 0 && (
                         <div className="admin-empty-state">
                             <FaClipboardList className="admin-empty-icon" />
-                            <h2 className="admin-empty-title">NO PENDING OBJECTIVES</h2>
-                            <p className="admin-empty-text">System operational state is clear. Excellent orchestration.</p>
+                            <h2 className="admin-empty-title">No tasks.</h2>
+                            <p className="admin-empty-text">Your task list is empty.</p>
                         </div>
                     )}
                 </div>

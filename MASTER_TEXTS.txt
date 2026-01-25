@@ -1,0 +1,33 @@
+Master text consolidation
+Generated: 2026-01-25
+
+Files merged and originals removed:
+- trace_output.txt
+- trace-build.txt
+- SYSTEM_VERIFICATION_COMPLETE.txt
+- suspected_files.txt
+- small_files.txt
+- react-scripts-build-log.txt
+- npm-install-clean-log.txt
+- mongo_output.txt
+- json-files.txt
+- frontend_debug.txt
+- faculty_material.txt
+- build_log_2.txt
+- build_log.txt
+- build-log.txt
+- build-debug.txt
+- build-clean-log.txt
+- build-ci-log.txt
+- public/robots.txt
+- backend/backend_log.txt
+- backend/db_counts.txt
+- backend/ai_agent/requirements.txt
+- backend/ai_agent/knowledge/vignan_subjects.txt
+- backend/ai_agent/knowledge/vignan_facts.txt
+- backend/ai_agent/knowledge/knowledge_base.txt
+- backend/ai_agent/knowledge/00_HOW_TO_USE.txt
+- backend/cleanup_log.txt
+- backend/admin_details.txt
+
+Note: Originals were removed from the repository per request. Backups exist in the backups folder.

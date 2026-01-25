@@ -32,17 +32,17 @@ const FacultySidebar = ({
     };
 
     const navItems = [
-        { id: 'overview', label: 'COMMAND', icon: <FaChartLine /> },
-        { id: 'materials', label: 'MATERIALS', icon: <FaLayerGroup /> },
-        { id: 'attendance', label: 'ATTENDANCE', icon: <FaUserCheck /> },
-        { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt /> },
-        { id: 'schedule', label: 'CALENDAR', icon: <FaBolt /> },
-        { id: 'students', label: 'CADETS', icon: <FaUserGraduate /> },
-        { id: 'curriculum', label: 'CURRICULUM', icon: <FaLayerGroup /> },
-        { id: 'broadcast', label: 'BROADCAST', icon: <FaBullhorn /> },
-        { id: 'messages', label: 'COMM LINK', icon: <FaEnvelope /> },
-        { id: 'ai-agent', label: 'NEURAL', icon: <FaRobot /> },
-        { id: 'settings', label: 'SYSTEM', icon: <FaGraduationCap /> }
+        { id: 'overview', label: 'Dashboard', icon: <FaChartLine /> },
+        { id: 'materials', label: 'Materials', icon: <FaLayerGroup /> },
+        { id: 'attendance', label: 'Attendance', icon: <FaUserCheck /> },
+        { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
+        { id: 'schedule', label: 'Schedule', icon: <FaBolt /> },
+        { id: 'students', label: 'Students', icon: <FaUserGraduate /> },
+        { id: 'curriculum', label: 'Curriculum', icon: <FaLayerGroup /> },
+        { id: 'broadcast', label: 'Announcements', icon: <FaBullhorn /> },
+        { id: 'messages', label: 'Messages', icon: <FaEnvelope /> },
+        { id: 'ai-agent', label: 'AI Assistant', icon: <FaRobot /> },
+        { id: 'settings', label: 'Settings', icon: <FaGraduationCap /> }
     ];
 
     return (
@@ -58,8 +58,8 @@ const FacultySidebar = ({
                     </div>
                     {!collapsed && (
                         <div className="brand-text fade-in">
-                            <h1>FBN XAI</h1>
-                            <span>FACULTY NEXUS</span>
+                            <h1>Friendly Notebook</h1>
+                            <span>Faculty Dashboard</span>
                         </div>
                     )}
                 </div>

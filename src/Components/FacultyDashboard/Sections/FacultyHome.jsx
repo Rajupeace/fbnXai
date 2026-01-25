@@ -41,14 +41,14 @@ const FacultyHome = ({
                 <div className="f-node-card f-intel-card">
                     <div className="f-node-head">
                         <h3 className="f-card-title">
-                            <FaShieldAlt color="var(--accent-secondary)" /> SYSTEM INTELLIGENCE
+                            <FaShieldAlt color="var(--accent-secondary)" /> Platform Updates
                         </h3>
-                        <span className="f-intel-badge">FACULTY ONLY</span>
+                        <span className="f-intel-badge">Faculty</span>
                     </div>
                     <div className="f-intel-content">
-                        <div style={{ fontWeight: 950, color: '#1e293b', marginBottom: '0.6rem', fontSize: '1rem' }}>TERMINAL UPDATE v4.2</div>
+                        <div style={{ fontWeight: 950, color: '#1e293b', marginBottom: '0.6rem', fontSize: '1rem' }}>System Update</div>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', lineHeight: '1.7', fontWeight: 800 }}>
-                            The Nexus Faculty Broadcast system is fully operational. Dispatch urgent directives directly to student sector nodes via the Tactical Broadcast interface.
+                            The Announcement system is functioning. Send announcements directly to your students.
                         </p>
                     </div>
                 </div>
@@ -57,7 +57,7 @@ const FacultyHome = ({
                 <div className="f-node-card" style={{ borderLeft: '6px solid var(--accent-primary)' }}>
                     <div className="f-node-head">
                         <h3 className="f-card-title">
-                            <FaHistory color="var(--accent-primary)" /> DEPLOYMENT LOGS
+                            <FaHistory color="var(--accent-primary)" /> Recent Activities
                         </h3>
                     </div>
                     <div className="f-clean-list">
@@ -75,42 +75,17 @@ const FacultyHome = ({
                                 <a href={getFileUrl(m.url)} target="_blank" rel="noreferrer" className="f-node-btn view"><FaEye /></a>
                             </div>
                         ))}
-                        {materialsList.length === 0 && <div className="no-content">No recent deployments detected.</div>}
+                        {materialsList.length === 0 && <div className="no-content">No recent activity.</div>}
                     </div>
                 </div>
 
-                {/* TRANSMISSIONS */}
-                <div className="f-node-card" style={{ borderLeft: '6px solid #f43f5e' }}>
-                    <div className="f-node-head">
-                        <h3 className="f-card-title">
-                            <FaBullhorn color="#f43f5e" /> TACTICAL TRANSMISSIONS
-                        </h3>
-                    </div>
-                    <div className="f-clean-list" style={{ marginTop: '2.5rem' }}>
-                        {messages.map((msg, i) => (
-                            <div key={msg.id || i} className="f-transmission-item">
-                                <div className="f-transmission-meta">
-                                    <div className="f-transmission-sender">
-                                        {msg.facultyId === facultyData.facultyId ? 'SENT BY YOU' : (msg.sender || 'ADMIN HUB')}
-                                    </div>
-                                    {msg.type && <span className="f-transmission-type">{msg.type}</span>}
-                                </div>
-                                <p className="f-transmission-text">{msg.message || msg.text}</p>
-                                <div className="f-transmission-date">
-                                    {new Date(msg.createdAt || msg.date).toLocaleString()}
-                                    {msg.sections && ` • DISTRIBUTED TO: ${msg.sections.join(', ')}`}
-                                </div>
-                            </div>
-                        ))}
-                        {messages.length === 0 && <div className="no-content">No active transmissions.</div>}
-                    </div>
-                </div>
+
 
                 {/* STUDENT ROSTER */}
                 <div className="f-node-card" style={{ borderLeft: '6px solid var(--admin-primary)', gridColumn: '1 / -1' }}>
                     <div className="f-node-head">
                         <h3 className="f-card-title">
-                            <FaUserGraduate color="var(--admin-primary)" /> ASSIGNED CADETS
+                            <FaUserGraduate color="var(--admin-primary)" /> My Students
                         </h3>
                         <span style={{ fontSize: '0.8rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{studentsList.length} Total</span>
                     </div>
@@ -144,7 +119,7 @@ const FacultyHome = ({
                                     cursor: 'pointer'
                                 }}
                             >
-                                VIEW ALL STUDENTS ({studentsList.length})
+                                View All Students ({studentsList.length})
                             </button>
                         )}
                     </div>

@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaUserGraduate, FaRobot
 } from 'react-icons/fa';
-import '../StudentDashboard/StudentDashboard.css'; // Global Nexus tokens
-import './FacultyDashboard.css';
+// Global Styles
 import sseClient from '../../utils/sseClient';
 import MaterialManager from './MaterialManager';
 import FacultySettings from './FacultySettings';
@@ -37,8 +36,13 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   const refreshAll = async () => {
     setSyncing(true);
     try {
+      console.log('📊 FacultyDashboard: Fetching data from database...');
+
       const mats = await apiGet('/api/materials');
-      if (mats) setMaterialsList(mats);
+      if (mats) {
+        console.log(`   ✅ Materials fetched: ${mats.length} items`);
+        setMaterialsList(mats);
+      }
 
       const adminMsgs = await apiGet('/api/messages');
       if (adminMsgs) {
@@ -47,42 +51,53 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           m.target === 'faculty' ||
           m.facultyId === facultyData.facultyId
         );
+        console.log(`   ✅ Messages fetched: ${filteredMsgs.length} items`);
         setMessages(filteredMsgs.slice(0, 10));
       }
 
       const studentsData = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
-      if (Array.isArray(studentsData)) setStudentsList(studentsData);
+      if (Array.isArray(studentsData)) {
+        console.log(`   ✅ Students fetched: ${studentsData.length} items`);
+        setStudentsList(studentsData);
+      }
 
+      console.log('✅ FacultyDashboard: All data loaded successfully');
       setTimeout(() => setSyncing(false), 800);
     } catch (e) {
-      console.error("Mesh Synchronization Failed", e);
+      console.error("❌ FacultyDashboard: Sync Failed", e);
       setSyncing(false);
     }
   };
 
   useEffect(() => {
+    console.log('🚀 FacultyDashboard: Initial data load started');
     refreshAll();
     const timer = setTimeout(() => setBootSequence(false), 1500);
-    const interval = setInterval(refreshAll, 3000); // Poll every 3s for FAST real-time updates
 
-    // Fast messages update every 3s
+    // Optimized polling: 5 seconds (more efficient than 3s)
+    const interval = setInterval(() => {
+      console.log('🔄 FacultyDashboard: Polling data from database...');
+      refreshAll();
+    }, 5000);
+
+    // Fast messages update every 5s
     const msgInterval = setInterval(async () => {
       try {
-        const adminMsgs = await apiGet('/api/messages');
+        const query = new URLSearchParams({
+          userId: facultyData.facultyId,
+          role: 'faculty'
+        }).toString();
+        const adminMsgs = await apiGet(`/api/messages?${query}`);
         if (adminMsgs) {
-          const filteredMsgs = adminMsgs.filter(m =>
-            m.target === 'all' ||
-            m.target === 'faculty' ||
-            m.facultyId === facultyData.facultyId
-          );
-          setMessages(filteredMsgs.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)).slice(0, 10));
+          setMessages(adminMsgs.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)).slice(0, 10));
         }
       } catch (e) {
         console.debug('Faculty messages update failed', e);
       }
-    }, 3000);
+    }, 5000);
 
     return () => {
+      console.log('🛑 FacultyDashboard: Cleaning up intervals');
       clearTimeout(timer);
       clearInterval(interval);
       clearInterval(msgInterval);
@@ -128,12 +143,12 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   };
 
   const handleDeleteNode = async (id) => {
-    if (!window.confirm("Purge data node from central buffer?")) return;
+    if (!window.confirm("Are you sure you want to delete this file?")) return;
     try {
       await apiDelete(`/api/materials/${id}`);
       refreshAll();
     } catch (err) {
-      alert("System Conflict: " + err.message);
+      alert("Error: " + err.message);
     }
   };
 
@@ -144,7 +159,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
     const contextToUse = activeContext || myClasses[0];
 
     if (!message) return;
-    if (!contextToUse) return alert("Target Link Failure: No classes assigned.");
+    if (!contextToUse) return alert("Error: No classes assigned.");
 
     try {
       await apiPost('/api/faculty/messages', {
@@ -154,11 +169,11 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         subject: contextToUse.subject,
         type: 'announcement'
       });
-      alert("Transmission Dispatched to Student Nodes.");
+      alert("Announcement sent to students.");
       setShowMsgModal(false);
       refreshAll();
     } catch (err) {
-      alert("Transmission Failed: " + err.message);
+      alert("Failed to send: " + err.message);
     }
   };
 
@@ -169,7 +184,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           <div className="boot-icon-box">
             <FaUniversity className="pulse" />
           </div>
-          <h2 className="boot-shimmer">SECURING FACULTY CONSOLE...</h2>
+          <h2 className="boot-shimmer">Loading Dashboard...</h2>
           <div className="boot-progress-wrap">
             <div className="boot-progress-bar"></div>
           </div>
@@ -216,7 +231,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
               <header className="f-view-header">
                 <div>
                   <h2>COURSE <span>MATERIALS</span></h2>
-                  <p className="nexus-subtitle">Central repository for academic directives</p>
+                  <p className="nexus-subtitle">Manage study materials for your courses</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <FaFilter style={{ color: '#94a3b8' }} />
@@ -254,8 +269,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                         {node.type === 'videos' ? <FaLayerGroup /> : <FaFileAlt />}
                       </div>
                       <div className="f-node-actions">
-                        <a href={getFileUrl(node.url)} target="_blank" rel="noreferrer" className="f-node-btn view" title="View Node"><FaEye /></a>
-                        <button onClick={() => handleDeleteNode(node.id || node._id)} className="f-node-btn delete" title="Purge Node"><FaTrash /></button>
+                        <a href={getFileUrl(node.url)} target="_blank" rel="noreferrer" className="f-node-btn view" title="View File"><FaEye /></a>
+                        <button onClick={() => handleDeleteNode(node.id || node._id)} className="f-node-btn delete" title="Delete File"><FaTrash /></button>
                       </div>
                     </div>
                     <h4 className="f-node-title">{node.title}</h4>
@@ -278,7 +293,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
               <header className="f-view-header">
                 <div>
                   <h2>ATTENDANCE <span>ROSTER</span></h2>
-                  <p className="nexus-subtitle">Real-time student engagement tracking</p>
+                  <p className="nexus-subtitle">Track student attendance</p>
                 </div>
                 <select
                   className="f-context-select"
@@ -313,8 +328,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
             <div className="nexus-hub-viewport">
               <header className="f-view-header">
                 <div>
-                  <h2>EXAM <span>CONTROL</span></h2>
-                  <p className="nexus-subtitle">Assessment deployment and management</p>
+                  <h2>EXAM <span>MANAGEMENT</span></h2>
+                  <p className="nexus-subtitle">Create and manage exams</p>
                 </div>
                 <select
                   className="f-context-select"
@@ -366,16 +381,16 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
             <div className="f-node-card animate-slide-up" style={{ maxWidth: '600px', margin: '0 auto' }}>
               <div className="f-modal-header">
                 <FaBullhorn style={{ fontSize: '2rem' }} />
-                <h2>TACTICAL BROADCAST</h2>
+                <h2>MAKE ANNOUNCEMENT</h2>
               </div>
 
               <p style={{ color: '#64748b', marginBottom: '2.5rem', fontWeight: 850 }}>
-                Deploy announcements to assigned student groups.
+                Send announcements to your classes.
               </p>
 
               <form onSubmit={handleSendMessage} className="f-broadcast-form">
                 <div className="nexus-group">
-                  <label className="f-form-label">Target Sector</label>
+                  <label className="f-form-label">Target Class</label>
                   <select name="targetClass" className="f-form-select">
                     {myClasses.map(c => (
                       <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
@@ -386,7 +401,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 </div>
 
                 <div className="nexus-group">
-                  <label className="f-form-label">Directive Parameters</label>
+                  <label className="f-form-label">Message</label>
                   <textarea
                     name="message"
                     placeholder="Enter announcement text..."
@@ -396,7 +411,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 </div>
 
                 <div className="f-modal-actions">
-                  <button type="submit" className="nexus-btn-primary">TRANSMIT BROADCAST</button>
+                  <button type="submit" className="nexus-btn-primary">POST ANNOUNCEMENT</button>
                 </div>
               </form>
             </div>
@@ -408,8 +423,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
             <div className="nexus-mesh-bg"></div>
             <header className="f-view-header">
               <div>
-                <h2>COMMAND <span>MESSAGES</span></h2>
-                <p className="nexus-subtitle">Administrative announcements and system notifications</p>
+                <h2>ANNOUNCEMENTS</h2>
+                <p className="nexus-subtitle">Messages from Admin</p>
               </div>
             </header>
             <div className="f-node-card" style={{ marginTop: '2rem' }}>
@@ -427,7 +442,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
-                  <p>No messages at this time</p>
+                  <p>No announcements found.</p>
                 </div>
               )}
             </div>
@@ -440,10 +455,10 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
             <header className="f-view-header">
               <div>
                 <h2>STUDENT <span>ROSTER</span></h2>
-                <p className="nexus-subtitle">All students assigned to your teaching sectors</p>
+                <p className="nexus-subtitle">All students in your classes</p>
               </div>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <span style={{ fontWeight: 950, fontSize: '1.1rem', color: 'var(--admin-secondary)' }}>{studentsList.length} Total Cadets</span>
+                <span style={{ fontWeight: 950, fontSize: '1.1rem', color: 'var(--admin-secondary)' }}>{studentsList.length} Total Students</span>
               </div>
             </header>
             <div className="f-node-card" style={{ marginTop: '2rem' }}>
@@ -480,13 +495,13 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         )}
       </div>
 
-      {/* QUICK BROADCAST MODAL */}
+      {/* QUICK ANNOUNCEMENT MODAL */}
       {showMsgModal && (
         <div className="nexus-modal-overlay" onClick={() => setShowMsgModal(false)}>
           <div className="nexus-modal-content" onClick={e => e.stopPropagation()}>
             <div className="f-modal-header">
               <FaBullhorn />
-              <h2>QUICK BROADCAST</h2>
+              <h2>QUICK ANNOUNCEMENT</h2>
             </div>
             <form onSubmit={handleSendMessage} className="f-broadcast-form">
               <div className="nexus-group">
@@ -520,17 +535,20 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         </div>
       )}
 
-      <div className="ai-fab" onClick={() => setView('ai-agent')} title="Open Neural Core">
+
+      <div className="ai-fab" onClick={() => setView('ai-agent')} title="Open AI Assistant">
         <FaRobot />
       </div>
-      {view === 'ai-agent' && (
-        <div className="nexus-modal-overlay" onClick={() => setView('overview')}>
-          <div className="nexus-modal-content" onClick={e => e.stopPropagation()}>
-            <VuAiAgent onNavigate={setView} />
+      {
+        view === 'ai-agent' && (
+          <div className="nexus-modal-overlay" onClick={() => setView('overview')}>
+            <div className="nexus-modal-content" onClick={e => e.stopPropagation()}>
+              <VuAiAgent onNavigate={setView} />
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

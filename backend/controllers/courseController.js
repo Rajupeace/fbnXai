@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 
 exports.createCourse = async (req, res) => {
     try {
-        const { code, name, branch, year, semester, courseCode } = req.body;
+        const { code, name, branch, year, semester, courseCode, section } = req.body;
         const finalCode = code || courseCode;
 
         const newCourseData = {
@@ -15,15 +15,11 @@ exports.createCourse = async (req, res) => {
             branch,
             year,
             semester,
+            section: section || 'All',
             createdAt: new Date().toISOString()
         };
 
-        // 1. Save to File DB
-        const courses = dbHelper('courses').read() || [];
-        courses.push(newCourseData);
-        dbHelper('courses').write(courses);
-
-        // 2. Save to MongoDB if connected
+        // Prefer MongoDB persistence. If DB connected, write only to MongoDB.
         if (mongoose.connection.readyState === 1) {
             try {
                 const mongoCourse = new Course({
@@ -32,9 +28,21 @@ exports.createCourse = async (req, res) => {
                 });
                 await mongoCourse.save();
                 newCourseData._id = mongoCourse._id;
+                newCourseData.source = 'mongodb';
             } catch (mongoErr) {
                 console.error("Mongo Course Creation Failed:", mongoErr.message);
+                // Fallback: write to file DB only if Mongo failed
+                const courses = dbHelper('courses').read() || [];
+                courses.push(newCourseData);
+                dbHelper('courses').write(courses);
+                newCourseData.source = 'file-fallback';
             }
+        } else {
+            // Mongo not connected: write to file DB (legacy fallback)
+            const courses = dbHelper('courses').read() || [];
+            courses.push(newCourseData);
+            dbHelper('courses').write(courses);
+            newCourseData.source = 'file';
         }
 
         res.status(201).json(newCourseData);
@@ -47,7 +55,7 @@ exports.getCourses = async (req, res) => {
     try {
         let allCourses = [];
 
-        // 1. Try MongoDB
+        // If MongoDB connected, return Mongo-only authoritative data.
         if (mongoose.connection.readyState === 1) {
             try {
                 const mongoCourses = await Course.find({}).lean();
@@ -57,19 +65,16 @@ exports.getCourses = async (req, res) => {
                     courseCode: c.code || c.courseCode,
                     source: 'mongodb'
                 }));
+                return res.json(allCourses);
             } catch (mongoErr) {
                 console.warn('Mongo Course Fetch Error:', mongoErr.message);
+                // Fall through to file fallback below
             }
         }
 
-        // 2. Fallback to File DB and merge
+        // Fallback to File DB when Mongo is not available
         const fileCourses = dbHelper('courses').read() || [];
-        fileCourses.forEach(fc => {
-            const exists = allCourses.find(mc => (mc.code === (fc.code || fc.courseCode)) || (mc.courseCode === (fc.code || fc.courseCode)));
-            if (!exists) {
-                allCourses.push({ ...fc, source: 'file' });
-            }
-        });
+        allCourses = fileCourses.map(fc => ({ ...fc, source: 'file' }));
 
         res.json(allCourses);
     } catch (error) {

@@ -5,8 +5,13 @@ const Faculty = require('../models/Faculty');
 // @access  Private/Admin
 exports.getFaculty = async (req, res) => {
   try {
-    const faculty = await Faculty.find().select('-password');
-    res.json(faculty);
+    const faculty = await Faculty.find().select('-password').lean();
+    // Normalize possible legacy field `hpd` -> `department` for frontend compatibility
+    const normalized = faculty.map(f => ({
+      ...f,
+      department: f.department || f.hpd || 'General'
+    }));
+    res.json(normalized);
   } catch (error) {
     console.error('MongoDB Faculty fetch failed, trying file DB:', error.message);
     try {
@@ -47,6 +52,8 @@ exports.getFacultyById = async (req, res) => {
 exports.createFaculty = async (req, res) => {
   try {
     const { facultyId, name, email, password, department, designation, assignments = [] } = req.body;
+    // Support legacy/typo field `hpd` that some clients send for department
+    const dept = (department && department.trim()) || (req.body.hpd && req.body.hpd.trim()) || undefined;
 
     // Validate required fields
     if (!facultyId || !name || !password || !department || !designation) {
@@ -92,22 +99,18 @@ exports.createFaculty = async (req, res) => {
       name: name.trim(),
       email: email?.toLowerCase()?.trim(),
       password, // In production, make sure to hash the password before saving
-      department: department.trim(),
+      department: dept || (department ? department.trim() : undefined) || 'General',
       designation: designation.trim(),
       assignments: validatedAssignments
     });
 
     await faculty.save();
 
-    // Remove password from the response
+    // Remove password from the response and return the created faculty object
     const facultyObj = faculty.toObject();
     delete facultyObj.password;
 
-    res.status(201).json({
-      success: true,
-      message: 'Faculty created successfully',
-      data: facultyObj
-    });
+    res.status(201).json(facultyObj);
 
   } catch (error) {
     console.error('Error creating faculty:', error);
@@ -143,13 +146,16 @@ exports.createFaculty = async (req, res) => {
 // @access  Private/Admin
 exports.updateFaculty = async (req, res) => {
   try {
+
     const { name, email, department, designation, phone, address, isAdmin } = req.body;
+    // Accept legacy `hpd` field as department alias
+    const deptUpdate = department || req.body.hpd;
 
     // Build faculty object
     const facultyFields = {};
     if (name) facultyFields.name = name;
     if (email) facultyFields.email = email;
-    if (department) facultyFields.department = department;
+    if (deptUpdate) facultyFields.department = deptUpdate;
     if (designation) facultyFields.designation = designation;
     if (phone) facultyFields.phone = phone;
     if (address) facultyFields.address = address;

@@ -53,8 +53,9 @@ const StudentAttendanceView = ({ studentId }) => {
     }
 
     const reportCards = getReportCards();
-    const stats = overview?.attendance || { overall: 85, totalPresent: 0, totalClasses: 0 };
-    const academics = overview?.academics || { overallPercentage: 82, totalExamsTaken: 0 };
+    // Use real overview values where available; fall back to zeros to avoid showing demo metrics
+    const stats = overview?.attendance || { overall: 0, totalPresent: 0, totalClasses: 0 };
+    const academics = overview?.academics || { overallPercentage: 0, totalExamsTaken: 0 };
 
     return (
         <div className="nexus-page-container">
@@ -119,8 +120,8 @@ const StudentAttendanceView = ({ studentId }) => {
                             <div className="card-icon-box fire"><FaFire /></div>
                         </div>
                         <div className="card-body">
-                            <div className="big-value">12 DAYS</div>
-                            <div className="sub-value">Uninterrupted Presence</div>
+                            <div className="big-value">{overview?.activity?.streak || 0} DAYS</div>
+                                <div className="sub-value">{overview?.activity?.streak ? 'Uninterrupted Presence' : 'No recent activity'}</div>
                         </div>
                         <div className="card-foot">
                             <div className="streak-stars">

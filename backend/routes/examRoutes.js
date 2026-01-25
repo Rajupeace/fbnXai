@@ -38,11 +38,20 @@ router.post('/create', protect, faculty, async (req, res) => {
 // Get Exams created by Faculty
 router.get('/faculty/:facultyId', protect, faculty, async (req, res) => {
     try {
-        const { facultyId } = req.params;
+        let { facultyId } = req.params;
+        let queryId = facultyId;
+
+        // If ID is custom string (e.g., FAC001), resolve to ObjectId
         if (!mongoose.Types.ObjectId.isValid(facultyId)) {
-            return res.status(400).json({ message: 'Invalid faculty id' });
+            const Faculty = require('../models/Faculty');
+            const facultyDoc = await Faculty.findOne({ facultyId: facultyId });
+            if (!facultyDoc) {
+                return res.status(404).json({ message: 'Faculty not found' });
+            }
+            queryId = facultyDoc._id;
         }
-        const exams = await Exam.find({ createdBy: mongoose.Types.ObjectId(facultyId) }).sort({ createdAt: -1 });
+
+        const exams = await Exam.find({ createdBy: queryId }).sort({ createdAt: -1 });
         res.json(exams);
     } catch (err) {
         console.error("Error fetching faculty exams:", err);

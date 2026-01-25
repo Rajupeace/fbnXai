@@ -4,7 +4,7 @@ import {
 } from 'react-icons/fa';
 
 /**
- * PREMIUM NEXUS SIDEBAR (STUDENT)
+ * Student Sidebar
  * Collapsible sidebar for streamlined navigation.
  */
 const StudentSidebar = ({
@@ -18,7 +18,7 @@ const StudentSidebar = ({
 
     const localHandleLogout = (e) => {
         e.preventDefault();
-        if (window.confirm('Terminate current session and logout?')) {
+        if (window.confirm('Are you sure you want to log out?')) {
             if (onLogout) {
                 onLogout();
             } else {
@@ -29,16 +29,16 @@ const StudentSidebar = ({
     };
 
     const navItems = [
-        { id: 'overview', label: 'HUB', icon: <FaChartBar /> },
-        { id: 'semester', label: 'ACADEMIA', icon: <FaBook /> },
-        { id: 'journal', label: 'JOURNAL', icon: <FaPen /> },
-        { id: 'marks', label: 'PERF', icon: <FaChartBar /> },
-        { id: 'schedule', label: 'CHRONOS', icon: <FaClipboardList /> },
-        { id: 'faculty', label: 'MENTORS', icon: <FaGraduationCap /> },
-        { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt /> },
-        { id: 'ai-agent', label: 'NEURAL', icon: <FaRobot /> },
-        { id: 'advanced', label: 'STARSHIP', icon: <FaRocket /> },
-        { id: 'settings', label: 'CORE', icon: <FaShieldAlt /> }
+        { id: 'overview', label: 'Dashboard', icon: <FaChartBar /> },
+        { id: 'semester', label: 'Classroom', icon: <FaBook /> },
+        { id: 'journal', label: 'My Notes', icon: <FaPen /> },
+        { id: 'marks', label: 'Grades', icon: <FaChartBar /> },
+        { id: 'schedule', label: 'Schedule', icon: <FaClipboardList /> },
+        { id: 'faculty', label: 'Faculty', icon: <FaGraduationCap /> },
+        { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
+        { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
+        { id: 'advanced', label: 'Advanced', icon: <FaRocket /> },
+        { id: 'settings', label: 'Settings', icon: <FaShieldAlt /> }
     ];
 
     return (
@@ -54,8 +54,8 @@ const StudentSidebar = ({
                     </div>
                     {!collapsed && (
                         <div className="brand-text fade-in">
-                            <h1>FBN XAI</h1>
-                            <span>STUDENT HUB</span>
+                            <h1>Friendly Notebook</h1>
+                            <span>Student Dashboard</span>
                         </div>
                     )}
                 </div>

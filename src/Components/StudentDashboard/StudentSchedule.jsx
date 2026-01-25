@@ -4,7 +4,8 @@ import { apiGet } from '../../utils/apiClient';
 import StudentLabsSchedule from './StudentLabsSchedule';
 
 /**
- * CHRONOS PROTOCOL v4 (Student Schedule)
+/**
+ * Daily Schedule (Student Schedule)
  * A mission-critical timeline interface for daily academic objectives.
  */
 const StudentSchedule = ({ studentData }) => {
@@ -31,7 +32,7 @@ const StudentSchedule = ({ studentData }) => {
                 setSchedule([]);
             }
         } catch (error) {
-            console.error('Chronos Sync Failed:', error);
+            console.error('Schedule Sync Failed:', error);
             setSchedule([]);
         } finally {
             setLoading(false);
@@ -86,7 +87,7 @@ const StudentSchedule = ({ studentData }) => {
         return (
             <div className="nexus-schedule-loading">
                 <div className="nexus-loading-ring"></div>
-                <div className="loading-text">CALIBRATING TEMPORAL MAP...</div>
+                <div className="loading-text">Loading Schedule...</div>
             </div>
         );
     }
@@ -98,8 +99,8 @@ const StudentSchedule = ({ studentData }) => {
             {/* Header Area */}
             <div className="chronos-header">
                 <div className="header-left">
-                    <div className="protocol-tag"><FaBolt /> Temporal Directives</div>
-                    <h1>CHRONOS <span className="highlight">MAP</span></h1>
+                    <div className="protocol-tag"><FaBolt /> Daily Timeline</div>
+                    <h1>My <span className="highlight">Schedule</span></h1>
                 </div>
                 <div className="chronos-meta">
                     <div className="meta-item">
@@ -119,13 +120,13 @@ const StudentSchedule = ({ studentData }) => {
                     onClick={() => setSubView('theory')}
                     className={`nexus-pill ${subView === 'theory' ? 'active' : ''}`}
                 >
-                    <FaBook /> THEORY DIRECTIVES
+                    <FaBook /> Theory Classes
                 </button>
                 <button
                     onClick={() => setSubView('labs')}
                     className={`nexus-pill ${subView === 'labs' ? 'active' : ''}`}
                 >
-                    <FaFlask /> FORGE SESSIONS
+                    <FaFlask /> Labs
                 </button>
             </div>
 
@@ -187,9 +188,9 @@ const StudentSchedule = ({ studentData }) => {
                         ) : (
                             <div className="chronos-empty-state">
                                 <div className="empty-icon"><FaHistory /></div>
-                                <h3>TEMPORAL ANOMALY</h3>
-                                <p>No active directives detected for this timestamp. Optimal for deep study or system recharge.</p>
-                                <button onClick={fetchSchedule} className="re-sync-btn">RE-SYNC TEMPORAL STREAM</button>
+                                <h3>No Classes</h3>
+                                <p>No classes scheduled for this day. Great time to catch up on study!</p>
+                                <button onClick={fetchSchedule} className="re-sync-btn">Refresh Schedule</button>
                             </div>
                         )}
                     </div>

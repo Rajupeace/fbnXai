@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { apiGet } from '../../utils/apiClient';
 import sseClient from '../../utils/sseClient';
 import {
@@ -26,7 +25,7 @@ import NexusCorePulse from './AcademicPulse';
 import './StudentDashboard.css';
 
 /**
- * THE ULTIMATE "LUMINA NEXUS" STUDENT DASHBOARD
+ * Friendly Notebook Student Dashboard
  * A high-fidelity, interactive workstation for modern students.
  */
 export default function StudentDashboard({ studentData, onLogout }) {
@@ -56,7 +55,6 @@ export default function StudentDashboard({ studentData, onLogout }) {
     // Modals & UI Flags
     const [showAiModal, setShowAiModal] = useState(false);
     // Removed showMsgModal/TaskModal as unused
-    const [unreadCount, setUnreadCount] = useState(0);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // Initial load animation
@@ -65,64 +63,93 @@ export default function StudentDashboard({ studentData, onLogout }) {
         return () => clearTimeout(timer);
     }, []);
 
-    // --- DATA FETCHING (MEGA SYNC) ---
+    // --- Data Fetching ---
     const fetchData = useCallback(async () => {
         try {
+            console.log('📊 StudentDashboard: Fetching data from database...');
+
             const ovData = await apiGet(`/api/students/${userData.sid}/overview`);
             if (ovData) {
+                console.log('   ✅ Overview data fetched');
                 setOverviewData(ovData);
-                if (ovData.student && (ovData.student.name !== userData.studentName)) {
+                // Always sync name and core fields from server when available to avoid stale/demo fallbacks
+                if (ovData.student) {
                     setUserData(prev => ({
                         ...prev,
                         studentName: ovData.student.name || prev.studentName,
+                        sid: ovData.student.sid || prev.sid,
+                        branch: ovData.student.branch || prev.branch,
+                        year: ovData.student.year || prev.year,
+                        section: ovData.student.section || prev.section,
                         stats: ovData.student.stats || prev.stats
                     }));
                 }
             }
 
             const courseData = await apiGet(`/api/students/${userData.sid}/courses`);
-            if (Array.isArray(courseData)) setExtraCourses(courseData);
+            if (Array.isArray(courseData)) {
+                console.log(`   ✅ Courses fetched: ${courseData.length} items`);
+                setExtraCourses(courseData);
+            }
 
             const materialsData = await apiGet('/api/materials');
-            if (Array.isArray(materialsData)) setServerMaterials(materialsData);
+            if (Array.isArray(materialsData)) {
+                console.log(`   ✅ Materials fetched: ${materialsData.length} items`);
+                setServerMaterials(materialsData);
+            }
 
             const tasksData = await apiGet(`/api/todos?role=student`);
-            if (Array.isArray(tasksData)) setTasks(tasksData);
+            if (Array.isArray(tasksData)) {
+                console.log(`   ✅ Tasks fetched: ${tasksData.length} items`);
+                setTasks(tasksData);
+            }
 
             const msgData = await apiGet('/api/messages');
             if (Array.isArray(msgData)) {
+                console.log(`   ✅ Messages fetched: ${msgData.length} items`);
                 setMessages(msgData);
-                const lastCount = Number(localStorage.getItem('lastReadMsgCount') || 0);
-                if (msgData.length > lastCount) setUnreadCount(msgData.length - lastCount);
             }
+
+            console.log('✅ StudentDashboard: All data loaded successfully');
         } catch (e) {
-            console.error("Nexus Sync Interrupted:", e);
+            console.error("❌ StudentDashboard: Sync Failed:", e);
         }
     }, [userData.sid, userData.studentName]); // Added dependencies
 
     useEffect(() => {
+        console.log('🚀 StudentDashboard: Initial data load started');
         fetchData();
-        const interval = setInterval(fetchData, 2000); // Poll every 2s for FAST real-time updates
 
-        // Fast messages update every 3s
+        // Optimized polling: 5 seconds (more efficient than 2s)
+        const interval = setInterval(() => {
+            console.log('🔄 StudentDashboard: Polling data from database...');
+            fetchData();
+        }, 5000);
+
+        // Fast messages update every 5s
         const msgInterval = setInterval(async () => {
             try {
-                const msgData = await apiGet('/api/messages');
+                const query = new URLSearchParams({
+                    userId: userData.sid,
+                    role: 'student',
+                    year: userData.year,
+                    section: userData.section
+                }).toString();
+                const msgData = await apiGet(`/api/messages?${query}`);
                 if (Array.isArray(msgData)) {
                     setMessages(msgData.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)));
-                    const lastCount = Number(localStorage.getItem('lastReadMsgCount') || 0);
-                    if (msgData.length > lastCount) setUnreadCount(msgData.length - lastCount);
                 }
             } catch (e) {
                 console.debug('Messages update failed', e);
             }
-        }, 3000);
+        }, 5000);
 
         return () => {
+            console.log('🛑 StudentDashboard: Cleaning up intervals');
             clearInterval(interval);
             clearInterval(msgInterval);
         };
-    }, [fetchData]);
+    }, [fetchData, userData.sid, userData.year, userData.section]);
 
     // SSE real-time updates for student data
     useEffect(() => {
@@ -149,21 +176,29 @@ export default function StudentDashboard({ studentData, onLogout }) {
             { id: `${id}-m1`, name: 'Module 1: Fundamental Concepts', description: 'Core principles and architectural basics.' },
             { id: `${id}-m2`, name: 'Module 2: Structural Analysis', description: 'Deep dive into patterns and structural logic.' },
             { id: `${id}-m3`, name: 'Module 3: Advanced Implementation', description: 'Real-world application and system scaling.' },
-            { id: `${id}-m4`, name: 'Module 4: Optimization & Security', description: 'Ensuring performance and crystalline stability.' },
+            { id: `${id}-m4`, name: 'Module 4: Optimization & Security', description: 'Ensuring performance and stability.' },
             { id: `${id}-m5`, name: 'Module 5: Capstone Synthesis', description: 'Integration of all core competencies.' }
         ];
 
         // 1. Merge Extra Courses
         extraCourses.forEach(course => {
+            // Filter by Section
+            const courseSection = course.section || 'All';
+            if (courseSection !== 'All' && courseSection !== userData.section) return;
+
             if (course.semester) {
                 let sem = semesters.find(s => s.sem === Number(course.semester));
                 if (!sem) {
                     sem = { sem: Number(course.semester), subjects: [] };
                     semesters.push(sem);
                 }
-                const existing = sem.subjects.find(s => s.name === course.name);
+                const existing = sem.subjects.find(s =>
+                    s.name.toLowerCase() === course.name.toLowerCase() ||
+                    (s.code && course.code && s.code.toLowerCase() === course.code.toLowerCase())
+                );
                 if (existing) {
                     existing.modules = course.modules && course.modules.length > 0 ? course.modules : existing.modules;
+                    if (course.code) existing.code = course.code;
                 } else {
                     sem.subjects.push({
                         id: course.id || course._id || `dyn-${course.code}`,
@@ -244,22 +279,22 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
     const renderOverview = () => (
         <div className="nexus-hub-viewport">
-            {/* Background Neural Network Graphic */}
+            {/* Background Graphic */}
             <div className="nexus-mesh-bg"></div>
 
             <header className="hub-header">
                 <div className="stat-header-flex">
                     <div>
-                        <h2 className="nexus-page-title">NEXUS COMMAND <span>CENTRAL</span></h2>
-                        <p className="nexus-page-subtitle sub-text-slate">SYSTEM NOMINAL • SYNCED WITH CAMPUS CLOUD MESH</p>
+                        <h2 className="nexus-page-title">FRIENDLY <span>NOTEBOOK</span></h2>
+                        <p className="nexus-page-subtitle sub-text-slate">Welcome to your personal learning space.</p>
                     </div>
                     <div className="pulse-compact-indicator">
                         <div className="compact-node">
-                            <span className="node-lbl">NETWORK</span>
+                            <span className="node-lbl">SYSTEM</span>
                             <span className="node-val">99%</span>
                         </div>
                         <div className="compact-node">
-                            <span className="node-lbl">ACADEMIC</span>
+                            <span className="node-lbl">PROGRESS</span>
                             <span className="node-val">82.4%</span>
                         </div>
                     </div>
@@ -276,7 +311,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 <NexusStat icon={FaTrophy} label="Rank Score" value={overviewData?.student?.stats?.cgpa ? (overviewData.student.stats.cgpa * 10).toFixed(1) : '8.2'} color="#f59e0b" delay={0.3} subtext="Current CGPA" />
                 <NexusStat icon={FaFire} label="Study Streak" value={`${overviewData?.activity?.streak || 0} Days`} color="#f97316" delay={0.4} subtext="Daily Activity" />
                 <NexusStat icon={FaRobot} label="AI Insights" value={overviewData?.activity?.aiUsage || 0} color="#0ea5e9" delay={0.5} subtext="Sessions Active" />
-                <NexusStat icon={FaClipboardList} label="Terminal Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" />
+                <NexusStat icon={FaClipboardList} label="Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" />
             </div>
 
             <main className="nexus-main-layout">
@@ -285,13 +320,13 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
                     <div className="nexus-insight-panel">
                         <div className="panel-header">
-                            <FaLightbulb /> <span>NEURAL INSIGHTS</span>
+                            <FaLightbulb /> <span>Student Insights</span>
                         </div>
                         <div className="panel-body">
-                            <p>Current trajectory analysis suggests completing the <strong>{extraCourses[0]?.name || 'Data Structures'}</strong> module by Friday for optimal mastery points.</p>
+                            <p>Current analysis suggests completing the <strong>{extraCourses[0]?.name || 'Data Structures'}</strong> module by Friday for optimal learning.</p>
                             <div className="ai-status-strip">
                                 <div className="dot pulse"></div>
-                                <span>AGENT NEXUS ACTIVE</span>
+                                <span>AI TUTOR READY</span>
                             </div>
                         </div>
                         <button className="panel-action-btn" onClick={() => setShowAiModal(true)}>
@@ -303,7 +338,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 <section className="nexus-content-col">
                     <div className="nexus-browser-wrap">
                         <div className="browser-glass-header">
-                            <FaLayerGroup /> <span>CURRICULUM SYNC & PERFORMANCE</span>
+                            <FaLayerGroup /> <span>Your Academic Progress</span>
                         </div>
                         <SubjectAttendanceMarks overviewData={overviewData} enrolledSubjects={enrolledSubjects} />
                     </div>
@@ -332,7 +367,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         <div className="nexus-mesh-bg"></div>
                         <header className="hub-header">
                             <h2 className="nexus-page-title">ANNOUNCEMENTS <span>BROADCAST</span></h2>
-                            <p className="nexus-page-subtitle">Global messages and system notifications from administration</p>
+                            <p className="nexus-page-subtitle">Messages from administration.</p>
                         </header>
                         <div className="nexus-browser-wrap">
                             {messages.length > 0 ? (
@@ -371,7 +406,11 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
                 {view === 'journal' && (
                     <div className="nexus-page-container">
-                        <SemesterNotes semester={userData.semester || 'Current'} studentData={userData} />
+                        <SemesterNotes
+                            semester={userData.semester || 'Current'}
+                            studentData={userData}
+                            enrolledSubjects={enrolledSubjects}
+                        />
                     </div>
                 )}
 
@@ -409,8 +448,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     <div className="nexus-hub-viewport">
                         <div className="nexus-mesh-bg"></div>
                         <header className="hub-header">
-                            <h2 className="nexus-page-title">PROFILE <span>CONFIGURATION</span></h2>
-                            <p className="nexus-page-subtitle sub-text-slate">MANAGE YOUR IDENTITY AND SECURE YOUR ACCOUNT</p>
+                            <h2 className="nexus-page-title">Profile <span>Settings</span></h2>
+                            <p className="nexus-page-subtitle sub-text-slate">Manage your account settings</p>
                         </header>
 
                         <div className="nexus-browser-wrap min-h-auto">
@@ -427,8 +466,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     <div className="nexus-hub-viewport">
                         <div className="nexus-mesh-bg"></div>
                         <header className="hub-header">
-                            <h2 className="nexus-page-title">PERFORMANCE <span>MATRIX</span></h2>
-                            <p className="nexus-page-subtitle sub-text-slate">DETAILED SUBJECT-WISE PROGRESSION ANALYTICS</p>
+                            <h2 className="nexus-page-title">Grades & <span>Attendance</span></h2>
+                            <p className="nexus-page-subtitle sub-text-slate">View your detailed progress</p>
                         </header>
                         <SubjectAttendanceMarks overviewData={overviewData} enrolledSubjects={enrolledSubjects} />
                     </div>
@@ -438,8 +477,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     <div className="nexus-hub-viewport" style={{ padding: '0 2rem', height: 'calc(100vh - 100px)' }}>
                         <div className="nexus-mesh-bg"></div>
                         <header className="hub-header" style={{ marginBottom: '1.5rem' }}>
-                            <h2 className="nexus-page-title">NEURAL <span>CORE</span></h2>
-                            <p className="nexus-page-subtitle sub-text-slate">ADVANCED INTELLIGENCE & ACADEMIC ASSISTANCE</p>
+                            <h2 className="nexus-page-title">AI <span>TUTOR</span></h2>
+                            <p className="nexus-page-subtitle sub-text-slate">Your Personal Academic Assistant</p>
                         </header>
                         <div style={{ flex: 1, height: '100%', paddingBottom: '2rem' }}>
                             <VuAiAgent onNavigate={setView} />
@@ -450,7 +489,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
             <button className="ai-fab" onClick={() => setShowAiModal(true)}>
                 <FaRobot />
-                <span className="fab-label">NEXUS AI</span>
+                <span className="fab-label">AI Tutor</span>
             </button>
 
             {showAiModal && (

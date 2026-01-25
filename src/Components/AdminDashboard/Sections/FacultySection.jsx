@@ -1,119 +1,151 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { FaPlus, FaEye, FaEdit, FaTrash, FaChalkboardTeacher, FaUsers, FaBook } from 'react-icons/fa';
 
 /**
- * SENTINEL INSTRUCTOR MANAGEMENT
- * Strategic oversight of instructional personnel and curriculum delivery.
+/**
+ * Faculty Management
+ * Manage instructors and curriculum responsibilities.
  */
-const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty }) => {
-    useEffect(() => {
-        console.log('🎓 FacultySection Rendered - Faculty Data:', faculty);
-        faculty.forEach(f => {
-            console.log(`  👤 ${f.name} (${f.facultyId}):`, {
-                assignments: f.assignments,
-                department: f.department
-            });
+const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, allSubjects = [] }) => {
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const [subjectFilter, setSubjectFilter] = React.useState('All');
+
+    const filteredFaculty = React.useMemo(() => {
+        return faculty.filter(f => {
+            const matchesSearch = (f.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (f.facultyId || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+            const assignments = Array.isArray(f.assignments) ? f.assignments : [];
+            const matchesSubject = subjectFilter === 'All' || assignments.some(a => a.subject === subjectFilter);
+
+            return matchesSearch && matchesSubject;
         });
-    }, [faculty]);
+    }, [faculty, searchTerm, subjectFilter]);
+
+    useEffect(() => {
+        console.log('🎓 FacultySection Rendered');
+        console.log('   - Total Faculty:', faculty.length);
+        console.log('   - Filtered Faculty:', filteredFaculty.length);
+        console.log('   - Faculty Data:', faculty);
+        console.log('   - Search Term:', searchTerm);
+        console.log('   - Subject Filter:', subjectFilter);
+    }, [faculty, filteredFaculty, searchTerm, subjectFilter]);
 
     return (
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>INSTRUCTOR <span>GARRISON</span></h1>
-                    <p>Commanding staff: {faculty.length} educators active</p>
+                    <h1>FACULTY <span>DIRECTORY</span></h1>
+                    <p>Commanding Staff Count: {filteredFaculty.length}</p>
                 </div>
                 <div className="admin-action-bar" style={{ margin: 0 }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('faculty')}>
-                        <FaPlus /> ENLIST NEW INSTRUCTOR
+                        <FaPlus /> RECRUIT FACULTY
                     </button>
                 </div>
             </header>
+
+            <div className="admin-filter-bar" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
+                <div style={{ flex: 1 }}>
+                    <input
+                        className="admin-search-input"
+                        placeholder="Search by name or ID..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{ width: '100%', marginBottom: 0 }}
+                    />
+                </div>
+                <select className="admin-search-input" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ width: '250px', marginBottom: 0 }}>
+                    <option value="All">All Taught Subjects</option>
+                    {allSubjects.map(s => <option key={s.code} value={s.name}>{s.name}</option>)}
+                </select>
+            </div>
 
             <div className="admin-card">
                 <div className="admin-table-wrap">
                     <table className="admin-grid-table">
                         <thead>
                             <tr>
-                                <th>INSTRUCTOR IDENTITY</th>
-                                <th>STAFF TOKEN</th>
+                                <th>FACULTY NAME</th>
+                                <th>SECTOR ID</th>
                                 <th>DEPARTMENT</th>
-                                <th>ASSIGNED CURRICULUM</th>
-                                <th>PERSONNEL REACH</th>
-                                <th>CLASS LOAD</th>
-                                <th>STRATEGIC ACTIONS</th>
+                                <th>ASSIGNED INTEL</th>
+                                <th>CADET COUNT</th>
+                                <th>OPS LOAD</th>
+                                <th>ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {faculty.length > 0 ? (
-                                faculty.map(f => {
-                                    // Ensure assignments is an array
+                            {filteredFaculty.length > 0 ? (
+                                filteredFaculty.map((f, idx) => {
                                     const assignments = Array.isArray(f.assignments) ? f.assignments : [];
-
-                                    // Calculate accurate student count based on assignments
                                     const teachingCount = students.filter(s =>
                                         assignments.some(a =>
                                             String(a.year) === String(s.year) &&
                                             (String(a.section) === String(s.section) || a.section === 'All')
                                         )
                                     ).length;
-
-                                    // Get unique subjects taught
                                     const uniqueSubjects = [...new Set(assignments.map(a => a.subject).filter(Boolean))];
 
                                     return (
-                                        <tr key={f.facultyId} className="sentinel-animate">
+                                        <motion.tr
+                                            key={f.facultyId}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.05 }}
+                                        >
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                    <div className="summary-icon-box" style={{ width: '32px', height: '32px', fontSize: '0.8rem', background: '#f0fdf4', color: '#15803d' }}>
+                                                    <div className="summary-icon-box" style={{ width: '38px', height: '38px', borderRadius: '10px', fontSize: '0.9rem', background: '#f0fdf4', color: '#15803d' }}>
                                                         <FaChalkboardTeacher />
                                                     </div>
-                                                    <span style={{ fontWeight: 950 }}>{f.name}</span>
+                                                    <span style={{ fontWeight: 600 }}>{f.name}</span>
                                                 </div>
                                             </td>
                                             <td><span className="admin-badge primary">{f.facultyId}</span></td>
-                                            <td>{f.department || 'GENERAL'}</td>
+                                            <td>{f.department || 'CENTRAL'}</td>
                                             <td>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxWidth: '300px' }}>
                                                     {uniqueSubjects.length > 0 ? (
-                                                        uniqueSubjects.map((subject, idx) => (
-                                                            <span key={idx} className="admin-badge primary" style={{ fontSize: '0.65rem', textTransform: 'none' }}>
+                                                        uniqueSubjects.map((subject, sIdx) => (
+                                                            <span key={sIdx} className="admin-badge primary" style={{ fontSize: '0.6rem', textTransform: 'none', background: '#eef2ff', color: '#4338ca' }}>
                                                                 {subject}
                                                             </span>
                                                         ))
                                                     ) : (
-                                                        <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontStyle: 'italic' }}>Unassigned</span>
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontStyle: 'italic' }}>PENDING ASSIGNMENT</span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <FaUsers style={{ color: '#94a3b8' }} />
-                                                    <span style={{ fontWeight: 850 }}>{teachingCount}</span>
+                                                    <FaUsers style={{ color: '#94a3b8', fontSize: '0.8rem' }} />
+                                                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{teachingCount}</span>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                                    <FaBook style={{ color: '#94a3b8' }} />
-                                                    <span style={{ fontWeight: 850 }}>{assignments.length} Classes</span>
+                                                    <FaBook style={{ color: '#94a3b8', fontSize: '0.8rem' }} />
+                                                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{assignments.length} UNITS</span>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <button className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="Full Profile" onClick={() => openModal('faculty-view', f)}><FaEye /></button>
-                                                    <button className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Modify" onClick={() => openModal('faculty', f)}><FaEdit /></button>
-                                                    <button className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Deactivate" onClick={() => handleDeleteFaculty(f.facultyId)}><FaTrash /></button>
+                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="Profile Link" onClick={() => openModal('faculty-view', f)}><FaEye /></motion.button>
+                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Recalibrate" onClick={() => openModal('faculty', f)}><FaEdit /></motion.button>
+                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Purge" onClick={() => handleDeleteFaculty(f.facultyId)}><FaTrash /></motion.button>
                                                 </div>
                                             </td>
-                                        </tr>
+                                        </motion.tr>
                                     );
                                 })
                             ) : (
                                 <tr>
                                     <td colSpan="7">
-                                        <div className="admin-empty-state" style={{ padding: '4rem' }}>
-                                            <FaChalkboardTeacher className="admin-empty-icon" />
-                                            <p className="admin-empty-text">No instructors detected in sector Garrison.</p>
+                                        <div className="admin-empty-state" style={{ padding: '6rem' }}>
+                                            <FaChalkboardTeacher className="admin-empty-icon" style={{ opacity: 0.3 }} />
+                                            <p className="admin-empty-text" style={{ fontWeight: 950, color: 'var(--admin-text-muted)' }}>NO PERSONNEL FOUND IN THIS SECTOR</p>
                                         </div>
                                     </td>
                                 </tr>

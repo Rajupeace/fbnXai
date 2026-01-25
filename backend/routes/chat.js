@@ -16,9 +16,13 @@ console.log('✅ Chat routes initialized with role-specific knowledge bases');
 
 const dataDir = path.join(__dirname, '..', 'data');
 const chatHistoryPath = path.join(dataDir, 'chatHistory.json');
+const mongoose = require('mongoose');
+const ChatModel = require('../models/Chat');
 
 function ensureChatHistoryStore() {
     try {
+        // If MongoDB is available, prefer DB and avoid local file creation
+        if (mongoose.connection && mongoose.connection.readyState === 1) return;
         if (!fs.existsSync(dataDir)) {
             fs.mkdirSync(dataDir, { recursive: true });
         }
@@ -30,7 +34,17 @@ function ensureChatHistoryStore() {
     }
 }
 
-function readChatHistory() {
+async function readChatHistory() {
+    // Prefer MongoDB storage when available
+    if (mongoose.connection.readyState === 1) {
+        try {
+            const docs = await ChatModel.find({}).sort({ timestamp: -1 }).limit(500).lean();
+            return docs.reverse(); // oldest first
+        } catch (err) {
+            console.warn('[VuAiAgent] Mongo readChatHistory failed:', err.message);
+        }
+    }
+
     try {
         ensureChatHistoryStore();
         const raw = fs.readFileSync(chatHistoryPath, 'utf8') || '[]';
@@ -41,7 +55,19 @@ function readChatHistory() {
     }
 }
 
-function writeChatHistory(history) {
+async function writeChatHistory(history) {
+    // If Mongo connected, write each entry into DB (replace file storage)
+    if (mongoose.connection.readyState === 1) {
+        try {
+            // Bulk insert but ensure we don't duplicate: insert new ones only
+            const ops = history.map(h => ({ insertOne: { document: h } }));
+            if (ops.length) await ChatModel.bulkWrite(ops);
+            return;
+        } catch (err) {
+            console.warn('[VuAiAgent] Mongo writeChatHistory failed:', err.message);
+        }
+    }
+
     try {
         ensureChatHistoryStore();
         fs.writeFileSync(chatHistoryPath, JSON.stringify(history, null, 2));
@@ -50,13 +76,23 @@ function writeChatHistory(history) {
     }
 }
 
-function appendChatEntry(entry) {
-    const history = readChatHistory();
+async function appendChatEntry(entry) {
+    if (mongoose.connection.readyState === 1) {
+        try {
+            const doc = new ChatModel(entry);
+            await doc.save();
+            return;
+        } catch (err) {
+            console.warn('[VuAiAgent] Failed to append chat to Mongo:', err.message);
+            // fallback to file append
+        }
+    }
+
+    const history = await readChatHistory();
     history.push(entry);
-    // Keep the file from growing indefinitely (retain latest 500 conversations)
     const MAX_ENTRIES = 500;
     const trimmed = history.length > MAX_ENTRIES ? history.slice(history.length - MAX_ENTRIES) : history;
-    writeChatHistory(trimmed);
+    await writeChatHistory(trimmed);
 }
 
 // Helper function to find matching knowledge
@@ -102,10 +138,10 @@ function getKnowledgeBase(role) {
 }
 
 // Retrieve stored chat history
-router.get('/history', (req, res) => {
+router.get('/history', async (req, res) => {
     try {
         const { userId, role, limit } = req.query;
-        const history = readChatHistory();
+        const history = await readChatHistory();
         let filtered = history;
 
         if (userId) {
@@ -257,7 +293,7 @@ router.post('/', async (req, res) => {
             role: role || 'student'
         };
 
-        appendChatEntry({
+        await appendChatEntry({
             id: uuidv4(),
             userId: userId || 'guest',
             role: role || 'student',

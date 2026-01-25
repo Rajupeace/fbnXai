@@ -29,16 +29,16 @@ const StudentHeader = ({
     };
 
     const navItems = [
-        { id: 'overview', label: 'HUB', icon: <FaChartBar /> },
-        { id: 'semester', label: 'ACADEMIA', icon: <FaBook /> },
-        { id: 'journal', label: 'JOURNAL', icon: <FaPen /> },
-        { id: 'marks', label: 'PERF', icon: <FaChartBar /> },
-        { id: 'schedule', label: 'CHRONOS', icon: <FaClipboardList /> },
-        { id: 'faculty', label: 'MENTORS', icon: <FaGraduationCap /> },
-        { id: 'exams', label: 'EXAMS', icon: <FaShieldAlt /> },
-        { id: 'ai-agent', label: 'NEURAL', icon: <FaRobot /> },
-        { id: 'advanced', label: 'STARSHIP', icon: <FaRocket /> },
-        { id: 'settings', label: 'CORE', icon: <FaShieldAlt /> }
+        { id: 'overview', label: 'Dashboard', icon: <FaChartBar /> },
+        { id: 'semester', label: 'Classroom', icon: <FaBook /> },
+        { id: 'journal', label: 'My Notes', icon: <FaPen /> },
+        { id: 'marks', label: 'Grades', icon: <FaChartBar /> },
+        { id: 'schedule', label: 'Schedule', icon: <FaClipboardList /> },
+        { id: 'faculty', label: 'Faculty', icon: <FaGraduationCap /> },
+        { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
+        { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
+        { id: 'advanced', label: 'Advanced', icon: <FaRocket /> },
+        { id: 'settings', label: 'Settings', icon: <FaShieldAlt /> }
     ];
 
     return (
@@ -47,8 +47,8 @@ const StudentHeader = ({
                 <div className="sd-brand-group">
                     <FaGraduationCap className="sd-brand-icon" />
                     <div>
-                        <h1 className="sd-brand-name brand-title">FBN XAI</h1>
-                        <span className="brand-subtitle">STUDENT HUB</span>
+                        <h1 className="sd-brand-name brand-title">Friendly Notebook</h1>
+                        <span className="brand-subtitle">Student Dashboard</span>
                     </div>
                 </div>
 

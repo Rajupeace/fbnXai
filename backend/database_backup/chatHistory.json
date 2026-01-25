@@ -1,0 +1,13 @@
+[
+  {
+    "id": "98030792-b5d4-4915-81f0-cc6ccd23ec4e",
+    "userId": "guest",
+    "role": "admin",
+    "message": "hi]",
+    "response": "Hello Administrator! Welcome to VuAiAgent. I'm here to help you manage the entire system, users, and administrative tasks. What can I assist you with today?",
+    "context": {
+      "name": "Administrator"
+    },
+    "timestamp": "2026-01-23T16:39:18.391Z"
+  }
+]

@@ -10,7 +10,7 @@ const VuAiAgent = ({ onNavigate }) => {
     const defaultBotMessage = {
         id: 'vuai-greeting',
         sender: 'bot',
-        text: 'Neural Core Online. Strategic interface initialized. How can I assist with your objectives today?',
+        text: 'AI Tutor Online. How can I help you learn today?',
         timestamp: new Date().toISOString()
     };
 
@@ -185,7 +185,7 @@ const VuAiAgent = ({ onNavigate }) => {
                 setMessages(prev => [...prev, {
                     id: Date.now() + 1,
                     sender: 'bot',
-                    text: "Strategic buffer empty. Command not recognized.",
+                    text: "I didn't catch that. Could you rephrase?",
                     timestamp: new Date().toISOString()
                 }]);
             }
@@ -194,7 +194,7 @@ const VuAiAgent = ({ onNavigate }) => {
             setMessages(prev => [...prev, {
                 id: Date.now() + 1,
                 sender: 'bot',
-                text: "Neural Link Interrupted. Strategic assets unreachable.",
+                text: "Connection lost. Please try again.",
                 isError: true,
                 timestamp: new Date().toISOString()
             }]);
@@ -210,25 +210,39 @@ const VuAiAgent = ({ onNavigate }) => {
     };
 
     return (
-        <div className="vu-ai-container sentinel-animate">
+        <div className="vu-ai-container">
             {/* Header */}
-            <div className="vu-header">
+            <header className="vu-header">
                 <div className="vu-bot-avatar">
-                    <FaRobot size={22} className="ai-icon-spin" />
+                    <motion.div
+                        animate={{
+                            scale: [1, 1.15, 1],
+                            rotate: [0, 10, -10, 0]
+                        }}
+                        transition={{
+                            duration: 5,
+                            repeat: Infinity,
+                            ease: "easeInOut"
+                        }}
+                    >
+                        <FaRobot size={32} className="ai-icon-spin" />
+                    </motion.div>
+                    <div className="vu-avatar-ring"></div>
                 </div>
                 <div className="vu-title-group">
-                    <h3>NEURAL CORE <span className="vu-version-tag">v7.0</span></h3>
+                    <motion.h3
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                    >
+                        NEURAL INTERFACE <span className="vu-version-tag">STN-X9</span>
+                    </motion.h3>
                     <div className="vu-status">
                         <div className="vu-status-dot"></div>
-                        <span>SYNCED WITH SENTINEL</span>
+                        <span>SENTINEL CORE ONLINE</span>
                     </div>
                 </div>
-                <div className="vu-header-decor">
-                    <div className="vu-decor-dot"></div>
-                    <div className="vu-decor-dot"></div>
-                    <div className="vu-decor-dot"></div>
-                </div>
-            </div>
+            </header>
 
             {/* Messages Area */}
             <div className="vu-messages sentinel-scrollbar">
@@ -257,7 +271,7 @@ const VuAiAgent = ({ onNavigate }) => {
                                 )}
                             </div>
                             <div className="vu-timestamp">
-                                {msg.sender === 'user' ? 'AUTHD_USER' : 'CORE_INTEL'} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {msg.sender === 'user' ? 'You' : 'AI Tutor'} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                         </motion.div>
                     ))}
@@ -270,7 +284,7 @@ const VuAiAgent = ({ onNavigate }) => {
                         className="vu-typing"
                     >
                         <div className="neural-pulse-loader"></div>
-                        <span>SYNTHESIZING...</span>
+                        <span>Thinking...</span>
                     </motion.div>
                 )}
                 <div ref={messagesEndRef} />
@@ -284,7 +298,7 @@ const VuAiAgent = ({ onNavigate }) => {
                         className="vu-input-field"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Inquire Neural Core personnel archives or curriculum maps..."
+                        placeholder="Ask me about your courses, grades, or schedule..."
                         disabled={isLoading || isHistoryLoading}
                     />
                     <button

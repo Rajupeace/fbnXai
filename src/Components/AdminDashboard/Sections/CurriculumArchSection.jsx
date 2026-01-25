@@ -3,17 +3,21 @@ import { FaEdit, FaSave } from 'react-icons/fa';
 import '../AdminDashboard.css';
 
 /**
- * CURRICULUM ARCHITECTURE SECTION
- * Manage curriculum sections A-T and subsections 1-20
+/**
+ * Curriculum Designer
+ * Design curriculum structure and topics.
  */
 const CurriculumArchSection = () => {
   const [curriculumData, setCurriculumData] = useState(() => {
     const stored = localStorage.getItem('curriculumArch');
     if (stored) return JSON.parse(stored);
-    
+
     const initial = {};
-    const sections = 'ABCDEFGHIJKLMNOPQRST'.split('');
-    sections.forEach(section => {
+    const alphaSections = Array.from({ length: 16 }, (_, i) => String.fromCharCode(65 + i)); // A-P
+    const numSections = Array.from({ length: 20 }, (_, i) => String(i + 1)); // 1-20
+    const allSections = [...alphaSections, ...numSections];
+
+    allSections.forEach(section => {
       initial[section] = {
         name: `Section ${section}`,
         description: '',
@@ -59,7 +63,7 @@ const CurriculumArchSection = () => {
 
   const handleSave = () => {
     saveCurriculum();
-    alert('✅ Curriculum Architecture saved successfully!');
+    alert('✅ Curriculum saved successfully!');
   };
 
   const sections = Object.keys(curriculumData).sort();
@@ -67,8 +71,8 @@ const CurriculumArchSection = () => {
   return (
     <div className="admin-section curriculum-arch-section">
       <div className="section-header">
-        <h2>📚 CURRICULUM ARCHITECTURE</h2>
-        <p>Manage curriculum sections (A-T) and topics (1-20)</p>
+        <h2>📚 CURRICULUM DESIGNER</h2>
+        <p>Structure your academic curriculum.</p>
       </div>
 
       <div className="curriculum-layout">
@@ -189,8 +193,11 @@ const CurriculumArchSection = () => {
           if (window.confirm('Reset to defaults?')) {
             setCurriculumData(prev => {
               const reset = {};
-              const sections = 'ABCDEFGHIJKLMNOPQRST'.split('');
-              sections.forEach(section => {
+              const alphaSections = Array.from({ length: 16 }, (_, i) => String.fromCharCode(65 + i)); // A-P
+              const numSections = Array.from({ length: 20 }, (_, i) => String(i + 1)); // 1-20
+              const allSections = [...alphaSections, ...numSections];
+
+              allSections.forEach(section => {
                 reset[section] = {
                   name: `Section ${section}`,
                   description: '',
@@ -262,7 +269,7 @@ const CurriculumArchSection = () => {
 
         .section-buttons {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 0.5rem;
         }
 

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FaDownload, FaArrowLeft, FaChevronRight, FaRegFolder, FaRegFileAlt, FaVideo, FaLightbulb, FaFileAlt } from 'react-icons/fa';
+import { FaDownload, FaArrowLeft, FaChevronRight, FaRegFolder, FaRegFileAlt, FaVideo, FaLightbulb, FaFileAlt, FaCube } from 'react-icons/fa';
 
 /**
  * PREMIUM NEXUS ACADEMIC BROWSER
@@ -157,6 +157,7 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
             const notes = [...(staticResources.notes || []), ...dynamicResources.filter(m => m.type === 'notes')];
             const videos = [...(staticResources.videos || []), ...dynamicResources.filter(m => m.type === 'videos')];
             const papers = [...(staticResources.modelPapers || []), ...dynamicResources.filter(m => m.type === 'modelPapers' || m.type === 'previousQuestions')];
+            const models = dynamicResources.filter(m => m.type === 'models');
 
             return (
                 <div className="nexus-resources">
@@ -206,6 +207,24 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                         </div>
                                         <div className="res-actions">
                                             <a href={p.url} target="_blank" rel="noreferrer" className="dl-btn"><FaDownload /></a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {models.length > 0 && (
+                        <div className="res-section">
+                            <h4>🤖 AI MODELS / 3D ASSETS</h4>
+                            <div className="res-row">
+                                {models.map((m, i) => (
+                                    <div key={i} className="res-card-v2">
+                                        <div className="res-info">
+                                            <FaCube className="text-primary" />
+                                            <span>{m.title}</span>
+                                        </div>
+                                        <div className="res-actions">
+                                            <a href={m.url} target="_blank" rel="noreferrer" className="dl-btn"><FaDownload /></a>
                                         </div>
                                     </div>
                                 ))}

@@ -2,6 +2,7 @@ const Student = require('../models/Student');
 const Attendance = require('../models/Attendance');
 const ExamResult = require('../models/ExamResult');
 const Exam = require('../models/Exam');
+const mongoose = require('mongoose');
 
 // @desc    Get Student Mega Overview (Attendance, Marks, Stats)
 // @route   GET /api/students/:id/overview
@@ -10,15 +11,21 @@ exports.getStudentOverview = async (req, res) => {
   try {
     const { id } = req.params; // studentId (sid) e.g., '123'
 
+    console.log(`📊 getStudentOverview: Fetching data for student ${id}`);
+
     // 1. Get Student Basic Data & Stats (MongoDB-only)
     if (mongoose.connection.readyState !== 1) {
+      console.error('❌ MongoDB not connected');
       return res.status(503).json({ error: 'Database not connected' });
     }
 
     const student = await Student.findOne({ sid: id }).lean();
     if (!student) {
+      console.error(`❌ Student ${id} not found in database`);
       return res.status(404).json({ error: 'Student not found' });
     }
+
+    console.log(`✅ Student found: ${student.studentName}`);
 
     // Compute attendance from Attendance collection when available
     let attendanceSummary = {
@@ -50,11 +57,12 @@ exports.getStudentOverview = async (req, res) => {
           }
           attendanceSummary.totalClasses = total;
           attendanceSummary.totalPresent = present;
-          attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : null;
+          attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : 0;
           for (const k of Object.keys(subjectMap)) {
             const s = subjectMap[k];
             attendanceSummary.details[k] = { total: s.total, present: s.present, percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0 };
           }
+          console.log(`✅ Attendance calculated: ${attendanceSummary.overall}%`);
         }
       } else {
         // Aggregated records case
@@ -72,14 +80,15 @@ exports.getStudentOverview = async (req, res) => {
         }
         attendanceSummary.totalClasses = total;
         attendanceSummary.totalPresent = present;
-        attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : null;
+        attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : 0;
         for (const k of Object.keys(subjectMap)) {
           const s = subjectMap[k];
           attendanceSummary.details[k] = { total: s.total, present: s.present, percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0 };
         }
+        console.log(`✅ Attendance calculated: ${attendanceSummary.overall}%`);
       }
     } catch (attErr) {
-      console.error('Attendance aggregation error:', attErr);
+      console.error('⚠️  Attendance aggregation error:', attErr.message);
     }
 
     // Academics: attempt to compute overall percentage from ExamResult if available
@@ -113,9 +122,10 @@ exports.getStudentOverview = async (req, res) => {
             average: Math.round(subjectStats[s].totalPct / subjectStats[s].count)
           };
         });
+        console.log(`✅ Marks calculated: ${academicsSummary.overallPercentage}%`);
       }
     } catch (examErr) {
-      console.error('Exam computation skipped:', examErr);
+      console.error('⚠️  Exam computation skipped:', examErr.message);
     }
 
     // Activity: derive from student.stats when available, default to zeroes
@@ -164,6 +174,8 @@ exports.getStudentOverview = async (req, res) => {
       console.error("Error fetching faculty for student:", facErr);
     }
 
+    console.log('✅ Student overview data compiled successfully');
+
     // Return overview with computed or null/default values
     res.json({
       student: {
@@ -182,37 +194,14 @@ exports.getStudentOverview = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Overview error:', error);
-    // Return fallback data even on error
-    res.json({
-      student: {
-        name: 'Demo Student',
-        sid: req.params.id || 'demo_user',
-        branch: 'CSE',
-        year: 3,
-        section: 'A'
-      },
-      semesterProgress: 65, // Explicitly added for dashboard
-      attendance: {
-        overall: 88,
-        details: {
-          'Cloud Computing': { total: 20, present: 18, percentage: 90 },
-          'Compiler Design': { total: 18, present: 16, percentage: 88 },
-          'Web Technologies': { total: 22, present: 20, percentage: 91 }
-        },
-        totalClasses: 60,
-        totalPresent: 54
-      },
-      academics: {
-        overallPercentage: 82,
-        details: {},
-        totalExamsTaken: 4
-      },
-      activity: {
-        streak: 12,
-        aiUsage: 45,
-        advancedLearning: 75
-      }
+    console.error('❌ Overview error:', error);
+    console.error('   Error details:', error.message);
+    console.error('   Stack:', error.stack);
+
+    // Return error instead of demo data
+    res.status(500).json({
+      error: 'Failed to fetch student overview',
+      details: error.message
     });
   }
 };

@@ -8,7 +8,7 @@ const Faculty = require('../models/Faculty');
 // @access  Private
 exports.getMaterials = async (req, res) => {
   try {
-    const { year, section, subject, type, course } = req.query;
+    const { year, section, subject, type, course, isAdvanced } = req.query;
     let allMaterials = [];
 
     // Require MongoDB
@@ -26,6 +26,7 @@ exports.getMaterials = async (req, res) => {
         if (subject) query.subject = subject;
         if (type) query.type = type;
         if (course) query.course = course;
+        if (isAdvanced) query.isAdvanced = isAdvanced === 'true';
 
         const materials = await Material.find(query)
           .populate('course', 'courseCode courseName')

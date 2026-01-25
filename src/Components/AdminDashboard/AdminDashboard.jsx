@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 import AdminHeader from './Sections/AdminHeader';
 import './AdminDashboard.css';
@@ -7,21 +7,20 @@ import api from '../../utils/apiClient';
 import { getYearData } from '../StudentDashboard/branchData';
 // import AcademicPulse from '../StudentDashboard/AcademicPulse'; // Removed unused import
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
-import SystemIntelligence from './SystemIntelligence';
 import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
 import AdminExams from './AdminExams';
 import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import sseClient from '../../utils/sseClient';
 
 // Newly extracted sections
 import StudentSection from './Sections/StudentSection';
 import FacultySection from './Sections/FacultySection';
-import CourseSection from './Sections/CourseSection';
 import MaterialSection from './Sections/MaterialSection';
 import MessageSection from './Sections/MessageSection';
 import TodoSection from './Sections/TodoSection';
-import CurriculumArchSection from './Sections/CurriculumArchSection';
+import AcademicHub from './Sections/AcademicHub';
 
 
 // Helper for mocked API or local storage check
@@ -60,18 +59,47 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
   const [editItem, setEditItem] = useState(null);
   const [facultyAssignments, setFacultyAssignments] = useState([]); // For managing multiple teaching assignments
   const [msgTarget, setMsgTarget] = useState('all'); // Targeted messages state
-  // Removed setOverviewData
+  const [globalSectionFilter, setGlobalSectionFilter] = useState('A');
+  // Centralized subject registry (merges database + static curriculum)
+  const allAvailableSubjects = useMemo(() => {
+    const dbSubjects = courses.map(c => ({ name: c.name, code: c.code, branch: c.branch }));
+    const staticBranches = ['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil', 'IT', 'AIML'];
+    let staticSubjects = [];
+    staticBranches.forEach(b => {
+      [1, 2, 3, 4].forEach(y => {
+        const data = getYearData(b, String(y));
+        data?.semesters?.forEach(s => {
+          s.subjects.forEach(sub => {
+            if (!staticSubjects.find(ex => ex.code === sub.code)) {
+              staticSubjects.push({ name: sub.name, code: sub.code, branch: b });
+            }
+          });
+        });
+      });
+    });
+
+    const merged = [...dbSubjects];
+    staticSubjects.forEach(ss => {
+      if (!merged.some(ms => ms.code === ss.code || ms.name === ss.name)) merged.push(ss);
+    });
+    return merged.sort((a, b) => a.name.localeCompare(b.name));
+  }, [courses]);
 
   // Load Initial Data
   useEffect(() => {
+    console.log('🚀 AdminDashboard: Initial data load started');
     loadData();
     // Load ToDos from local storage
     const savedTodos = JSON.parse(localStorage.getItem('adminTodos') || '[]');
     setTodos(savedTodos);
 
-    const interval = setInterval(loadData, 2000); // Poll every 2s for FAST real-time updates
+    // Optimized polling: 5 seconds (more efficient than 2s)
+    const interval = setInterval(() => {
+      console.log('🔄 AdminDashboard: Polling data from database...');
+      loadData();
+    }, 5000);
 
-    // Fast announcements update every 2s
+    // Fast announcements update every 5s
     const messagesInterval = setInterval(async () => {
       try {
         if (USE_API) {
@@ -81,9 +109,10 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       } catch (e) {
         console.debug('Messages refresh failed', e);
       }
-    }, 2000);
+    }, 5000);
 
     return () => {
+      console.log('🛑 AdminDashboard: Cleaning up intervals');
       clearInterval(interval);
       clearInterval(messagesInterval);
     };
@@ -144,13 +173,16 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
   const loadData = async () => {
     try {
+      console.log('📊 loadData: Starting data fetch from database...');
       if (USE_API) {
         const fetchSafely = async (path, defaultVal = []) => {
           try {
+            console.log(`   → Fetching ${path}...`);
             const res = await api.apiGet(path);
+            console.log(`   ✅ ${path} fetched:`, Array.isArray(res) ? `${res.length} items` : 'object');
             return Array.isArray(res) ? res : (res?.data || defaultVal);
           } catch (e) {
-            console.warn(`Defensive Load: ${path} failed`, e.message);
+            console.error(`   ❌ ${path} failed:`, e.message);
             return defaultVal;
           }
         };
@@ -170,7 +202,13 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           assignments: Array.isArray(faculty.assignments) ? faculty.assignments : []
         }));
 
-        console.log('✅ Faculty loaded with assignments:', facultyWithAssignments);
+        console.log('📊 loadData: Data loaded successfully');
+        console.log('   • Students:', s.length);
+        console.log('   • Faculty:', facultyWithAssignments.length);
+        console.log('   • Courses:', c.length);
+        console.log('   • Materials:', m.length);
+        console.log('   • Messages:', msg.length);
+        console.log('   • Todos:', t.length);
 
         setStudents(s);
         setFaculty(facultyWithAssignments);
@@ -179,6 +217,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         setMessages(msg.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
         setTodos(t);
       } else {
+        console.log('📊 loadData: Using local storage (API disabled)');
         const s = await readStudents();
         const f = await readFaculty();
         // Load materials from localStorage - getting ALL materials in a flat list for admin view
@@ -192,7 +231,9 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         setMessages(JSON.parse(localStorage.getItem('adminMessages') || '[]'));
       }
     } catch (err) {
-      console.error('Data load error', err);
+      console.error('❌ loadData: Critical error:', err);
+      console.error('   Error details:', err.message);
+      console.error('   Stack:', err.stack);
     }
   };
 
@@ -317,14 +358,14 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         if (USE_API) {
           const idToUpdate = editItem._id || editItem.facultyId;
           console.log('🔄 Updating faculty:', idToUpdate);
-          
+
           const updatedData = await api.apiPut(`/api/faculty/${idToUpdate}`, data);
           console.log('✅ Faculty updated from server:', updatedData);
 
           // Ensure assignments is preserved in the state
           newFaculty = newFaculty.map(f => {
-            const isSameFaculty = (f._id && updatedData._id && f._id.toString() === updatedData._id.toString()) || 
-                                  f.facultyId === editItem.facultyId;
+            const isSameFaculty = (f._id && updatedData._id && f._id.toString() === updatedData._id.toString()) ||
+              f.facultyId === editItem.facultyId;
             if (isSameFaculty) {
               return {
                 ...f,
@@ -367,6 +408,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       setFaculty(newFaculty);
       console.log('✅ Faculty state updated successfully');
       closeModal();
+
+      // Force immediate data reload to ensure dashboard shows updated data
+      if (USE_API) {
+        console.log('🔄 Forcing faculty data reload...');
+        await loadData();
+      }
     } catch (err) {
       console.error('Faculty Save Error:', err);
       alert('Failed to save faculty. ' + (err.message || ''));
@@ -409,6 +456,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       if (!USE_API) await writeFaculty(newFac);
 
       setFaculty(newFac);
+
+      // Force immediate data reload to ensure dashboard shows updated data
+      if (USE_API) {
+        console.log('🔄 Forcing faculty data reload after delete...');
+        await loadData();
+      }
     } catch (err) {
       console.error(err);
       alert('Failed to delete faculty');
@@ -447,9 +500,9 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             }
           } else {
             // Normal Update
-            const idToUpdate = editItem.id;
+            const idToUpdate = editItem._id || editItem.id;
             await api.apiPut(`/api/courses/${idToUpdate}`, data);
-            newCourses = newCourses.map(c => c.id === editItem.id ? { ...c, ...data } : c);
+            newCourses = newCourses.map(c => (c._id === idToUpdate || c.id === idToUpdate) ? { ...c, ...data } : c);
           }
         } else {
           newCourses = newCourses.map(c => c.id === editItem.id ? { ...c, ...data } : c);
@@ -493,7 +546,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
   const handleDeleteCourse = async (id) => {
     // Find the course to be deleted
-    const courseToDelete = courses.find(c => c.id === id);
+    const courseToDelete = courses.find(c => c.id === id || c._id === id);
     if (!courseToDelete) return;
 
     if (!window.confirm(`Delete Subject: ${courseToDelete.name}?`)) return;
@@ -564,7 +617,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       }
 
       // Update Local State (Visual Only or LocalStorage fallback)
-      const newCourses = courses.filter(c => c.id !== id);
+      const newCourses = courses.filter(c => c.id !== id && c._id !== id);
       setCourses(newCourses);
       if (!USE_API) localStorage.setItem('courses', JSON.stringify(newCourses));
     } catch (err) {
@@ -999,290 +1052,262 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       </button>
 
       <main className="admin-viewport">
-        <div key={activeSection} className="admin-content-scroll sentinel-animate">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 1.02, y: -10 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="admin-content-scroll"
+          >
 
-          {activeSection === 'overview' && (
-            <div className="animate-fade-in">
-              <header className="admin-page-header">
-                <div className="admin-page-title">
-                  <h1>{new Date().getHours() < 12 ? 'MORNING' : new Date().getHours() < 18 ? 'AFTERNOON' : 'EVENING'} <span>COMMAND</span></h1>
-                  <p>Strategic oversight and real-time operational telemetry</p>
-                </div>
-                <div className="f-sync-badge">
-                  SYSTEM TIME: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </header>
+            {activeSection === 'overview' && (
+              <div className="animate-fade-in">
+                <header className="admin-page-header">
+                  <div className="admin-page-title">
+                    <h1>{new Date().getHours() < 12 ? 'MORNING' : new Date().getHours() < 18 ? 'AFTERNOON' : 'EVENING'} <span>COMMAND</span></h1>
+                    <p>Strategic oversight and real-time operational telemetry</p>
+                  </div>
+                  <div className="f-sync-badge">
+                    SYSTEM TIME: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </header>
 
-              {/* Global Announcements & Messages Banner */}
-              {messages.length > 0 && (
-                <div className="admin-equal-layout" style={{ marginBottom: '2rem' }}>
-                  <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(168,85,247,0.1))', borderLeft: '4px solid #6366f1' }}>
+
+                {/* Dashboard Quick Links */}
+                <div className="admin-equal-layout" style={{ marginBottom: '2rem', gap: '1.5rem' }}>
+                  <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.1))', borderTop: '3px solid #3b82f6', cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveSection('students')}>
                     <div className="f-node-head">
-                      <h3 className="f-node-title"><FaBullhorn style={{ marginRight: '0.5rem' }} /> ANNOUNCEMENTS</h3>
-                      <button onClick={() => setActiveSection('messages')} className="admin-btn admin-btn-outline" style={{ height: '32px', fontSize: '0.65rem', border: 'none' }}>VIEW ALL</button>
+                      <h4 className="f-node-title"><FaUserGraduate /> MANAGE STUDENTS</h4>
                     </div>
-                    <div className="admin-list-container" style={{ gap: '0.75rem', marginTop: '1rem' }}>
-                      {messages.slice(0, 3).map((msg, i) => (
-                        <div key={msg.id || i} className="admin-msg-card" style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', fontSize: '0.85rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                            <span style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>{msg.message || msg.text}</span>
-                            <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>{new Date(msg.createdAt || msg.date).toLocaleTimeString()}</span>
-                          </div>
+                    <p style={{ fontSize: '0.85rem', opacity: 0.8, margin: 0 }}>View, edit, and manage all student records and enrollment data</p>
+                  </div>
+                  <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1))', borderTop: '3px solid #10b981', cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveSection('faculty')}>
+                    <div className="f-node-head">
+                      <h4 className="f-node-title"><FaChalkboardTeacher /> MANAGE FACULTY</h4>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', opacity: 0.8, margin: 0 }}>Oversee instructor assignments and teaching schedules</p>
+                  </div>
+                </div>
+
+                <div className="admin-stats-grid">
+                  <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('students')} style={{ cursor: 'pointer', transition: 'all 0.3s' }}>
+                    <div className="summary-icon-box" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--admin-primary)' }}><FaUserGraduate /></div>
+                    <div className="value">{students.length}</div>
+                    <div className="label">TOTAL CADET CORPS</div>
+                  </div>
+                  <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('faculty')} style={{ animationDelay: '0.1s', cursor: 'pointer', transition: 'all 0.3s' }}>
+                    <div className="summary-icon-box" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FaChalkboardTeacher /></div>
+                    <div className="value">{faculty.length}</div>
+                    <div className="label">COMMAND STAFF</div>
+                  </div>
+                  <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('courses')} style={{ animationDelay: '0.2s', cursor: 'pointer', transition: 'all 0.3s' }}>
+                    <div className="summary-icon-box" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><FaBook /></div>
+                    <div className="value">{courses.length}</div>
+                    <div className="label">ACTIVE MODULES</div>
+                  </div>
+                  <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('materials')} style={{ animationDelay: '0.3s', cursor: 'pointer', transition: 'all 0.3s' }}>
+                    <div className="summary-icon-box" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}><FaLayerGroup /></div>
+                    <div className="value">{materials.length}</div>
+                    <div className="label">DATA ARCHIVES</div>
+                  </div>
+                </div>
+
+                <div className="admin-split-layout">
+
+
+                  <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.5s', display: 'flex', flexDirection: 'column' }}>
+                    <div className="f-node-head">
+                      <h3 className="f-node-title">DIRECTIVES QUEUE</h3>
+                      <button onClick={() => setActiveSection('todos')} className="admin-btn admin-btn-outline" style={{ height: '32px', fontSize: '0.65rem', border: 'none' }}>MANAGE</button>
+                    </div>
+                    <div className="admin-list-container" style={{ gap: '0.75rem', marginTop: '1.25rem', flex: 1 }}>
+                      {todos.filter(t => !t.completed).slice(0, 5).map(t => (
+                        <div key={t.id} className="admin-telemetry-tag">
+                          <div className="admin-telemetry-dot"></div>
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.text}</span>
                         </div>
                       ))}
+                      {todos.filter(t => !t.completed).length === 0 && <p className="admin-empty-text" style={{ margin: 'auto' }}>ALL OBJECTIVES CLEARED</p>}
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* Dashboard Quick Links */}
-              <div className="admin-equal-layout" style={{ marginBottom: '2rem', gap: '1.5rem' }}>
-                <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(59,130,246,0.1), rgba(37,99,235,0.1))', borderTop: '3px solid #3b82f6', cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveSection('students')}>
-                  <div className="f-node-head">
-                    <h4 className="f-node-title"><FaUserGraduate /> MANAGE STUDENTS</h4>
-                  </div>
-                  <p style={{ fontSize: '0.85rem', opacity: 0.8, margin: 0 }}>View, edit, and manage all student records and enrollment data</p>
-                </div>
-                <div className="f-node-card animate-slide-up" style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1))', borderTop: '3px solid #10b981', cursor: 'pointer', transition: 'all 0.3s' }} onClick={() => setActiveSection('faculty')}>
-                  <div className="f-node-head">
-                    <h4 className="f-node-title"><FaChalkboardTeacher /> MANAGE FACULTY</h4>
-                  </div>
-                  <p style={{ fontSize: '0.85rem', opacity: 0.8, margin: 0 }}>Oversee instructor assignments and teaching schedules</p>
-                </div>
-              </div>
-
-              <div className="admin-stats-grid">
-                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('students')} style={{ cursor: 'pointer', transition: 'all 0.3s' }}>
-                  <div className="summary-icon-box" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--admin-primary)' }}><FaUserGraduate /></div>
-                  <div className="value">{students.length}</div>
-                  <div className="label">TOTAL CADET CORPS</div>
-                </div>
-                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('faculty')} style={{ animationDelay: '0.1s', cursor: 'pointer', transition: 'all 0.3s' }}>
-                  <div className="summary-icon-box" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FaChalkboardTeacher /></div>
-                  <div className="value">{faculty.length}</div>
-                  <div className="label">COMMAND STAFF</div>
-                </div>
-                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('courses')} style={{ animationDelay: '0.2s', cursor: 'pointer', transition: 'all 0.3s' }}>
-                  <div className="summary-icon-box" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><FaBook /></div>
-                  <div className="value">{courses.length}</div>
-                  <div className="label">ACTIVE MODULES</div>
-                </div>
-                <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('materials')} style={{ animationDelay: '0.3s', cursor: 'pointer', transition: 'all 0.3s' }}>
-                  <div className="summary-icon-box" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}><FaLayerGroup /></div>
-                  <div className="value">{materials.length}</div>
-                  <div className="label">DATA ARCHIVES</div>
-                </div>
-              </div>
-
-              <div className="admin-split-layout">
-
-
-                <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.5s', display: 'flex', flexDirection: 'column' }}>
-                  <div className="f-node-head">
-                    <h3 className="f-node-title">DIRECTIVES QUEUE</h3>
-                    <button onClick={() => setActiveSection('todos')} className="admin-btn admin-btn-outline" style={{ height: '32px', fontSize: '0.65rem', border: 'none' }}>MANAGE</button>
-                  </div>
-                  <div className="admin-list-container" style={{ gap: '0.75rem', marginTop: '1.25rem', flex: 1 }}>
-                    {todos.filter(t => !t.completed).slice(0, 5).map(t => (
-                      <div key={t.id} className="admin-telemetry-tag">
-                        <div className="admin-telemetry-dot"></div>
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.text}</span>
+                  <div className="admin-equal-layout">
+                    <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.7s' }}>
+                      <div className="f-node-head">
+                        <h3 className="f-node-title">CADET PERFORMANCE ANALYTICS</h3>
+                        <span className="admin-badge accent">REAL-TIME</span>
                       </div>
-                    ))}
-                    {todos.filter(t => !t.completed).length === 0 && <p className="admin-empty-text" style={{ margin: 'auto' }}>ALL OBJECTIVES CLEARED</p>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="admin-equal-layout">
-                <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.6s' }}>
-                  <div className="f-node-head">
-                    <h3 className="f-node-title">INTELLIGENCE OVERLAY</h3>
-                    <span className="admin-badge primary">RECURSIVE</span>
-                  </div>
-                  <div style={{ padding: '0.5rem' }}>
-                    <SystemIntelligence />
-                  </div>
-                </div>
-
-                <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.7s' }}>
-                  <div className="f-node-head">
-                    <h3 className="f-node-title">CADET PERFORMANCE ANALYTICS</h3>
-                    <span className="admin-badge accent">REAL-TIME</span>
-                  </div>
-                  <div style={{ padding: '0.5rem' }}>
-                    <div className="admin-empty-state">
-                      <p className="admin-empty-text">MODULE OFFLINE</p>
+                      <div style={{ padding: '0.5rem' }}>
+                        <div className="admin-empty-state">
+                          <p className="admin-empty-text">MODULE OFFLINE</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="admin-nexus-banner animate-slide-up" onClick={() => setActiveSection('ai-agent')} style={{ animationDelay: '0.8s' }}>
-                <div className="summary-icon-box" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', width: '70px', height: '70px', borderRadius: '20px' }}>
-                  <FaRobot size={32} />
+                <div className="admin-nexus-banner animate-slide-up" onClick={() => setActiveSection('ai-agent')} style={{ animationDelay: '0.8s' }}>
+                  <div className="summary-icon-box" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', width: '70px', height: '70px', borderRadius: '20px' }}>
+                    <FaRobot size={32} />
+                  </div>
+                  <div>
+                    <h3 style={{ color: 'white', margin: 0, fontSize: '1.8rem', fontWeight: 950, letterSpacing: '-0.5px' }}>SENTINEL AI CORE</h3>
+                    <p style={{ margin: '0.4rem 0 0', opacity: 0.85, fontSize: '0.9rem', fontWeight: 850 }}>Initialize high-level cognitive assistance for departmental orchestration and data processing.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 style={{ color: 'white', margin: 0, fontSize: '1.8rem', fontWeight: 950, letterSpacing: '-0.5px' }}>SENTINEL AI CORE</h3>
-                  <p style={{ margin: '0.4rem 0 0', opacity: 0.85, fontSize: '0.9rem', fontWeight: 850 }}>Initialize high-level cognitive assistance for departmental orchestration and data processing.</p>
+              </div>
+            )}
+
+            {/* Dynamic Sections based on Header Navigation */}
+            {activeSection === 'students' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>PERSONNEL REGISTRY</h2>
+                  <div className="admin-badge primary">ACTIVE SESSION</div>
+                </div>
+                <StudentSection
+                  students={students}
+                  openModal={openModal}
+                  handleDeleteStudent={handleDeleteStudent}
+                />
+              </div>
+            )}
+
+            {activeSection === 'faculty' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>COMMANDING STAFF</h2>
+                  <div className="admin-badge accent">AUTHORIZED PERSONNEL</div>
+                </div>
+                <FacultySection
+                  faculty={faculty}
+                  students={students}
+                  openModal={openModal}
+                  handleDeleteFaculty={handleDeleteFaculty}
+                  allSubjects={allAvailableSubjects}
+                />
+              </div>
+            )}
+
+            {activeSection === 'courses' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <AcademicHub
+                  courses={courses}
+                  students={students}
+                  materials={materials}
+                  openModal={openModal}
+                  handleDeleteCourse={handleDeleteCourse}
+                  initialSection={globalSectionFilter}
+                  onSectionChange={setGlobalSectionFilter}
+                />
+              </div>
+            )}
+
+            {activeSection === 'materials' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 3rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '3rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>KNOWLEDGE REPOSITORY</h2>
+                  <div className="admin-badge warning">ENCRYPTED ARCHIVE</div>
+                </div>
+
+                <MaterialSection
+                  materials={materials}
+                  openModal={openModal}
+                  handleDeleteMaterial={handleDeleteMaterial}
+                  getFileUrl={getFileUrl}
+                  allSubjects={allAvailableSubjects}
+                />
+
+
+              </div>
+            )}
+
+            {activeSection === 'attendance' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>PRESENCE TELEMETRY</h2>
+                  <div className="admin-badge warning">LIVE STREAM</div>
+                </div>
+                <AdminAttendancePanel />
+              </div>
+            )}
+
+            {activeSection === 'schedule' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>TEMPORAL ORCHESTRATION</h2>
+                  <div className="admin-badge primary">CHRONOS SYNC</div>
+                </div>
+                <AdminScheduleManager />
+              </div>
+            )}
+
+            {activeSection === 'todos' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>OPERATIONAL DIRECTIVES</h2>
+                  <div className="admin-badge danger">CRITICAL PATH</div>
+                </div>
+                <TodoSection
+                  todos={todos}
+                  openModal={openModal}
+                  toggleTodo={toggleTodo}
+                  deleteTodo={deleteTodo}
+                />
+              </div>
+            )}
+
+            {activeSection === 'messages' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>SIGNAL INTELLIGENCE</h2>
+                  <div className="admin-badge primary">SECURE LINK</div>
+                </div>
+                <MessageSection
+                  messages={messages}
+                  openModal={openModal}
+                />
+              </div>
+            )}
+
+            {activeSection === 'broadcast' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div style={{ textAlign: 'center', margin: '4rem 0' }}>
+                  <h2 style={{ fontSize: '3rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-2px', marginBottom: '1rem' }}>GLOBAL BROADCAST SYSTEM</h2>
+                  <p style={{ color: 'var(--admin-text-muted)', fontWeight: 850 }}>Initialize high-priority transmissions to all terminal nodes.</p>
+                </div>
+                <div style={{ maxWidth: '700px', margin: '0 auto', background: 'white', padding: '4rem', borderRadius: '32px', border: '1px solid var(--admin-border)', boxShadow: 'var(--admin-shadow-lg)', textAlign: 'center' }}>
+                  <div style={{ fontSize: '4rem', color: '#f43f5e', marginBottom: '2rem' }}><FaBullhorn /></div>
+                  <button onClick={() => openModal('message')} className="admin-btn admin-btn-primary" style={{ width: '100%', height: '70px', fontSize: '1.2rem' }}>
+                    INITIATE EMERGENCY BROADCAST
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Dynamic Sections based on Header Navigation */}
-          {activeSection === 'students' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>PERSONNEL REGISTRY</h2>
-                <div className="admin-badge primary">ACTIVE SESSION</div>
+            {activeSection === 'exams' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>SIMULATION CONTROL</h2>
+                  <div className="admin-badge accent">EXAM RIG</div>
+                </div>
+                <AdminExams />
               </div>
-              <StudentSection
-                students={students}
-                openModal={openModal}
-                handleDeleteStudent={handleDeleteStudent}
-              />
-            </div>
-          )}
+            )}
 
-          {activeSection === 'faculty' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>COMMANDING STAFF</h2>
-                <div className="admin-badge accent">AUTHORIZED PERSONNEL</div>
+            {activeSection === 'ai-agent' && (
+              <div style={{ height: 'calc(100vh - 120px)', padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>NEURAL INTERFACE</h2>
+                  <div className="admin-badge primary">VU CORE ONLINE</div>
+                </div>
+                <VuAiAgent onNavigate={setActiveSection} />
               </div>
-              <FacultySection
-                faculty={faculty}
-                students={students}
-                openModal={openModal}
-                handleDeleteFaculty={handleDeleteFaculty}
-              />
-            </div>
-          )}
+            )}
 
-          {activeSection === 'courses' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>CURRICULUM ARCHITECTURE</h2>
-                <div className="admin-badge success">SYNCHRONIZED</div>
-              </div>
-              <CourseSection
-                courses={courses}
-                materials={materials}
-                openModal={openModal}
-                handleDeleteCourse={handleDeleteCourse}
-              />
-            </div>
-          )}
-
-          {activeSection === 'materials' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 3rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '3rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>KNOWLEDGE REPOSITORY</h2>
-                <div className="admin-badge warning">ENCRYPTED ARCHIVE</div>
-              </div>
-
-              <MaterialSection
-                materials={materials}
-                openModal={openModal}
-                handleDeleteMaterial={handleDeleteMaterial}
-                getFileUrl={getFileUrl}
-              />
-
-
-            </div>
-          )}
-
-          {activeSection === 'attendance' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>PRESENCE TELEMETRY</h2>
-                <div className="admin-badge warning">LIVE STREAM</div>
-              </div>
-              <AdminAttendancePanel />
-            </div>
-          )}
-
-          {activeSection === 'schedule' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>TEMPORAL ORCHESTRATION</h2>
-                <div className="admin-badge primary">CHRONOS SYNC</div>
-              </div>
-              <AdminScheduleManager />
-            </div>
-          )}
-
-          {activeSection === 'todos' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>OPERATIONAL DIRECTIVES</h2>
-                <div className="admin-badge danger">CRITICAL PATH</div>
-              </div>
-              <TodoSection
-                todos={todos}
-                openModal={openModal}
-                toggleTodo={toggleTodo}
-                deleteTodo={deleteTodo}
-              />
-            </div>
-          )}
-
-          {activeSection === 'messages' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>SIGNAL INTELLIGENCE</h2>
-                <div className="admin-badge primary">SECURE LINK</div>
-              </div>
-              <MessageSection
-                messages={messages}
-                openModal={openModal}
-              />
-            </div>
-          )}
-
-          {activeSection === 'broadcast' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div style={{ textAlign: 'center', margin: '4rem 0' }}>
-                <h2 style={{ fontSize: '3rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-2px', marginBottom: '1rem' }}>GLOBAL BROADCAST SYSTEM</h2>
-                <p style={{ color: 'var(--admin-text-muted)', fontWeight: 850 }}>Initialize high-priority transmissions to all terminal nodes.</p>
-              </div>
-              <div style={{ maxWidth: '700px', margin: '0 auto', background: 'white', padding: '4rem', borderRadius: '32px', border: '1px solid var(--admin-border)', boxShadow: 'var(--admin-shadow-lg)', textAlign: 'center' }}>
-                <div style={{ fontSize: '4rem', color: '#f43f5e', marginBottom: '2rem' }}><FaBullhorn /></div>
-                <button onClick={() => openModal('message')} className="admin-btn admin-btn-primary" style={{ width: '100%', height: '70px', fontSize: '1.2rem' }}>
-                  INITIATE EMERGENCY BROADCAST
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeSection === 'exams' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>SIMULATION CONTROL</h2>
-                <div className="admin-badge accent">EXAM RIG</div>
-              </div>
-              <AdminExams />
-            </div>
-          )}
-
-          {activeSection === 'curriculum' && (
-            <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
-              <CurriculumArchSection />
-            </div>
-          )}
-
-          {activeSection === 'ai-agent' && (
-            <div style={{ height: 'calc(100vh - 120px)', padding: '0 2rem' }}>
-              <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>NEURAL INTERFACE</h2>
-                <div className="admin-badge primary">VU CORE ONLINE</div>
-              </div>
-              <VuAiAgent onNavigate={setActiveSection} />
-            </div>
-          )}
-
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </main>
 
 
@@ -1668,33 +1693,33 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                       <form onSubmit={handleSaveFaculty}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.75rem' }}>
                           <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                            <label>INSTRUCTOR IDENTITY *</label>
+                            <label>FULL NAME *</label>
                             <input className="admin-search-input" name="name" defaultValue={editItem?.name} required placeholder="Full Name" />
                           </div>
                           <div className="form-group">
-                            <label>STAFF TOKEN (ID) *</label>
+                            <label>FACULTY ID *</label>
                             <input className="admin-search-input" name="facultyId" defaultValue={editItem?.facultyId} required placeholder="e.g. F-501" />
                           </div>
                           <div className="form-group">
-                            <label>SECTOR DEPARTMENT</label>
+                            <label>DEPARTMENT</label>
                             <input className="admin-search-input" name="department" defaultValue={editItem?.department || 'CSE'} placeholder="e.g. CSE" />
                           </div>
                           <div className="form-group">
-                            <label>DESIGNATION STATUS</label>
+                            <label>DESIGNATION</label>
                             <input className="admin-search-input" name="designation" defaultValue={editItem?.designation} placeholder="e.g. Professor" />
                           </div>
                           <div className="form-group">
-                            <label>SECURITY PASSCODE</label>
+                            <label>PASSWORD</label>
                             <input className="admin-search-input" name="password" type="password" placeholder="Retain if empty" />
                           </div>
 
                           {/* Assignment Manager */}
                           <div className="form-group" style={{ gridColumn: '1 / -1', background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--admin-border)' }}>
-                            <label style={{ fontSize: '0.85rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1.25rem', display: 'block' }}>CURRICULUM ASSIGNMENTS</label>
+                            <label style={{ fontSize: '0.85rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1.25rem', display: 'block' }}>CLASS ASSIGNMENTS</label>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', alignItems: 'flex-end' }}>
                               <div>
-                                <label style={{ fontSize: '0.65rem' }}>PHASE</label>
+                                <label style={{ fontSize: '0.65rem' }}>YEAR</label>
                                 <select id="assign-year" className="admin-search-input" style={{ padding: '0 0.75rem', height: '40px' }}>
                                   <option value="">Select</option>
                                   <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
@@ -1708,31 +1733,33 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                                 </select>
                               </div>
                               <div style={{ gridColumn: 'span 2' }}>
-                                <label style={{ fontSize: '0.65rem' }}>MODULE SUBJECT</label>
+                                <label style={{ fontSize: '0.65rem' }}>SUBJECT</label>
                                 <select id="assign-subject" className="admin-search-input" style={{ padding: '0 0.75rem', height: '40px' }}>
                                   <option value="">Select Subject</option>
-                                  {courses.map(c => <option key={c.code} value={c.name}>{c.name}</option>)}
+                                  {allAvailableSubjects.map(c => (
+                                    <option key={c.code} value={c.name}>{c.name} ({c.code})</option>
+                                  ))}
                                 </select>
                               </div>
                             </div>
-                            <button type="button" onClick={handleAddAssignment} className="admin-btn admin-btn-outline" style={{ width: '100%', marginTop: '1rem', height: '40px', fontSize: '0.75rem' }}>INITIALIZE ASSIGNMENT</button>
+                            <button type="button" onClick={handleAddAssignment} className="admin-btn admin-btn-outline" style={{ width: '100%', marginTop: '1rem', height: '40px', fontSize: '0.75rem' }}>ADD ASSIGNMENT</button>
 
                             <div className="assignments-list" style={{ marginTop: '1.5rem', display: 'grid', gap: '0.6rem' }}>
                               {facultyAssignments.map((assign, idx) => (
                                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 850 }}>PHASE {assign.year} <span>•</span> SEC {assign.section} <span>•</span> {assign.subject}</span>
+                                  <span style={{ fontSize: '0.85rem', fontWeight: 850 }}>Year {assign.year} <span>•</span> Sec {assign.section} <span>•</span> {assign.subject}</span>
                                   <button type="button" onClick={() => handleRemoveAssignment(idx)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer' }}>
                                     <FaTrash size={12} />
                                   </button>
                                 </div>
                               ))}
-                              {facultyAssignments.length === 0 && <p className="f-empty-text" style={{ padding: '1rem' }}>NO ASSIGNMENTS DETECTED</p>}
+                              {facultyAssignments.length === 0 && <p className="f-empty-text" style={{ padding: '1rem' }}>No assignments yet</p>}
                             </div>
                           </div>
                         </div>
                         <div className="modal-actions" style={{ marginTop: '2.5rem' }}>
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
-                          <button className="admin-btn admin-btn-primary">COMMIT RECORD</button>
+                          <button className="admin-btn admin-btn-primary">SAVE FACULTY</button>
                         </div>
                       </form>
                     )}
@@ -1741,41 +1768,42 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                       <form onSubmit={handleSaveCourse}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.75rem' }}>
                           <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                            <label>MODULE NAME *</label>
+                            <label>COURSE NAME *</label>
                             <input className="admin-search-input" name="name" defaultValue={editItem?.name} required placeholder="e.g. Software Systems" />
                           </div>
                           <div className="form-group">
-                            <label>MODULE CODE *</label>
+                            <label>COURSE CODE *</label>
                             <input className="admin-search-input" name="code" defaultValue={editItem?.code} required placeholder="e.g. CS-501" />
                           </div>
                           <div className="form-group">
-                            <label>OPERATIONAL PHASE (YEAR) *</label>
+                            <label>YEAR *</label>
                             <select className="admin-search-input" name="year" defaultValue={editItem?.year || '1'} required style={{ paddingLeft: '1rem' }}>
-                              <option value="1">Phase 1</option><option value="2">Phase 2</option><option value="3">Phase 3</option><option value="4">Phase 4</option>
+                              <option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option>
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>ACADEMIC SEMESTER *</label>
+                            <label>SEMESTER *</label>
                             <select className="admin-search-input" name="semester" defaultValue={editItem?.semester || '1'} required style={{ paddingLeft: '1rem' }}>
                               {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Semester {s}</option>)}
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>SECTOR ASSIGNMENT (BRANCH) *</label>
+                            <label>BRANCH *</label>
                             <select className="admin-search-input" name="branch" defaultValue={editItem?.branch || 'CSE'} required style={{ paddingLeft: '1rem' }}>
                               {['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil', 'IT', 'AIML', 'All'].map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>SECTION TARGET</label>
+                            <label>SECTION</label>
                             <select className="admin-search-input" name="section" defaultValue={editItem?.section || 'All'} required style={{ paddingLeft: '1rem' }}>
-                              {['All', 'A', 'B', 'C', 'D'].map(s => <option key={s} value={s}>{s === 'All' ? 'All Sections' : `Section ${s}`}</option>)}
+                              <option value="All">All Sections</option>
+                              {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
                             </select>
                           </div>
                         </div>
                         <div className="modal-actions" style={{ marginTop: '2.5rem' }}>
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
-                          <button className="admin-btn admin-btn-primary">COMMIT MODULE</button>
+                          <button className="admin-btn admin-btn-primary">SAVE COURSE</button>
                         </div>
                       </form>
                     )}
@@ -1784,69 +1812,69 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                       <form onSubmit={handleSaveMaterial}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                           <div className="form-group">
-                            <label>ASSET CATEGORY</label>
+                            <label>CATEGORY</label>
                             <select className="admin-search-input" name="type" defaultValue={editItem?.type || "notes"} style={{ paddingLeft: '1rem' }}>
-                              <option value="notes">Notes/Directives</option>
-                              <option value="videos">Visual Intel (Video)</option>
-                              <option value="interviewQnA">Assessment Q&A</option>
-                              <option value="modelPapers">Simulation Papers</option>
-                              <option value="syllabus">Structural Syllabus</option>
+                              <option value="notes">Notes/PDF</option>
+                              <option value="videos">Video Lectures</option>
+                              <option value="models">AI Models / 3D</option>
+                              <option value="interviewQnA">Q&A / Interviews</option>
+                              <option value="modelPapers">Exam Papers</option>
+                              <option value="syllabus">Syllabus</option>
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>ASSET TITLE *</label>
-                            <input className="admin-search-input" name="title" required placeholder="e.g. Tactical Unit 1 Docs" />
+                            <label>TITLE *</label>
+                            <input className="admin-search-input" name="title" required placeholder="e.g. Unit 1 Notes" />
                           </div>
                           <div className="form-group">
-                            <label>PHASE TARGET</label>
+                            <label>YEAR</label>
                             <select className="admin-search-input" name="year" required defaultValue={editItem?.isAdvanced ? 'Advanced' : (editItem?.year || '1')} style={{ paddingLeft: '1rem' }}>
-                              {editItem?.isAdvanced ? <option value="Advanced">Advanced Sector</option> :
-                                [1, 2, 3, 4].map(y => <option key={y} value={y}>Phase {y}</option>)
+                              {editItem?.isAdvanced ? <option value="Advanced">Advanced</option> :
+                                [1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)
                               }
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>SUBJECT ORIGIN</label>
+                            <label>SUBJECT</label>
                             <select className="admin-search-input" name="subject" required defaultValue={editItem?.subject || ''} style={{ paddingLeft: '1rem' }}>
-                              <option value="">Select Origin...</option>
+                              <option value="">Select Subject...</option>
                               {editItem?.isAdvanced
-                                // eslint-disable-next-line no-undef
                                 ? ADVANCED_TOPICS.map(t => <option key={t} value={t}>{t}</option>)
-                                : courses.map(c => <option key={c.code} value={c.name}>{c.name}</option>)
+                                : allAvailableSubjects.map(c => <option key={c.code} value={c.name}>{c.name} ({c.code})</option>)
                               }
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>COORD: MODULE</label>
+                            <label>MODULE</label>
                             <select className="admin-search-input" name="module" style={{ paddingLeft: '1rem' }}>
                               {[1, 2, 3, 4, 5].map(m => <option key={m} value={m}>Module {m}</option>)}
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>COORD: UNIT</label>
+                            <label>UNIT</label>
                             <select className="admin-search-input" name="unit" style={{ paddingLeft: '1rem' }}>
                               {[1, 2, 3, 4, 5].map(u => <option key={u} value={u}>Unit {u}</option>)}
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>SECTOR (BRANCH)</label>
+                            <label>BRANCH</label>
                             <select className="admin-search-input" name="branch" defaultValue="All" style={{ paddingLeft: '1rem' }}>
                               {['All', 'CSE', 'AIML', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>SECTOR SECTION</label>
-                            <select className="admin-search-input" name="section" style={{ paddingLeft: '1rem' }}>
-                              <option value="">Global (All)</option>
+                            <label>SECTION</label>
+                            <select className="admin-search-input" name="section" defaultValue={editItem?.section || 'All'} style={{ paddingLeft: '1rem' }}>
+                              <option value="All">All Sections</option>
                               {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
                             </select>
                           </div>
                           <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                            <label>SPECIFIC TOPIC</label>
-                            <input className="admin-search-input" name="topic" placeholder="e.g. Critical Systems Overview" />
+                            <label>TOPIC</label>
+                            <input className="admin-search-input" name="topic" placeholder="e.g. Introduction to Systems" />
                           </div>
                           <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                            <label>ASSET UPLINK (FILE/URL)</label>
+                            <label>FILE / LINK</label>
                             <div style={{ display: 'grid', gap: '1rem' }}>
                               <input type="file" className="admin-search-input" name="file" style={{ padding: '0.6rem' }} />
                               <input className="admin-search-input" name="url" placeholder="OR Secure External URL (https://...)" />

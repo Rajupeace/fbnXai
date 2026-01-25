@@ -11,9 +11,9 @@ const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 const weekDays = daysOfWeek.filter(day => day !== 'Sunday');
 
 /**
- * CHRONOS SCHEDULE (FACULTY EDITION)
- * High-fidelity timetable management and weekly session analytics.
- * Theme: Luxe Pearl / Nexus
+ * Faculty Schedule
+ * Weekly Class Schedule management.
+ * Theme: Friendly Notebook
  */
 const FacultyScheduleView = ({ facultyData }) => {
     const [schedule, setSchedule] = useState([]);
@@ -56,14 +56,14 @@ const FacultyScheduleView = ({ facultyData }) => {
         return schedule.filter(item => item.day === todayStr);
     }, [schedule, selectedDay]);
 
-    if (loading) return <div className="no-content">Synchronizing Timetable...</div>;
+    if (loading) return <div className="no-content">Loading Schedule...</div>;
 
     return (
         <div className="animate-fade-in">
             <header className="f-view-header">
                 <div>
-                    <h2>CHRONOS <span>SCHEDULE</span></h2>
-                    <p className="nexus-subtitle">Tactical session orchestration and weekly logistics</p>
+                    <h2>FACULTY <span>SCHEDULE</span></h2>
+                    <p className="nexus-subtitle">Manage your weekly classes and labs</p>
                 </div>
             </header>
 
@@ -151,8 +151,8 @@ const FacultyScheduleView = ({ facultyData }) => {
                 ) : (
                     <div className="f-node-card f-center-empty animate-fade-in">
                         <div style={{ fontSize: '4rem', marginBottom: '2rem', opacity: 0.1 }}>📅</div>
-                        <h3 style={{ fontSize: '1.4rem', fontWeight: 950, color: '#1e293b' }}>NO ACTIVE SESSIONS</h3>
-                        <p style={{ color: '#94a3b8', fontWeight: 850, marginTop: '1rem' }}>No classes scheduled for {daysOfWeek[selectedDay]}. System idle.</p>
+                        <h3 style={{ fontSize: '1.4rem', fontWeight: 950, color: '#1e293b' }}>No Classes</h3>
+                        <p style={{ color: '#94a3b8', fontWeight: 850, marginTop: '1rem' }}>No classes scheduled for {daysOfWeek[selectedDay]}. Enjoy your free time!</p>
                     </div>
                 )}
             </div>
@@ -160,7 +160,7 @@ const FacultyScheduleView = ({ facultyData }) => {
             {/* Weekly Telemetry Overview */}
             {schedule.length > 0 && (
                 <div className="f-question-panel animate-slide-up">
-                    <h3 className="f-node-title f-spacer-lg">WEEKLY TELEMETRY OVERVIEW</h3>
+                    <h3 className="f-node-title f-spacer-lg">Weekly Overview</h3>
                     <div className="f-weekly-stats">
                         <div className="f-stat-card">
                             <span className="val">{schedule.length}</span>
@@ -168,11 +168,11 @@ const FacultyScheduleView = ({ facultyData }) => {
                         </div>
                         <div className="f-stat-card">
                             <span className="val">{myClasses.length}</span>
-                            <span className="lab">Active Sectors</span>
+                            <span className="lab">Active Sections</span>
                         </div>
                         <div className="f-stat-card">
                             <span className="val">{new Set(schedule.map(s => s.subject)).size}</span>
-                            <span className="lab">Subject Nodes</span>
+                            <span className="lab">Subjects</span>
                         </div>
                     </div>
                 </div>

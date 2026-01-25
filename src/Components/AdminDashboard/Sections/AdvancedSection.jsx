@@ -2,20 +2,21 @@ import React from 'react';
 import { FaPlus, FaEye, FaMicrochip, FaCode } from 'react-icons/fa';
 
 /**
- * SENTINEL ADVANCED INTELLIGENCE
- * Management of high-level technological modules and specialized knowledge assets.
+/**
+ * Advanced Studies
+ * Manage specialized advanced topics and materials.
  */
 const AdvancedSection = ({ topics, materials, openModal }) => {
     return (
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>ADVANCED <span>MODULES</span></h1>
-                    <p>High-fidelity technological specializations tracker</p>
+                    <h1>ADVANCED <span>TOPICS</span></h1>
+                    <p>Manage specialized topics.</p>
                 </div>
                 <div className="admin-action-bar" style={{ margin: 0 }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('material', { isAdvanced: true })}>
-                        <FaPlus /> DEPLOY ADVANCED ASSET
+                        <FaPlus /> ADD MATERIAL
                     </button>
                 </div>
             </header>
@@ -32,20 +33,20 @@ const AdvancedSection = ({ topics, materials, openModal }) => {
                                     </div>
                                     <div>
                                         <h3 style={{ margin: 0, color: 'var(--admin-secondary)', fontSize: '1.1rem', fontWeight: 950 }}>{topic}</h3>
-                                        <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', fontWeight: 850 }}>SPECIALIZATION MODULE</div>
+                                        <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', fontWeight: 850 }}>SPECIALIZATION</div>
                                     </div>
                                 </div>
                                 <span className={`admin-badge ${count > 0 ? 'primary' : 'secondary'}`}>
-                                    {count} ASSETS
+                                    {count} ITEMS
                                 </span>
                             </div>
 
                             <div style={{ marginTop: '2rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                                 <button className="admin-btn admin-btn-outline" onClick={() => openModal('syllabus-view', { name: topic, isAdvanced: true })} style={{ padding: '0.6rem 1.25rem', fontSize: '0.7rem' }}>
-                                    <FaEye /> ANALYZE
+                                    <FaEye /> VIEW
                                 </button>
                                 <button className="admin-btn admin-btn-primary" onClick={() => openModal('material', { subject: topic, isAdvanced: true })} style={{ padding: '0.6rem 1.25rem', fontSize: '0.7rem' }}>
-                                    <FaPlus /> DEPLOY
+                                    <FaPlus /> ADD
                                 </button>
                             </div>
                         </div>

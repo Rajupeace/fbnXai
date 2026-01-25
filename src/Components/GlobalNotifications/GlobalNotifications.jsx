@@ -96,18 +96,25 @@ const GlobalNotifications = ({ userRole, userData }) => {
             const msg = data.data;
             // Filter based on target
             let show = false;
+
             if (userRole === 'admin') show = true;
-            if (msg.target === 'all') show = true;
-            if (msg.target === 'students' && userRole === 'student') show = true;
-            if (msg.target === 'faculty' && userRole === 'faculty') show = true;
-            if (msg.target === 'year' && userRole === 'student' && String(userData.year) === String(msg.targetYear)) show = true;
+            else if (msg.target === 'all') show = true;
+            else if (msg.target === 'students' && userRole === 'student') show = true;
+            else if (msg.target === 'faculty' && userRole === 'faculty') show = true;
+            else if (msg.target === 'students-specific' && userRole === 'student') {
+                const yearMatch = String(userData?.year) === String(msg.targetYear);
+                const sectionMatch = !msg.targetSections || msg.targetSections.length === 0 ||
+                    msg.targetSections.includes(String(userData?.section)) ||
+                    msg.targetSections.includes('All');
+                if (yearMatch && sectionMatch) show = true;
+            }
 
             if (show) {
                 newNotif = {
                     id: Date.now(),
-                    type: 'warning',
+                    type: msg.senderRole === 'faculty' ? 'success' : 'warning',
                     iconType: 'bullhorn',
-                    title: 'System Broadcast',
+                    title: msg.senderRole === 'faculty' ? 'Faculty Directive' : 'System Broadcast',
                     message: msg.message || msg.text,
                     time: timestamp
                 };

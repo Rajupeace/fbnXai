@@ -2,20 +2,21 @@ import React from 'react';
 import { FaEnvelope, FaBroadcastTower, FaUserShield, FaClock } from 'react-icons/fa';
 
 /**
- * SENTINEL COMMS CENTER
- * High-fidelity hub for strategic transmissions and global broadcasts.
+/**
+ * Communications Center
+ * Hub for messages and global announcements.
  */
 const MessageSection = ({ messages, openModal }) => {
     return (
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>COMMS <span>CENTER</span></h1>
-                    <p>Total active transmissions: {messages.length} logs indexed</p>
+                    <h1>MESSAGES <span>& ANNOUNCEMENTS</span></h1>
+                    <p>Total Messages: {messages.length}</p>
                 </div>
                 <div className="admin-action-bar" style={{ margin: 0 }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('message')}>
-                        <FaBroadcastTower /> NEW BROADCAST
+                        <FaBroadcastTower /> NEW ANNOUNCEMENT
                     </button>
                 </div>
             </header>
@@ -29,10 +30,10 @@ const MessageSection = ({ messages, openModal }) => {
                                     background: msg.target === 'all' ? '#dcfce7' : msg.target === 'faculty' ? '#fee2e2' : '#dbeafe',
                                     color: msg.target === 'all' ? '#166534' : msg.target === 'faculty' ? '#991b1b' : '#1e40af'
                                 }}>
-                                    {(msg.target || 'BROADCAST').toUpperCase()}
+                                    {(msg.target || 'ANNOUNCEMENT').toUpperCase()}
                                 </span>
                                 {msg.type === 'urgent' && (
-                                    <span className="admin-msg-badge" style={{ background: '#fecdd3', color: '#be123c' }}>CRITICAL</span>
+                                    <span className="admin-msg-badge" style={{ background: '#fecdd3', color: '#be123c' }}>URGENT</span>
                                 )}
                                 {msg.targetYear && <span className="admin-msg-badge">YEAR {msg.targetYear}</span>}
                             </div>
@@ -46,7 +47,7 @@ const MessageSection = ({ messages, openModal }) => {
                                 <FaUserShield />
                             </div>
                             <div style={{ fontWeight: 950, fontSize: '0.9rem', color: 'var(--admin-secondary)' }}>
-                                {msg.facultyId ? `COMMANDER ${msg.sender || msg.facultyId}` : 'CENTRAL COMMAND'}
+                                {msg.facultyId ? `Faculty: ${msg.sender || msg.facultyId}` : 'Admin'}
                             </div>
                         </div>
 
@@ -59,8 +60,8 @@ const MessageSection = ({ messages, openModal }) => {
                 {messages.length === 0 && (
                     <div className="admin-empty-state">
                         <FaEnvelope className="admin-empty-icon" />
-                        <h2 className="admin-empty-title">FREQUENCY QUIET</h2>
-                        <p className="admin-empty-text">No active strategic transmissions logged in current buffers.</p>
+                        <h2 className="admin-empty-title">No Messages</h2>
+                        <p className="admin-empty-text">No announcements or messages found.</p>
                     </div>
                 )}
             </div>

@@ -9,7 +9,7 @@ import AdvancedLearning from './Components/StudentDashboard/Sections/AdvancedLea
 import './App.css';
 import RocketSplash from './Components/RocketSplash/RocketSplash';
 import CommandPalette from './Components/CommandPalette/CommandPalette';
-import AnnouncementTicker from './Components/AnnouncementTicker/AnnouncementTicker';
+
 import GlobalNotifications from './Components/GlobalNotifications/GlobalNotifications';
 
 function App() {
@@ -132,7 +132,7 @@ function App() {
                             role={userRole}
                             userData={currentUser}
                         />
-                        <AnnouncementTicker />
+
                     </>
                 )}
                 <Routes>

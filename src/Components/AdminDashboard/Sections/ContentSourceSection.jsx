@@ -2,19 +2,20 @@ import React from 'react';
 import { FaEye, FaDownload, FaBookOpen, FaFolderOpen, FaFileAlt } from 'react-icons/fa';
 
 /**
- * SENTINEL CONTENT REPOSITORY
- * Advanced indexing of source materials for high-fidelity curriculum generation.
+/**
+ * Content Sources
+ * Curriculum source materials and assets.
  */
 const ContentSourceSection = ({ contentSource, getFileUrl }) => {
     return (
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>SOURCE <span>REPOSITORY</span></h1>
-                    <p>High-level curriculum source materials and assets</p>
+                    <h1>SOURCE <span>MATERIALS</span></h1>
+                    <p>Manage curriculum source materials.</p>
                 </div>
                 <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.8rem', fontWeight: 850 }}>
-                    Automatically linked to neural advanced learning dashboards.
+                    Linked to student learning dashboards.
                 </div>
             </header>
 
@@ -24,7 +25,7 @@ const ContentSourceSection = ({ contentSource, getFileUrl }) => {
                         <div key={subject.subject || 'unknown'} className="admin-card sentinel-animate" style={{ padding: '0', overflow: 'hidden' }}>
                             <div style={{ padding: '1.25rem 1.75rem', borderBottom: '1px solid var(--admin-border)', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--admin-secondary)', fontWeight: 950 }}>{subject.subject || 'Unassigned'}</h3>
-                                <span className="admin-badge primary">RELIABLE SOURCE</span>
+                                <span className="admin-badge primary">VERIFIED SOURCE</span>
                             </div>
 
                             <div style={{ padding: '1.75rem' }}>
@@ -41,7 +42,7 @@ const ContentSourceSection = ({ contentSource, getFileUrl }) => {
                                             alignItems: 'center',
                                             gap: '0.5rem'
                                         }}>
-                                            <FaFolderOpen /> {type.type} ASSETS
+                                            <FaFolderOpen /> {type.type} FILES
                                         </h5>
 
                                         <div className="admin-list-container">
@@ -56,15 +57,15 @@ const ContentSourceSection = ({ contentSource, getFileUrl }) => {
                                                                     <FaFileAlt style={{ color: 'var(--admin-primary)', flexShrink: 0 }} />
                                                                     <div style={{ overflow: 'hidden' }}>
                                                                         <div style={{ fontSize: '0.8rem', fontWeight: 950, color: 'var(--admin-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
-                                                                        <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', fontWeight: 850 }}>BUFFER: {(file.size / 1024).toFixed(1)} KB</div>
+                                                                        <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', fontWeight: 850 }}>Size: {(file.size / 1024).toFixed(1)} KB</div>
                                                                     </div>
                                                                 </div>
 
                                                                 <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                                                    <a href={getFileUrl(file.url)} target="_blank" rel="noreferrer" className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="Full View">
+                                                                    <a href={getFileUrl(file.url)} target="_blank" rel="noreferrer" className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View">
                                                                         <FaEye size={12} />
                                                                     </a>
-                                                                    <a href={getFileUrl(file.url)} download className="f-exam-card" style={{ padding: '0.5rem', background: 'var(--admin-primary)', color: 'white' }} title="Secure Buffer Transfer">
+                                                                    <a href={getFileUrl(file.url)} download className="f-exam-card" style={{ padding: '0.5rem', background: 'var(--admin-primary)', color: 'white' }} title="Download">
                                                                         <FaDownload size={12} />
                                                                     </a>
                                                                 </div>
@@ -82,8 +83,8 @@ const ContentSourceSection = ({ contentSource, getFileUrl }) => {
                 ) : (
                     <div className="admin-empty-state" style={{ gridColumn: '1/-1' }}>
                         <FaBookOpen className="admin-empty-icon" />
-                        <h2 className="admin-empty-title">BASE REPOSITORY EMPTY</h2>
-                        <p className="admin-empty-text">No high-level source materials detected in current sector.</p>
+                        <h2 className="admin-empty-title">No Source Materials</h2>
+                        <p className="admin-empty-text">No content sources found.</p>
                     </div>
                 )}
             </div>

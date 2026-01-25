@@ -42,8 +42,8 @@ const StudentProfileCard = ({ userData, setShowProfilePhotoModal, setView }) => 
                     <FaUniversity className="pill-icon" />
                 </div>
                 <div className="nexus-info-pill">
-                    <span className="pill-label">LEVEL</span>
-                    <span className="pill-value">YEAR {userData.year}</span>
+                    <span className="pill-label">Year</span>
+                    <span className="pill-value">Year {userData.year}</span>
                     <FaLayerGroup className="pill-icon" />
                 </div>
             </div>
@@ -52,7 +52,7 @@ const StudentProfileCard = ({ userData, setShowProfilePhotoModal, setView }) => 
                 className="nexus-btn-vibrant profile-action-btn"
                 onClick={() => setView('settings')}
             >
-                VIEW FULL PROFILE
+                Edit Profile
             </button>
         </div>
     );

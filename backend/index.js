@@ -115,6 +115,11 @@ app.get('/api/stream', (req, res) => {
 const staticUploads = DASHBOARD_PATHS.uploads;
 app.use('/uploads', express.static(staticUploads));
 
+// Mount Student Routes (CRITICAL for student dashboard data)
+const studentRoutes = require('./routes/studentRoutes');
+app.use('/api/students', studentRoutes);
+console.log('✅ Student routes mounted at /api/students');
+
 // Health check route - Early registration
 app.get('/api/health', (req, res) => {
   console.log('Health endpoint called');
@@ -179,55 +184,12 @@ watcher.on('all', (event, filePath) => {
 // const studentFacultyDB = dbFile('studentFaculty', []);
 // const todosDB = dbFile('todos', []);
 
-// --- MESSAGE ROUTES (MongoDB ONLY) ---
-app.get('/api/messages', async (req, res) => {
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'MongoDB not connected' });
-    }
-    const Message = require('./models/Message');
-    const messages = await Message.find({}).lean();
-    res.json(messages);
-  } catch (err) {
-    console.error('Error fetching messages:', err);
-    res.status(500).json({ error: 'Failed to fetch messages' });
-  }
-});
+// REDUNDANT ROUTES REMOVED (Consolidated in SYSTEM COMMUNICATIONS section below)
 
-app.post('/api/messages', async (req, res) => {
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'MongoDB not connected' });
-    }
-    const Message = require('./models/Message');
-    const msg = new Message({
-      ...req.body,
-      createdAt: new Date()
-    });
-    await msg.save();
-    console.log('✅ Message created in MongoDB');
-    try { broadcastEvent({ resource: 'messages', action: 'create', data: msg }); } catch (e) { }
-    res.status(201).json(msg);
-  } catch (err) {
-    console.error('Error creating message:', err);
-    res.status(500).json({ error: 'Failed to create message' });
-  }
-});
 
-app.delete('/api/messages/:id', async (req, res) => {
-  try {
-    if (mongoose.connection.readyState !== 1) {
-      return res.status(503).json({ error: 'MongoDB not connected' });
-    }
-    const Message = require('./models/Message');
-    await Message.findByIdAndDelete(req.params.id);
-    console.log('✅ Message deleted from MongoDB');
-    res.json({ ok: true });
-  } catch (err) {
-    console.error('Error deleting message:', err);
-    res.status(500).json({ error: 'Failed to delete message' });
-  }
-});
+
+
+
 
 // --- TODO ROUTES (MongoDB ONLY) ---
 app.get('/api/todos', async (req, res) => {
@@ -309,7 +271,6 @@ app.delete('/api/todos/:id', async (req, res) => {
 });
 
 // Import routes
-const studentRoutes = require('./routes/studentRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const chatRoutes = require('./routes/chat');
@@ -331,7 +292,6 @@ const adminMessagesRoutes = require('./routes/adminMessagesRoutes');
 const courseRoutes = require('./routes/courseRoutes');
 app.use('/api/courses', courseRoutes);
 // app.use('/api/teaching-assignments', teachingAssignmentRoutes);
-app.use('/api/students', studentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/chat', chatRoutes);
@@ -615,11 +575,6 @@ const uploadLocal = multer({ storage: storageLocal, limits: { fileSize: 200 * 10
 const handleFileBasedUpload = async (req, res) => {
   try {
     const { title, year, section, subject, type, course, branch, module, unit, topic, link, message, dueDate, semester, isAdvanced } = req.body;
-        // File DB disabled: Only return MongoDB courses
-        return res.json(allCourses);
-      } catch (err) {
-        console.error('[GET /api/courses] Error:', err);
-        res.status(500).json({ error: 'Failed to fetch courses', details: err.message });
 
     // File info from uploadMongo middleware
     let fileUrl = null;
@@ -755,7 +710,24 @@ app.post('/api/debug-upload', uploadLocal.single('file'), (req, res) => {
       file: req.file || null
     };
     // append to debug log
-    try { fs.appendFileSync(path.join(dataDir, 'upload_debug.log'), JSON.stringify(log) + '\n'); } catch (e) { }
+    try {
+      // Prefer MongoDB DebugLog when available
+      const mongoose = require('mongoose');
+      if (mongoose.connection && mongoose.connection.readyState === 1) {
+        try {
+          const DebugLog = require('./models/DebugLog');
+          DebugLog.create({ source: 'upload_debug', payload: log }).catch(() => { });
+        } catch (e) {
+          // If model is not available, fallback to console
+          console.debug('upload_debug:', log);
+        }
+      } else {
+        // No DB: avoid creating local files; print to console instead
+        console.debug('upload_debug (no db):', log);
+      }
+    } catch (e) {
+      // never throw from debug logging
+    }
     res.json({ ok: true, received: log });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -1533,14 +1505,15 @@ app.get('/api/faculty', requireAdmin, async (req, res) => {
 
     try {
       const mongoFaculty = await Faculty.find({}).lean();
-      
+
       const allFaculty = mongoFaculty.map(f => ({
         ...f,
         id: f.facultyId || f._id?.toString(),
         _id: f._id?.toString(),
         source: 'mongodb',
         // Ensure assignments is always an array
-        assignments: Array.isArray(f.assignments) ? f.assignments : []
+        assignments: Array.isArray(f.assignments) ? f.assignments : [],
+        department: f.department || f.hpd || 'General'
       }));
 
       console.log('✅ Faculty retrieved from MongoDB:', allFaculty.length, 'faculty members');
@@ -1561,6 +1534,8 @@ app.get('/api/faculty', requireAdmin, async (req, res) => {
 app.post('/api/faculty', requireAdmin, async (req, res) => {
   try {
     const { name, facultyId, email, password, assignments, department, designation } = req.body;
+    // Accept legacy/typo `hpd` as department alias
+    const dept = (department && String(department).trim()) || (req.body.hpd && String(req.body.hpd).trim());
     if (!facultyId || !name || !password) {
       return res.status(400).json({
         error: 'Missing required fields: facultyId, name, password',
@@ -1605,7 +1580,7 @@ app.post('/api/faculty', requireAdmin, async (req, res) => {
         email: email?.toLowerCase()?.trim() || '',
         password: String(password), // Should be hashed in production
         assignments: assignmentsArray,
-        department: String(department || 'General').trim(),
+        department: String(dept || department || 'General').trim(),
         designation: String(designation || 'Lecturer').trim()
       });
 
@@ -1686,6 +1661,8 @@ app.put('/api/faculty/:fid', requireAdmin, async (req, res) => {
   try {
     const fid = req.params.fid;
     const updates = req.body;
+    // Accept legacy `hpd` as department alias
+    if (updates && updates.hpd && !updates.department) updates.department = updates.hpd;
 
     // Require MongoDB for updates
     if (mongoose.connection.readyState !== 1) {
@@ -1730,7 +1707,7 @@ app.put('/api/faculty/:fid', requireAdmin, async (req, res) => {
       }
 
       console.log('✅ Faculty updated successfully in MongoDB:', fid);
-      
+
       // Format response for frontend compatibility
       const response = {
         ...updatedFaculty,
@@ -1824,11 +1801,11 @@ app.get('/api/faculty-stats/:facultyId/students', async (req, res) => {
 
     // Get Students from MongoDB only
     const queries = assignments.map(a => ({ year: String(a.year), section: String(a.section).toUpperCase() }));
-    
+
     if (queries.length === 0) return res.json([]);
 
     const students = await Student.find({ $or: queries }).select('-password').lean();
-    
+
     const result = students.map(s => ({
       ...s,
       _id: s._id?.toString ? s._id.toString() : s._id,
@@ -1860,7 +1837,7 @@ app.get('/api/faculty-stats/:facultyId/materials-downloads', async (req, res) =>
 
       // Search by MongoDB ObjectID
       const materials = await Material.find({ uploadedBy: f._id }).lean();
-      
+
       const result = materials.map(m => ({
         ...m,
         _id: m._id?.toString ? m._id.toString() : m._id,
@@ -2342,18 +2319,54 @@ app.delete('/api/materials/:id', (req, res) => {
 // messages
 // --- SYSTEM COMMUNICATIONS (Unified Transmission Mesh) ---
 
-// Public/Combined Message Feed
+// Public/Combined Message Feed (With Audience Filtering)
 app.get('/api/messages', async (req, res) => {
   try {
+    const { userId, role, year, section, branch } = req.query;
+    let query = {};
+
+    if (role === 'student') {
+      // Students see: Global messages, All-Student messages, and messages for their Year/Section
+      query = {
+        $or: [
+          { target: 'all' },
+          { target: 'students' },
+          {
+            target: 'students-specific',
+            targetYear: String(year),
+            targetSections: { $in: [String(section), 'All'] }
+          }
+        ]
+      };
+    } else if (role === 'faculty') {
+      // Faculty see: Global messages, Faculty messages, and their own messages
+      query = {
+        $or: [
+          { target: 'all' },
+          { target: 'faculty' },
+          { facultyId: userId }
+        ]
+      };
+    }
+    // Admin sees everything (unfiltered or by target)
+
     let all = [];
     if (mongoose.connection.readyState === 1) {
-      all = await Message.find().sort({ createdAt: -1 });
+      all = await Message.find(query).sort({ createdAt: -1 });
     } else {
-      all = messagesDB.read();
+      // Fallback (minimal filtering)
+      all = (messagesDB.read() || []).filter(m => {
+        if (!role) return true;
+        if (role === 'student') {
+          return m.target === 'all' || m.target === 'students' || (m.target === 'students-specific' && String(m.targetYear) === String(year));
+        }
+        return true;
+      });
     }
     res.json(all);
   } catch (err) {
-    res.json(messagesDB.read());
+    console.error('Error fetching messages:', err);
+    res.json([]);
   }
 });
 
@@ -2576,6 +2589,116 @@ app.get('/api/content-source', (req, res) => {
   }
 });
 
+// Dashboard helpers: quick stats and storage usage
+app.get('/api/dashboard/quick-stats', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB not connected' });
+
+    // Use Mongoose models for robust counts (respects collection names)
+    const StudentModel = require('./models/Student');
+    const FacultyModel = require('./models/Faculty');
+    const CourseModel = require('./models/Course');
+    const MaterialModel = require('./models/Material');
+    const MessageModel = require('./models/Message');
+    const TodoModel = require('./models/Todo');
+
+    const counts = {
+      students: await StudentModel.countDocuments().catch(() => 0),
+      faculty: await FacultyModel.countDocuments().catch(() => 0),
+      courses: await CourseModel.countDocuments().catch(() => 0),
+      materials: await MaterialModel.countDocuments().catch(() => 0),
+      messages: await MessageModel.countDocuments().catch(() => 0),
+      todos: await TodoModel.countDocuments().catch(() => 0)
+    };
+
+    res.json({ ok: true, stats: counts });
+  } catch (err) {
+    console.error('Quick-stats error:', err);
+    res.status(500).json({ error: 'Failed to compute quick stats' });
+  }
+});
+
+app.get('/api/dashboard/storage-usage', (req, res) => {
+  try {
+    const uploads = DASHBOARD_PATHS.uploads || path.join(process.cwd(), 'uploads');
+    let total = 0;
+    function walkSync(dir) {
+      if (!fs.existsSync(dir)) return;
+      const files = fs.readdirSync(dir);
+      files.forEach(f => {
+        const p = path.join(dir, f);
+        try {
+          const st = fs.statSync(p);
+          if (st.isDirectory()) walkSync(p);
+          else total += st.size || 0;
+        } catch (e) { }
+      });
+    }
+    walkSync(uploads);
+    res.json({ ok: true, uploadsPath: uploads, sizeBytes: total });
+  } catch (err) {
+    console.error('Storage usage error:', err);
+    res.status(500).json({ error: 'Failed to compute storage usage' });
+  }
+});
+
+// Full dashboard aggregates: exams, attendance summaries, streaks, AI usage
+app.get('/api/dashboard/full-stats', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) return res.status(503).json({ error: 'MongoDB not connected' });
+
+    const Exam = require('./models/Exam');
+    const ExamResult = require('./models/ExamResult');
+    const Attendance = require('./models/Attendance');
+    const Student = require('./models/Student');
+
+    // Exams
+    const examsCount = await Exam.countDocuments().catch(() => 0);
+    const examResultsCount = await ExamResult.countDocuments().catch(() => 0);
+    const avgExamPercentAgg = await ExamResult.aggregate([
+      { $project: { pct: { $multiply: [{ $divide: ['$marksObtained', '$maxMarks'] }, 100] } } },
+      { $group: { _id: null, avgPct: { $avg: '$pct' } } }
+    ]).allowDiskUse(true).exec().catch(() => []);
+    const avgExamPercent = (avgExamPercentAgg && avgExamPercentAgg[0] && Number(avgExamPercentAgg[0].avgPct.toFixed(2))) || 0;
+
+    // Attendance summary
+    const attendanceTotal = await Attendance.countDocuments().catch(() => 0);
+    const attendancePresent = await Attendance.countDocuments({ status: 'Present' }).catch(() => 0);
+    const attendanceRateOverall = attendanceTotal > 0 ? Number(((attendancePresent / attendanceTotal) * 100).toFixed(2)) : 0;
+
+    // Top 5 students by absences
+    const topAbsentees = await Attendance.aggregate([
+      { $match: { status: 'Absent' } },
+      { $group: { _id: '$studentId', name: { $first: '$studentName' }, absences: { $sum: 1 } } },
+      { $sort: { absences: -1 } },
+      { $limit: 5 }
+    ]).exec().catch(() => []);
+
+    // Streaks and AI usage
+    const streakAgg = await Student.aggregate([
+      { $group: { _id: null, avgStreak: { $avg: '$stats.streak' }, maxStreak: { $max: '$stats.streak' }, totalStudents: { $sum: 1 } } }
+    ]).exec().catch(() => []);
+    const aiAgg = await Student.aggregate([
+      { $group: { _id: null, totalAIUsage: { $sum: '$stats.aiUsageCount' } } }
+    ]).exec().catch(() => []);
+
+    const avgStreak = (streakAgg && streakAgg[0] && Number((streakAgg[0].avgStreak || 0).toFixed(2))) || 0;
+    const maxStreak = (streakAgg && streakAgg[0] && (streakAgg[0].maxStreak || 0)) || 0;
+    const totalAIUsage = (aiAgg && aiAgg[0] && (aiAgg[0].totalAIUsage || 0)) || 0;
+
+    res.json({
+      ok: true,
+      exams: { examsCount, examResultsCount, avgExamPercent },
+      attendance: { attendanceTotal, attendancePresent, attendanceRateOverall, topAbsentees },
+      streaks: { avgStreak, maxStreak },
+      aiUsage: { totalAIUsage }
+    });
+  } catch (err) {
+    console.error('Full-stats error:', err);
+    res.status(500).json({ error: 'Failed to compute full dashboard stats' });
+  }
+});
+
 app.post('/api/courses', requireAdmin, async (req, res) => {
   try {
     const { name, code, year, semester, branch, description, credits } = req.body;
@@ -2608,6 +2731,16 @@ app.post('/api/courses', requireAdmin, async (req, res) => {
 
       await newCourse.save();
       console.log('✅ Course created successfully in MongoDB:', code);
+      try {
+        // Broadcast to SSE clients that a new course was created
+        broadcastEvent && broadcastEvent({
+          resource: 'courses', action: 'create', data: {
+            id: newCourse._id.toString(),
+            courseCode: newCourse.courseCode,
+            courseName: newCourse.courseName
+          }
+        });
+      } catch (e) { console.warn('Course create broadcast failed:', e && e.message); }
 
       return res.status(201).json({
         id: newCourse._id,
@@ -2828,156 +2961,10 @@ app.delete('/api/subjects/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// ============ DASHBOARD DATA ENDPOINTS ============
-
-// Get todos by role
-app.get('/api/todos', async (req, res) => {
-  try {
-    const { role } = req.query;
-    let todos = [];
-    
-    try {
-      const todoData = dbFile('todos').read() || [];
-      if (role) {
-        todos = todoData.filter(t => !t.role || t.role === role);
-      } else {
-        todos = todoData;
-      }
-    } catch (e) {
-      console.log('Todos file not found, returning empty');
-    }
-    
-    res.json(todos || []);
-  } catch (err) {
-    console.error('Error fetching todos:', err);
-    res.json([]);
-  }
-});
-
-// Faculty analytics - students count
-app.get('/api/faculty-stats/:facultyId/students', async (req, res) => {
-  try {
-    const { facultyId } = req.params;
-    
-    let students = [];
-    if (mongoose.connection.readyState === 1) {
-      try {
-        // Find all students taught by this faculty
-        const faculty = await Faculty.findOne({
-          $or: [{ facultyId }, { _id: facultyId }]
-        }).lean();
-        
-        if (faculty) {
-          // Get students from faculty's assignments
-          const allStudents = await Student.find({
-            year: { $in: faculty.assignments?.map(a => a.year) || [] }
-          }).lean();
-          students = allStudents;
-        }
-      } catch (e) {
-        console.log('MongoDB error:', e.message);
-      }
-    }
-    
-    if (students.length === 0) {
-      // Fallback to file DB
-      students = dbFile('students').read() || [];
-    }
-    
-    res.json({
-      total: students.length,
-      students: students.slice(0, 100) // Limit response
-    });
-  } catch (err) {
-    console.error('Error fetching faculty stats:', err);
-    res.status(500).json({ error: 'Failed to fetch faculty stats', details: err.message });
-  }
-});
-
-// Faculty analytics - materials downloads
-app.get('/api/faculty-stats/:facultyId/materials-downloads', async (req, res) => {
-  try {
-    const { facultyId } = req.params;
-    
-    let materials = [];
-    if (mongoose.connection.readyState === 1) {
-      try {
-        materials = await Material.find({ uploadedBy: facultyId }).lean();
-      } catch (e) {
-        console.log('MongoDB error:', e.message);
-      }
-    }
-    
-    if (materials.length === 0) {
-      materials = dbFile('materials').read() || [];
-      if (facultyId) {
-        materials = materials.filter(m => m.uploadedBy === facultyId || m.faculty === facultyId);
-      }
-    }
-    
-    res.json({
-      total: materials.length,
-      downloads: materials.reduce((sum, m) => sum + (m.downloads || 0), 0),
-      materials: materials.slice(0, 50)
-    });
-  } catch (err) {
-    console.error('Error fetching materials stats:', err);
-    res.status(500).json({ error: 'Failed to fetch materials stats', details: err.message });
-  }
-});
-
-// Generic faculty stats endpoint
-app.get('/api/faculty-stats/:facultyId/:endpoint', async (req, res) => {
-  try {
-    const { facultyId, endpoint } = req.params;
-    
-    let data = {};
-    
-    switch(endpoint) {
-      case 'attendance':
-        // Get attendance stats
-        if (mongoose.connection.readyState === 1) {
-          const attendance = await Attendance.find().lean();
-          data = {
-            totalSessions: attendance.length,
-            average: 85
-          };
-        } else {
-          const attFile = dbFile('attendance').read() || [];
-          data = {
-            totalSessions: attFile.length,
-            average: 85
-          };
-        }
-        break;
-        
-      case 'exams':
-        // Get exam stats
-        if (mongoose.connection.readyState === 1) {
-          const exams = await Exam.find().lean();
-          data = {
-            totalExams: exams.length,
-            scheduled: exams.filter(e => e.status === 'scheduled').length
-          };
-        } else {
-          const examFile = dbFile('exams').read() || [];
-          data = {
-            totalExams: examFile.length,
-            scheduled: examFile.filter(e => e.status === 'scheduled').length
-          };
-        }
-        break;
-        
-      default:
-        data = { message: `Stats for ${endpoint}` };
-    }
-    
-    res.json(data);
-  } catch (err) {
-    console.error('Error fetching faculty stats:', err);
-    res.status(500).json({ error: 'Failed to fetch stats', details: err.message });
-  }
-});
+// Duplicate, file-fallback dashboard endpoints removed.
+// Dashboard endpoints are implemented above using MongoDB-only logic
+// (quick-stats, storage-usage, full-stats, faculty-stats, etc.).
+// This block was removed to avoid route conflicts and ensure MongoDB is the single source of truth.
 
 // 404 Catch-all for API
 app.use('/api/*', (req, res) => {
