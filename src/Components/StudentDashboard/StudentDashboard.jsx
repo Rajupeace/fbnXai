@@ -20,6 +20,7 @@ import StudentFacultyList from './StudentFacultyList';
 import StudentSchedule from './StudentSchedule';
 import PlacementPrep from './Sections/PlacementPrep';
 import StudentRoadmaps from './Sections/StudentRoadmaps';
+import StudentAnnouncements from './Sections/StudentAnnouncements';
 import PasswordSettings from '../Settings/PasswordSettings';
 import { getYearData } from './branchData';
 import NexusCorePulse from './AcademicPulse';
@@ -379,32 +380,9 @@ export default function StudentDashboard({ studentData, onLogout }) {
             <div className="dashboard-content-area">
                 {view === 'overview' && renderOverview()}
 
-                {view === 'messages' && (
-                    <div className="nexus-hub-viewport">
-                        <div className="nexus-mesh-bg"></div>
-                        <header className="hub-header">
-                            <h2 className="nexus-page-title">ANNOUNCEMENTS <span>BROADCAST</span></h2>
-                            <p className="nexus-page-subtitle">Messages from administration.</p>
-                        </header>
-                        <div className="nexus-browser-wrap">
-                            {messages.length > 0 ? (
-                                <div style={{ display: 'grid', gap: '1rem' }}>
-                                    {messages.map((msg, i) => (
-                                        <div key={msg.id || i} className="admin-msg-card" style={{ padding: '1.5rem', borderLeft: '4px solid #6366f1', borderRadius: '12px', background: 'rgba(99,102,241,0.05)' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.75rem' }}>
-                                                <span style={{ fontWeight: 950, color: 'var(--admin-secondary)', fontSize: '1rem' }}>{msg.message || msg.text}</span>
-                                                <span style={{ fontSize: '0.8rem', opacity: 0.6, whiteSpace: 'nowrap' }}>{new Date(msg.createdAt || msg.date).toLocaleString()}</span>
-                                            </div>
-                                            {msg.target && <span style={{ fontSize: '0.75rem', opacity: 0.6, padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', display: 'inline-block' }}>TO: {msg.target.toUpperCase()}</span>}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
-                                    <p>No announcements at this time</p>
-                                </div>
-                            )}
-                        </div>
+                {view === 'announcements' && (
+                    <div className="nexus-page-container">
+                        <StudentAnnouncements messages={messages} userData={userData} />
                     </div>
                 )}
 

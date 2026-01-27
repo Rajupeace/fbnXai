@@ -2,7 +2,6 @@ import React from 'react';
 import { FaEnvelope, FaBroadcastTower, FaUserShield, FaClock } from 'react-icons/fa';
 
 /**
-/**
  * Communications Center
  * Hub for messages and global announcements.
  */

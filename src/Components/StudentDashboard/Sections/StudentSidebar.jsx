@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad
+    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn
 } from 'react-icons/fa';
 
 /**
@@ -35,6 +35,7 @@ const StudentSidebar = ({
         { id: 'marks', label: 'Grades', icon: <FaChartBar /> },
         { id: 'schedule', label: 'Schedule', icon: <FaClipboardList /> },
         { id: 'faculty', label: 'Faculty', icon: <FaGraduationCap /> },
+        { id: 'announcements', label: 'Announcements', icon: <FaBullhorn /> },
         { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
         { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
         { id: 'placement', label: 'Placement', icon: <FaBriefcase /> },
