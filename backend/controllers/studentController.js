@@ -184,6 +184,7 @@ exports.getStudentOverview = async (req, res) => {
         branch: student.branch,
         year: student.year,
         section: student.section,
+        profilePic: student.profileImage || student.profilePic || student.avatar,
         stats: student.stats || {}
       },
       semesterProgress: 72,

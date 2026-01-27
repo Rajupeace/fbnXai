@@ -237,4 +237,76 @@ router.post('/:id/roadmap-progress', async (req, res) => {
   }
 });
 
+// PUT /api/students/profile/:sid
+// Update student profile (including avatar/profilePic)
+router.put('/profile/:sid', async (req, res) => {
+  try {
+    const { sid } = req.params;
+    const updates = req.body;
+    const Student = require('../models/Student');
+
+    // Map frontend 'profilePic' to schema 'profileImage'
+    if (updates.profilePic !== undefined) {
+      updates.profileImage = updates.profilePic;
+      // Also update avatar field if it's a dicebear URL (optional, but good for consistency)
+      if (typeof updates.profilePic === 'string' && updates.profilePic.includes('dicebear')) {
+        // Extract seed if possible or just save url
+        updates.avatar = updates.profilePic;
+      }
+    }
+
+    // Ensure we don't accidentally overwrite critical fields with nulls if not sent
+    const allowedUpdates = ['studentName', 'email', 'phone', 'address', 'profileImage', 'avatar', 'year', 'section', 'branch'];
+    const safeUpdates = {};
+    Object.keys(updates).forEach(key => {
+      if (allowedUpdates.includes(key)) safeUpdates[key] = updates[key];
+    });
+
+    const student = await Student.findOneAndUpdate(
+      { sid },
+      { $set: safeUpdates },
+      { new: true }
+    );
+
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    res.json({
+      success: true,
+      student: {
+        ...student.toObject(),
+        profilePic: student.profileImage
+      }
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// PUT /api/students/change-password/:sid
+// Simple password change (Plaintext as per existing pattern, should be hashed in prod)
+router.put('/change-password/:sid', async (req, res) => {
+  try {
+    const { sid } = req.params;
+    const { currentPassword, newPassword } = req.body;
+    const Student = require('../models/Student');
+
+    const student = await Student.findOne({ sid });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    // In a real app, compare hashes. Here we assume plaintext based on provided context.
+    if (student.password !== currentPassword) {
+      return res.status(400).json({ error: 'Incorrect current password' });
+    }
+
+    student.password = newPassword;
+    await student.save();
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
 module.exports = router;
