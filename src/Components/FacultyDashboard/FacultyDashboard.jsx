@@ -18,6 +18,7 @@ import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 import FacultySidebar from './Sections/FacultySidebar';
 import FacultyHome from './Sections/FacultyHome';
 import FacultyCurriculumArch from './Sections/FacultyCurriculumArch';
+import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 
 const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => {
   const [view, setView] = useState('overview');
@@ -537,6 +538,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         </div>
       )}
 
+
+      <PersonalDetailsBall role="faculty" data={facultyData} />
 
       <div className="ai-fab" onClick={() => setView('ai-agent')} title="Open AI Assistant">
         <FaRobot />

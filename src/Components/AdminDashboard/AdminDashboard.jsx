@@ -21,6 +21,7 @@ import MaterialSection from './Sections/MaterialSection';
 import MessageSection from './Sections/MessageSection';
 import TodoSection from './Sections/TodoSection';
 import AcademicHub from './Sections/AcademicHub';
+import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 
 
 // Helper for mocked API or local storage check
@@ -1981,6 +1982,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       }
 
 
+      <PersonalDetailsBall role="admin" data={{ name: 'System Administrator', role: 'Governance Level 1' }} />
     </div >
   );
 }

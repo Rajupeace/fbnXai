@@ -2,65 +2,60 @@
 module.exports = {
     greeting: {
         keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
-        response: (context) => `🎓 **Academic Interface Active.**\n\nWelcome back, **${context?.name || 'Professor'}**. I have synchronized your departmental assets. How can I assist with your curriculum or student oversight today?`
+        response: (context) => `👨‍🏫 **Welcome back, ${context?.name || 'Professor'}!**\n\nYour classroom is ready. I can help you manage attendance, upload notes, or track student progress. \n\n*How can I assist your teaching today?*`
     },
 
     students: {
         keywords: ['student', 'students', 'my students', 'class', 'section', 'roster', 'cadets'],
-        response: () => "The **Student Identity Network** is online. View the profiles and contact information of students under your mentorship:\n\n{{NAVIGATE: students}}"
+        response: () => "Here's your **Student Roster**. 📋\n\nYou can view profiles, academic history, and contact details for all your students here:\n\n{{NAVIGATE: students}}"
     },
 
     upload: {
         keywords: ['upload', 'add material', 'upload notes', 'add content', 'share material'],
-        response: () => "The **Asset Repository** is ready for deployment. Upload course notes, lecture videos, or modular content here:\n\n{{NAVIGATE: materials}}\n\n*Note: Supported formats include PDF, DOCX, and MP4.*"
+        response: () => "Let's share some knowledge! 📤\n\nHead to **Materials** to upload lecture notes, videos, or assignments for your class.\n\n{{NAVIGATE: materials}}\n\n*Tip: PDFs and Videos are most popular with students!*"
     },
 
     materials: {
         keywords: ['materials', 'notes', 'content', 'resources', 'my uploads'],
-        response: () => "Your **Academic Archives** are accessible. You can review, modify, or deploy course resources to your assigned sections:\n\n{{NAVIGATE: materials}}"
+        response: () => "Accessing your **Digital Library**. 📚\n\nManage your course content and see what you've shared so far:\n\n{{NAVIGATE: materials}}"
     },
 
     attendance: {
         keywords: ['attendance', 'mark attendance', 'present', 'absent', 'roster'],
-        response: () => "The **Attendance Registry** is online. You can record presence for your assigned sections or view historical data here:\n\n{{NAVIGATE: attendance}}\n\n*System suggests checking Section A's morning labs.*"
+        response: () => "Time to mark attendance! 📝\n\nGo to the **Attendance Register** to log today's presence.\n\n{{NAVIGATE: attendance}}"
     },
 
-    assignments: {
-        keywords: ['assignment', 'homework', 'task', 'create assignment'],
-        response: () => "The **Project Management Module** is active. Deploy new tasks and track submission rates in the **Materials** sector:\n\n{{NAVIGATE: materials}}"
+    doubts: {
+        keywords: ['doubts', 'questions', 'queries', 'student questions'],
+        response: () => "Handling student doubts? 🤔\n\nYou can address common queries in class or upload a 'Q&A' document in the **Materials** section.\n\n{{NAVIGATE: materials}}"
+    },
+
+    papers: {
+        keywords: ['question paper', 'exam paper', 'set paper', 'model paper'],
+        response: () => "Preparing for exams? 📝\n\nYou can upload **Model Papers** or Previous Year Questions in the Materials section under the 'Model Papers' category.\n\n{{NAVIGATE: materials}}"
     },
 
     grades: {
         keywords: ['grades', 'marks', 'evaluation', 'assessment', 'score', 'exam'],
-        response: () => "The **Assessment Rig** is ready for simulation control. Manage your subject exams, grading keys, and performance scoring:\n\n{{NAVIGATE: exams}}"
+        response: () => "Let's check the performance. 📊\n\nManage exam markings and view subject-wise performance here:\n\n{{NAVIGATE: exams}}"
     },
 
     schedule: {
         keywords: ['schedule', 'timetable', 'my classes', 'teaching schedule', 'when is my next class'],
-        response: () => "Accessing your **Academic Itinerary**...\n\nYour teaching schedule and classroom assignments are mapped in the **Schedule Control** center:\n\n{{NAVIGATE: schedule}}"
+        response: () => "Checking your schedule... 📅\n\nHere are your classes for the day/week:\n\n{{NAVIGATE: schedule}}"
     },
 
     communication: {
         keywords: ['message', 'notify', 'announcement', 'communicate', 'send', 'broadcast'],
-        response: () => "Initiating **Broadcast Protocol**... 🛰️\n\nTransmit emergency alerts or important announcements to your entire student cohort:\n\n{{NAVIGATE: broadcast}}"
-    },
-
-    reports: {
-        keywords: ['report', 'analytics', 'statistics', 'performance'],
-        response: () => "Detailed **Analytic Dossiers** are being compiled. You can view student performance trends in the **Exams** and **Students** sectors:\n\n1. **Performance Stats**: {{NAVIGATE: exams}}\n2. **Student Profiles**: {{NAVIGATE: students}}"
-    },
-
-    admin: {
-        keywords: ['admin', 'administrator', 'contact admin', 'admin help'],
-        response: () => "Administrative messages are routed through the **Nexus Messaging** system. Check your notifications for high-level directives:\n\n{{NAVIGATE: messages}}"
+        response: () => "Need to make an announcement? 📢\n\nSend a **Broadcast Message** to your entire class or specific students instantly:\n\n{{NAVIGATE: broadcast}}"
     },
 
     help: {
         keywords: ['help', 'support', 'how to', 'guide'],
-        response: () => "I can assist with the following sectors:\n\n- 📊 **Attendance**: Record & Export ({{NAVIGATE: attendance}})\n- 📂 **Materials**: Upload & Manage ({{NAVIGATE: materials}})\n- 📅 **Schedule**: Personal Timetable ({{NAVIGATE: schedule}})\n- 🛰️ **Comms**: Student Broadcasts ({{NAVIGATE: broadcast}})\n- 🏆 **Assessments**: Exam Management ({{NAVIGATE: exams}})"
+        response: () => "I'm your Teaching Assistant! 🤖\n\nI can help you:\n- 📝 **Mark Attendance** ({{NAVIGATE: attendance}})\n- 📤 **Upload Notes** ({{NAVIGATE: materials}})\n- 📅 **Check Schedule** ({{NAVIGATE: schedule}})\n- 📢 **Announce** ({{NAVIGATE: broadcast}})"
     },
 
     default: {
-        response: (userMessage) => `I have signaled your query regarding *"${userMessage}"*.\n\nWhile I don't have a specific response, I can redirect you to the **Faculty Command Hub** for full system oversight:\n\n{{NAVIGATE: overview}}`
+        response: (userMessage) => `I heard you say *"${userMessage}"*.\n\nI'm not exactly sure how to help with that, but you can explore your **Dashboard Overview** for all options:\n\n{{NAVIGATE: overview}}`
     }
 };

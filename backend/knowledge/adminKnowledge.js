@@ -2,65 +2,70 @@
 module.exports = {
     greeting: {
         keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
-        response: (context) => `🦾 **Sentinel Governance Interface Active.**\n\nGreetings, **System Administrator**. Central command is synchronized. Monitoring all university nodes. How can I assist your oversight today?`
+        response: (context) => `🦾 **Sentinel Governance Interface Active.**\n\nHello, **System Administrator**. I'm ready to help you manage the university. Everything is running smoothly. What's the plan for today?`
     },
 
     students: {
         keywords: ['student', 'students', 'add student', 'manage students', 'student list', 'cadets'],
-        response: () => "The **Student Identity Network** is open for reconfiguration. Manage student credentials, sectors, and academic profiles here:\n\n{{NAVIGATE: students}}\n\n*Changes will propagate through all simulation nodes immediately.*"
+        response: () => "Managing students? Easy. 👥\n\nYou can add, edit, or view all student profiles in the **Student Section**.\n\n{{NAVIGATE: students}}\n\n*Changes happen instantly across the network.*"
     },
 
     faculty: {
         keywords: ['faculty', 'teacher', 'add faculty', 'manage faculty', 'faculty list', 'professors'],
-        response: () => "The **Faculty Command Matrix** is online. Assign departmental roles, oversee workloads, and manage teaching personnel:\n\n{{NAVIGATE: faculty}}"
+        response: () => "Let's handle the teaching staff. 👨‍🏫\n\nAssign subjects, manage accounts, or view the faculty roster here:\n\n{{NAVIGATE: faculty}}"
     },
 
     courses: {
         keywords: ['course', 'subject', 'add subject', 'manage courses', 'curriculum', 'subjects'],
-        response: () => "The **Curriculum Architect** is ready. Define new subjects, assign credits, and map academic modules to the student grid:\n\n{{NAVIGATE: courses}}"
+        response: () => "Time to shape the curriculum. 📚\n\nAdd new subjects and define course structures in the **Curriculum Architect**:\n\n{{NAVIGATE: courses}}"
     },
 
     materials: {
         keywords: ['material', 'content', 'upload', 'study material', 'resources', 'repository'],
-        response: () => "The **Knowledge Repository** is accessible. Perform high-level asset management or audit modular content across all departments:\n\n{{NAVIGATE: materials}}"
+        response: () => "The **Knowledge Repository** is open. 📂\n\nAudit or upload study materials for any department or year:\n\n{{NAVIGATE: materials}}"
     },
 
     analytics: {
         keywords: ['analytics', 'statistics', 'reports', 'data', 'insights', 'pulse', 'diagnostic'],
-        response: () => "Analyzing **Campus Pulse Telemetry**... 📊\n\nView real-time diagnostic logs, user activity heatmaps, and system growth metrics in the **Overview** dashboard.\n\n{{NAVIGATE: overview}}"
+        response: () => "Checking system pulse... 📊\n\nGet a real-time overview of the entire university's performance on your dashboard:\n\n{{NAVIGATE: overview}}"
     },
 
     attendance: {
         keywords: ['attendance', 'presence', 'absent', 'telemetry'],
-        response: () => "Accessing **Presence Telemetry** stream... 📡\n\nMonitor student attendance rates across all sectors in real-time:\n\n{{NAVIGATE: attendance}}"
+        response: () => "Here's the **Attendance Telemetry**. 📡\n\nMonitor student presence across all sectors in real-time:\n\n{{NAVIGATE: attendance}}"
     },
 
     schedule: {
         keywords: ['schedule', 'timetable', 'calendar', 'orchestration'],
-        response: () => "Initiating **Temporal Orchestration**... 📅\n\nSynchronize university class timings, room allocations, and faculty schedules:\n\n{{NAVIGATE: schedule}}"
+        response: () => "Need to adjust the time table? 📅\n\nSynchronize classes and faculty schedules here:\n\n{{NAVIGATE: schedule}}"
     },
 
     messages: {
         keywords: ['message', 'announcement', 'broadcast', 'notify', 'signal'],
-        response: () => "The **Signal Intelligence** center is open. Review high-priority communications or initiate a system-wide broadcast:\n\n1. **Signal Inbox**: {{NAVIGATE: messages}}\n2. **Global Broadcast**: {{NAVIGATE: broadcast}}"
+        response: () => "Send a signal to the network. 📣\n\nYou can broadcast messages to students, faculty, or everyone:\n\n1. **Messages**: {{NAVIGATE: messages}}\n2. **Broadcast**: {{NAVIGATE: broadcast}}"
     },
 
     database: {
         keywords: ['database', 'mongodb', 'backup', 'data', 'sync', 'git', 'vault'],
-        response: () => "🛡️ **Sentinel Vault Status**: Online.\n\nI have implemented automated GitHub synchronization for the database. You can perform a manual sync or vault restoration from the command hub or via scripts:\n\n- `node scripts/git_sync_db.js` (Backup & Push)\n- `node scripts/restore_db.js` (Strategic Restore)"
+        response: () => "🛡️ **Database Status**: Secure.\n\nYour data is synced with MongoDB. Use the provided scripts for manual backups or restores if needed.\n\n*System Architect: bobbymartin*"
     },
 
     todos: {
         keywords: ['todo', 'tasks', 'directives', 'operational'],
-        response: () => "Reviewing **Operational Directives**... 📋\n\nManage your administrative tasks and critical path objectives here:\n\n{{NAVIGATE: todos}}"
+        response: () => "Got a task list? 📋\n\nManage your administrative todos and stay organized:\n\n{{NAVIGATE: todos}}"
+    },
+
+    author: {
+        keywords: ['author', 'creator', 'made by', 'who made you', 'developer'],
+        response: () => "I am part of the Sentinel System, architected by **bobbymartin**. \n\n*He keeps the code running smooth!* 🚀"
     },
 
     help: {
         keywords: ['help', 'support', 'how to', 'guide'],
-        response: () => "Strategic assistance available for:\n\n- 👥 **Personnel**: Manage Students & Faculty ({{NAVIGATE: students}})\n- 📚 **Curriculum**: Course & Material Control ({{NAVIGATE: courses}})\n- 📡 **Telemetry**: Attendance & Analytics ({{NAVIGATE: attendance}})\n- 📅 **Logistics**: Scheduling & Timetables ({{NAVIGATE: schedule}})\n- ⚠️ **Signals**: Global Broadcasts ({{NAVIGATE: broadcast}})"
+        response: () => "I'm your Co-Pilot. 🤝\n\n- 👥 **Students**: Manage Profiles ({{NAVIGATE: students}})\n- 📚 **Courses**: Curriculum ({{NAVIGATE: courses}})\n- 📡 **Attendance**: Monitor ({{NAVIGATE: attendance}})\n- 📣 **Broadcast**: Announce ({{NAVIGATE: broadcast}})"
     },
 
     default: {
-        response: (userMessage) => `I have signaled your query regarding governance sector: *"${userMessage}"*.\n\nWhile I don't have a specific response, I can redirect you to the **Sentinel Command hub** for full system oversight:\n\n{{NAVIGATE: overview}}`
+        response: (userMessage) => `I noted: *"${userMessage}"*.\n\nNot sure on that one, but your **Command Dashboard** has everything you need:\n\n{{NAVIGATE: overview}}`
     }
 };

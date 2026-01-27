@@ -27,6 +27,7 @@ import NexusCorePulse from './AcademicPulse';
 import './StudentDashboard.css';
 import SkillsRadar from './Sections/SkillsRadar';
 import GlobalNotifications from '../GlobalNotifications/GlobalNotifications';
+import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 // StudyTools intentionally removed (unused) to satisfy linting
 
 /**
@@ -531,6 +532,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 </div>
             )}
 
+            <PersonalDetailsBall role="student" data={userData} />
             <GlobalNotifications userRole="student" userData={userData} />
         </div>
     );
