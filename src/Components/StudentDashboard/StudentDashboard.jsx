@@ -3,7 +3,7 @@ import { apiGet } from '../../utils/apiClient';
 import sseClient from '../../utils/sseClient';
 import {
     FaGraduationCap, FaChartBar, FaTrophy, FaLightbulb,
-    FaLayerGroup, FaRobot, FaFire, FaClipboardList
+    FaLayerGroup, FaRobot, FaFire, FaClipboardList, FaBriefcase
 } from 'react-icons/fa';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 
@@ -18,6 +18,8 @@ import StudentAttendanceView from './StudentAttendanceView';
 import StudentExams from './StudentExams';
 import StudentFacultyList from './StudentFacultyList';
 import StudentSchedule from './StudentSchedule';
+import PlacementPrep from './Sections/PlacementPrep';
+import StudentRoadmaps from './Sections/StudentRoadmaps';
 import PasswordSettings from '../Settings/PasswordSettings';
 import { getYearData } from './branchData';
 import NexusCorePulse from './AcademicPulse';
@@ -25,7 +27,7 @@ import NexusCorePulse from './AcademicPulse';
 import './StudentDashboard.css';
 import SkillsRadar from './Sections/SkillsRadar';
 import GlobalNotifications from '../GlobalNotifications/GlobalNotifications';
-import StudyTools from './StudyTools';
+// StudyTools intentionally removed (unused) to satisfy linting
 
 /**
  * Friendly Notebook Student Dashboard
@@ -117,7 +119,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
         } catch (e) {
             console.error("❌ StudentDashboard: Sync Failed:", e);
         }
-    }, [userData.sid, userData.studentName]); // Added dependencies
+    }, [userData.sid]);
 
     useEffect(() => {
         console.log('🚀 StudentDashboard: Initial data load started');
@@ -257,8 +259,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
         return (yearData.semesters || []).flatMap(s => s.subjects || []);
     }, [yearData]);
 
-    const NexusStat = ({ icon: Icon, label, value, color, delay, subtext }) => (
-        <div className="nexus-stat-v2" style={{ animationDelay: `${delay}s`, '--stat-color': color }}>
+    const NexusStat = ({ icon: Icon, label, value, color, delay, subtext, onClick }) => (
+        <div className="nexus-stat-v2" style={{ animationDelay: `${delay}s`, '--stat-color': color, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
             <div className="stat-glow"></div>
             <div className="stat-content">
                 <div className="stat-icon-group">
@@ -309,6 +311,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 <NexusStat icon={FaTrophy} label="Rank Score" value={overviewData?.student?.stats?.cgpa ? (overviewData.student.stats.cgpa * 10).toFixed(1) : '8.2'} color="#f59e0b" delay={0.3} subtext="Current CGPA" />
                 <NexusStat icon={FaFire} label="Study Streak" value={`${overviewData?.activity?.streak || 0} Days`} color="#f97316" delay={0.4} subtext="Daily Activity" />
                 <NexusStat icon={FaRobot} label="AI Insights" value={overviewData?.activity?.aiUsage || 0} color="#0ea5e9" delay={0.5} subtext="Sessions Active" />
+                <NexusStat icon={FaBriefcase} label="Placement" value="4 MNCs" color="#8b5cf6" delay={0.55} subtext="Interview Prep" onClick={() => setView('placement')} />
                 <NexusStat icon={FaClipboardList} label="Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" />
             </div>
 
@@ -318,6 +321,16 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     <SkillsRadar studentData={userData} />
 
                     <div className="nexus-insight-panel">
+                        <div className="panel-header">
+                            <FaBriefcase /> <span>Career Tracker</span>
+                        </div>
+                        <div className="panel-body" style={{ marginBottom: '1rem' }}>
+                            <p>Prepare for <strong>TCS, Infosys, and Accenture</strong>. Access 50+ interview questions.</p>
+                            <button className="panel-action-btn" onClick={() => setView('placement')} style={{ marginTop: '0.5rem', width: '100%', padding: '0.6rem', background: '#e0e7ff', color: '#4338ca', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                                OPEN PRACTICE HUB
+                            </button>
+                        </div>
+
                         <div className="panel-header">
                             <FaLightbulb /> <span>Student Insights</span>
                         </div>
@@ -346,7 +359,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
         </div>
     );
 
-    const [focusMode, setFocusMode] = useState(false);
+    const [focusMode] = useState(false);
 
     return (
         <div className={`student-dashboard-layout ${isDashboardLoaded ? 'loaded' : ''} ${focusMode ? 'focus-active' : ''}`}>
@@ -444,6 +457,18 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 {view === 'schedule' && (
                     <div className="nexus-page-container">
                         <StudentSchedule studentData={userData} />
+                    </div>
+                )}
+
+                {view === 'placement' && (
+                    <div className="nexus-page-container">
+                        <PlacementPrep userData={userData} />
+                    </div>
+                )}
+
+                {view === 'roadmaps' && (
+                    <div className="nexus-page-container">
+                        <StudentRoadmaps />
                     </div>
                 )}
 

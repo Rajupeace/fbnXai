@@ -117,6 +117,8 @@ router.post('/', async (req, res) => {
                                         },
                                         { upsert: true }
                                     );
+                                    // Broadcast StudentData attendance update
+                                    try { global.broadcastEvent && global.broadcastEvent({ resource: 'studentData', action: 'update', data: { studentId: studentObj._id.toString(), attendanceSummary: { total: totalAll, present: presentAll, absent: absentAll, pct: pctAll } } }); } catch (e) {}
                                 } else {
                                     console.warn('StudentData update skipped: Student not found for sid', sid);
                                 }
@@ -152,6 +154,8 @@ router.post('/', async (req, res) => {
                         console.error('Error updating enrollment aggregates:', e);
                     }
                 }
+                    // Broadcast overall attendance bulk update for dashboards
+                    try { global.broadcastEvent && global.broadcastEvent({ resource: 'attendance', action: 'bulk-update', data: { date: dateStr, subject, section, branch, recordCount: docsToInsert.length, affectedStudents: Array.from(affectedStudents) } }); } catch (e) {}
             } catch (syncErr) {
                 console.error('Error recomputing attendance aggregates:', syncErr);
             }

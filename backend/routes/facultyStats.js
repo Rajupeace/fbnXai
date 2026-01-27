@@ -25,6 +25,11 @@ router.get('/:facultyId/students', requireAuthMongo, async (req, res) => {
         let assignments = [];
         let students = [];
 
+        // Enforce MongoDB-only for faculty/student lists used by dashboards
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ error: 'MongoDB not connected. Faculty/student data unavailable.' });
+        }
+
         if (mongoose.connection.readyState === 1) {
             const faculty = await Faculty.findOne({ facultyId });
             if (!faculty) {
@@ -43,15 +48,6 @@ router.get('/:facultyId/students', requireAuthMongo, async (req, res) => {
             } else {
                 students = [];
             }
-        } else {
-            const facultyList = readDB('faculty');
-            const faculty = facultyList.find(f => f.facultyId === facultyId);
-            if (!faculty) return res.status(404).json({ error: 'Faculty not found' });
-            assignments = faculty.assignments || [];
-            const allStudents = readDB('students');
-            students = allStudents.filter(s => {
-                return assignments.some(a => String(a.year) === String(s.year) && a.section === s.section);
-            });
         }
         res.json(students);
     } catch (err) {
@@ -66,12 +62,12 @@ router.get('/:facultyId/materials-downloads', requireAuthMongo, async (req, res)
         const { facultyId } = req.params;
         let materials = [];
 
-        if (mongoose.connection.readyState === 1) {
-            materials = await Material.find({ uploaderId: facultyId });
-        } else {
-            const allMaterials = readDB('materials');
-            materials = allMaterials.filter(m => m.uploaderId === facultyId);
+        // Enforce MongoDB-only for material stats used in dashboards
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ error: 'MongoDB not connected. Material stats unavailable.' });
         }
+
+        materials = await Material.find({ uploaderId: facultyId });
 
         const result = materials.map(m => ({
             id: m.id || m._id,

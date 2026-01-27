@@ -294,6 +294,9 @@ const courseRoutes = require('./routes/courseRoutes');
 const facultyRoutes = require('./routes/facultyRoutes');
 app.use('/api/faculty', facultyRoutes);
 
+// Placement/Interview Prep Routes
+app.use('/api/placements', require('./routes/placementRoutes'));
+
 app.use('/api/courses', courseRoutes);
 // app.use('/api/teaching-assignments', teachingAssignmentRoutes);
 app.use('/api/attendance', attendanceRoutes);
@@ -2969,6 +2972,11 @@ app.delete('/api/subjects/:id', requireAdmin, async (req, res) => {
 // Dashboard endpoints are implemented above using MongoDB-only logic
 // (quick-stats, storage-usage, full-stats, faculty-stats, etc.).
 // This block was removed to avoid route conflicts and ensure MongoDB is the single source of truth.
+
+// --------------------------------------------------------------------------------
+// ROADMAP ROUTES
+// --------------------------------------------------------------------------------
+app.use('/api/roadmaps', require('./routes/roadmapRoutes'));
 
 // 404 Catch-all for API
 app.use('/api/*', (req, res) => {

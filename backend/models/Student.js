@@ -54,6 +54,12 @@ const studentSchema = new mongoose.Schema({
     advancedProgress: { type: Number, default: 0 }, // % completed
     totalClasses: { type: Number, default: 0 },
     totalPresent: { type: Number, default: 0 }
+  },
+  // Progress Tracking
+  roadmapProgress: {
+    type: Map,
+    of: [String], // Map<RoadmapSlug, Array<TopicName>>
+    default: {}
   }
 });
 

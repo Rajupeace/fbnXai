@@ -209,4 +209,32 @@ router.get('/:studentId/courses/:courseId', async (req, res) => {
   }
 });
 
+// POST /api/students/:id/roadmap-progress
+// Updates the progress for a specific roadmap
+router.post('/:id/roadmap-progress', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { roadmapSlug, completedTopics } = req.body; // Expects array of strings
+    const Student = require('../models/Student');
+
+    // Mongoose Map update syntax: `roadmapProgress.${roadmapSlug}`
+    const update = {};
+    update[`roadmapProgress.${roadmapSlug}`] = completedTopics;
+
+    const student = await Student.findOneAndUpdate(
+      { sid: id },
+      { $set: update },
+      { new: true, upsert: true }
+    );
+
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    console.log(`✅ Saved roadmap progress for ${id}: ${roadmapSlug} -> ${completedTopics.length} topics`);
+    res.json({ success: true, progress: student.roadmapProgress });
+  } catch (err) {
+    console.error('Error saving roadmap progress:', err);
+    res.status(500).json({ error: 'Failed to save progress' });
+  }
+});
+
 module.exports = router;

@@ -54,6 +54,9 @@ router.post('/', async (req, res) => {
         const schedule = new Schedule(scheduleData);
         await schedule.save();
 
+        // Broadcast schedule creation to dashboards
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'schedules', action: 'create', data: schedule }); } catch (e) {}
+
         res.status(201).json(schedule);
     } catch (error) {
         console.error('MongoDB Schedule save failed:', error.message);
@@ -79,6 +82,8 @@ router.put('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Schedule not found' });
         }
 
+        // Broadcast schedule update
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'schedules', action: 'update', data: schedule }); } catch (e) {}
         res.json(schedule);
     } catch (error) {
         console.error('Error updating schedule:', error);
@@ -95,6 +100,7 @@ router.delete('/:id', async (req, res) => {
             return res.status(404).json({ error: 'Schedule not found' });
         }
 
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'schedules', action: 'delete', data: { id: schedule._id.toString() } }); } catch (e) {}
         res.json({ message: 'Schedule deleted successfully', schedule });
     } catch (error) {
         console.error('Error deleting schedule:', error);
@@ -117,6 +123,7 @@ router.post('/bulk', async (req, res) => {
         }));
 
         const result = await Schedule.insertMany(schedulesWithMeta);
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'schedules', action: 'bulk-create', data: { count: result.length } }); } catch (e) {}
         res.status(201).json({
             message: `${result.length} schedules created successfully`,
             schedules: result
@@ -133,6 +140,7 @@ router.delete('/class/:year/:section/:branch', async (req, res) => {
         const { year, section, branch } = req.params;
 
         const result = await Schedule.deleteMany({ year, section, branch });
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'schedules', action: 'bulk-delete', data: { year, section, branch, deletedCount: result.deletedCount } }); } catch (e) {}
 
         res.json({
             message: `Deleted ${result.deletedCount} schedules for Year ${year}, Section ${section}, Branch ${branch}`

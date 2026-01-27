@@ -141,6 +141,11 @@ function getKnowledgeBase(role) {
 router.get('/history', async (req, res) => {
     try {
         const { userId, role, limit } = req.query;
+        // Require MongoDB for chat history used in dashboards and analytics
+        if (mongoose.connection.readyState !== 1) {
+            return res.status(503).json({ message: 'MongoDB not connected. Chat history unavailable.' });
+        }
+
         const history = await readChatHistory();
         let filtered = history;
 

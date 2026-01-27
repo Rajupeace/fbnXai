@@ -225,6 +225,9 @@ exports.uploadMaterial = async (req, res) => {
       console.warn('Pedagogical Notification Deferred:', e.message);
     }
 
+    // Notify dashboards that materials changed
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'create', data: { id: material._id.toString(), title: material.title, course: material.course, year: material.year, section: material.section } }); } catch (e) {}
+
     res.status(201).json(material);
   } catch (error) {
     console.error(error);
@@ -304,7 +307,8 @@ exports.updateMaterial = async (req, res) => {
     await material.populate('course', 'courseCode courseName');
     await material.populate('uploadedBy', 'name email');
 
-    // No local file sync: update persisted in MongoDB only
+    // Notify dashboards that a material was updated
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'update', data: { id: material._id.toString(), title: material.title, year: material.year, section: material.section } }); } catch (e) {}
 
     res.json(material);
   } catch (error) {
@@ -365,6 +369,9 @@ exports.deleteMaterial = async (req, res) => {
     await material.deleteOne();
 
     // No local file sync: deletion persisted in MongoDB only
+
+    // Notify dashboards that a material was deleted
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'delete', data: { id: material._id.toString() } }); } catch (e) {}
 
     res.json({ message: 'Material removed' });
   } catch (error) {

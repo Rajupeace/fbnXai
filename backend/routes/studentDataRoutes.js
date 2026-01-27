@@ -27,6 +27,7 @@ router.post('/', protect, async (req, res) => {
     try {
         const studentData = new StudentData(req.body);
         await studentData.save();
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'studentData', action: 'create', data: { studentId: studentData.studentId } }); } catch (e) {}
         res.status(201).json(studentData);
     } catch (error) {
         console.error('Error creating student data:', error);
@@ -43,6 +44,7 @@ router.put('/:studentId', protect, async (req, res) => {
             { ...req.body, updatedAt: new Date() },
             { new: true, upsert: true }
         );
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'studentData', action: 'update', data: { studentId } }); } catch (e) {}
         res.json(studentData);
     } catch (error) {
         console.error('Error updating student data:', error);
@@ -161,7 +163,7 @@ router.post('/:studentId/attendance', protect, async (req, res) => {
             studentData.sections.attendance.totalClasses) * 100);
         
         await studentData.save();
-        
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'attendance', action: 'update', data: { studentId, attendance: studentData.sections.attendance } }); } catch (e) {}
         res.json(studentData.sections.attendance);
     } catch (error) {
         console.error('Error marking attendance:', error);
@@ -190,7 +192,7 @@ router.post('/:studentId/chat', protect, async (req, res) => {
         
         studentData.sections.chat.totalChats += 1;
         await studentData.save();
-        
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'chat', action: 'create', data: { studentId, message: { role, message, timestamp: new Date() } } }); } catch (e) {}
         res.json(studentData.sections.chat);
     } catch (error) {
         console.error('Error sending message:', error);
@@ -257,7 +259,7 @@ router.post('/:studentId/activity', protect, async (req, res) => {
             },
             { new: true }
         );
-        
+        try { global.broadcastEvent && global.broadcastEvent({ resource: 'activity', action: 'create', data: { studentId, activity: req.body } }); } catch (e) {}
         res.json(studentData);
     } catch (error) {
         console.error('Error adding activity:', error);
