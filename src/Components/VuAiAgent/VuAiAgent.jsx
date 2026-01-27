@@ -10,7 +10,7 @@ const VuAiAgent = ({ onNavigate }) => {
     const defaultBotMessage = {
         id: 'vuai-greeting',
         sender: 'bot',
-        text: 'AI Tutor Online. How can I help you learn today?',
+        text: 'Hi! I am your Friendly Agent. Ask me anything about your subjects or studies!',
         timestamp: new Date().toISOString()
     };
 
@@ -129,17 +129,14 @@ const VuAiAgent = ({ onNavigate }) => {
     }, [userProfile]);
 
     const handleActionTags = (text) => {
-        // Detect {{NAVIGATE: section}}
-        const navMatch = text.match(/{{NAVIGATE:\s*([^}]+)}}/);
+        // Detect {{NAVIGATE: section}} case-insensitive
+        const navMatch = text.match(/{{NAVIGATE:\s*([^}]+)}}/i);
         if (navMatch && navMatch[1] && onNavigate) {
             const section = navMatch[1].trim();
-            console.log('[NeuralCore] Executing navigation directive:', section);
+            console.log('[FriendlyAgent] Executing navigation directive:', section);
             setTimeout(() => onNavigate(section), 1000);
         }
-
-        // Clean text from tags for cleaner UI if needed, 
-        // or just let the markdown handle it if they are invisible
-        return text.replace(/{{NAVIGATE:\s*[^}]+}}/, '');
+        return text.replace(/{{NAVIGATE:\s*[^}]+}}/gi, '');
     };
 
     const handleSend = async (e) => {
@@ -171,8 +168,6 @@ const VuAiAgent = ({ onNavigate }) => {
 
             if (data && (data.response || data.text || data.message)) {
                 let botResponse = data.response || data.text || data.message;
-
-                // Process navigation tags
                 botResponse = handleActionTags(botResponse);
 
                 setMessages(prev => [...prev, {
@@ -209,6 +204,13 @@ const VuAiAgent = ({ onNavigate }) => {
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const suggestions = [
+        "Explain my next exam",
+        "Show my grades",
+        "Where is my next class?",
+        "Summarize last lecture"
+    ];
+
     return (
         <div className="vu-ai-container">
             {/* Header */}
@@ -216,18 +218,17 @@ const VuAiAgent = ({ onNavigate }) => {
                 <div className="vu-bot-avatar">
                     <motion.div
                         animate={{
-                            scale: [1, 1.15, 1],
-                            rotate: [0, 10, -10, 0]
+                            scale: [1, 1.1, 1],
+                            rotate: [0, 5, -5, 0]
                         }}
                         transition={{
-                            duration: 5,
+                            duration: 4,
                             repeat: Infinity,
                             ease: "easeInOut"
                         }}
                     >
-                        <FaRobot size={32} className="ai-icon-spin" />
+                        <FaRobot size={24} className="ai-icon-spin" />
                     </motion.div>
-                    <div className="vu-avatar-ring"></div>
                 </div>
                 <div className="vu-title-group">
                     <motion.h3
@@ -235,17 +236,17 @@ const VuAiAgent = ({ onNavigate }) => {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        NEURAL INTERFACE <span className="vu-version-tag">STN-X9</span>
+                        Friendly Agent <span className="vu-version-tag">Study Companion</span>
                     </motion.h3>
                     <div className="vu-status">
                         <div className="vu-status-dot"></div>
-                        <span>SENTINEL CORE ONLINE</span>
+                        <span>Online & Friendly</span>
                     </div>
                 </div>
             </header>
 
             {/* Messages Area */}
-            <div className="vu-messages sentinel-scrollbar">
+            <div className="vu-messages">
                 <AnimatePresence initial={false}>
                     {messages.map((msg) => (
                         <motion.div
@@ -265,13 +266,14 @@ const VuAiAgent = ({ onNavigate }) => {
                                         className={`copy-btn ${copiedId === msg.id ? 'copied' : ''}`}
                                         onClick={() => copyToClipboard(msg.text, msg.id)}
                                         title="Copy response"
+                                        style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', cursor: 'pointer', opacity: 0.5 }}
                                     >
-                                        {copiedId === msg.id ? <FaCheck /> : <FaRegCopy />}
+                                        {copiedId === msg.id ? <FaCheck size={12} /> : <FaRegCopy size={12} />}
                                     </button>
                                 )}
                             </div>
                             <div className="vu-timestamp">
-                                {msg.sender === 'user' ? 'You' : 'AI Tutor'} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {msg.sender === 'user' ? 'You' : 'Friendly Agent'} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </div>
                         </motion.div>
                     ))}
@@ -284,11 +286,22 @@ const VuAiAgent = ({ onNavigate }) => {
                         className="vu-typing"
                     >
                         <div className="neural-pulse-loader"></div>
-                        <span>Thinking...</span>
+                        <span>Processing...</span>
                     </motion.div>
                 )}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Suggestions Chips - Only for Students */}
+            {userProfile?.role === 'student' && (
+                <div className="vu-suggestions">
+                    {suggestions.map((s, i) => (
+                        <div key={i} className="suggestion-chip" onClick={() => { setInput(s); }}>
+                            {s}
+                        </div>
+                    ))}
+                </div>
+            )}
 
             {/* Input Area */}
             <form onSubmit={handleSend} className="vu-input-area">
@@ -298,20 +311,18 @@ const VuAiAgent = ({ onNavigate }) => {
                         className="vu-input-field"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Ask me about your courses, grades, or schedule..."
+                        placeholder="Type your question..."
                         disabled={isLoading || isHistoryLoading}
                     />
                     <button
                         type="submit"
-                        className={`vu-send-btn ${input.trim() && !isLoading ? 'active' : 'inactive'}`}
+                        className={`vu-send-btn`}
                         disabled={isLoading || !input.trim() || isHistoryLoading}
                     >
-                        <FaPaperPlane size={18} />
+                        <FaPaperPlane size={16} />
                     </button>
                 </div>
             </form>
-
-            <div className="vu-footer-bar"></div>
         </div>
     );
 };

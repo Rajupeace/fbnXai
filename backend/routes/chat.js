@@ -182,6 +182,7 @@ router.post('/', async (req, res) => {
         let reply = '';
 
         // 1. DYNAMIC INTEGRATION: Try Python VuAI Agent (LangChain + Local Knowledge)
+
         try {
             console.log('[VuAiAgent] Attempting to reach Python Agent on port 8000...');
             const response = await fetch('http://localhost:8000/chat', {
@@ -208,87 +209,55 @@ router.post('/', async (req, res) => {
         }
 
         // 1.5. Fallback: Try OpenAI or Gemini directly from Node
-        if (!reply && process.env.OPENAI_API_KEY) {
+        // User requested: "Ai think own give the responed and clears the doubts ai own no knowledge document"
+        // So we prioritized the LLM's own knowledge.
+        if (!reply && (process.env.OPENAI_API_KEY || process.env.GOOGLE_API_KEY)) {
             try {
-                const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-                // Build role-specific system context
                 let systemContext = '';
                 if (role === 'admin') {
-                    systemContext = `You are VuAiAgent (SENTINEL ADMIN MODE 🦾). 
-                    Focus on strategic oversight, system analytics, and governance. 
-                    If relevant, use {{NAVIGATE: section}} where section is one of: overview, students, faculty, courses, materials, attendance, schedule, todos, messages, broadcast, exams.
-                    Use Markdown and professional tone.`;
+                    systemContext = `You are Friendly Agent (ADMIN HELPER). Provide fast, clear, and strategic answers. Use {{NAVIGATE: section}} if needed.`;
                 } else if (role === 'faculty') {
-                    systemContext = `You are VuAiAgent (FACULTY NEXUS MODE 🎓). 
-                    Assist with curriculum, student performance, and material management.
-                    If relevant, use {{NAVIGATE: section}} where section is one of: overview, materials, attendance, exams, schedule, students, broadcast, messages.
-                    Use Markdown and academic tone.`;
+                    systemContext = `You are Friendly Agent (FACULTY ASSISTANT). Assist efficiently with curriculum and teaching. Use {{NAVIGATE: section}} if needed.`;
                 } else {
-                    systemContext = `You are VuAiAgent (LUMINA STUDENT MODE ✨). 
-                    Help students with studies, syllabus, and academic queries.
-                    If relevant, use {{NAVIGATE: section}} where section is one of: overview, semester, journal, advanced, attendance, exams, faculty, schedule, marks.
-                    Use Markdown, emojis, and encouraging tone.`;
-                }
-
-                const localKnowledge = findKnowledgeMatch(userMessage, knowledgeBase, context);
-                const completion = await openai.chat.completions.create({
-                    messages: [
-                        { role: "system", content: systemContext },
-                        { role: "system", content: `Local Knowledge Base Match: ${localKnowledge}` },
-                        { role: "user", content: rawMessage }
-                    ],
-                    model: "gpt-4o-mini", // Higher capability
-                    temperature: 0.7,
-                    max_tokens: 400
-                });
-
-                reply = completion.choices[0].message.content;
-                console.log('[VuAiAgent] Response from OpenAI (Integrated with local knowledge)');
-            } catch (aiError) {
-                console.error("[VuAiAgent] OpenAI API Error:", aiError.message);
-            }
-        }
-
-        // 1.5. Try Google Gemini if API Key is present
-        if (!reply && process.env.GOOGLE_API_KEY) {
-            try {
-                console.log('[VuAiAgent] Attempting Google Gemini...');
-                const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-                let systemContext = '';
-                if (role === 'admin') {
-                    systemContext = `You are VuAiAgent (SENTINEL ADMIN MODE 🦾). 
-                    Goal: Strategic oversight and system health.
-                    Action: Use {{NAVIGATE: section}} for fast jumping. Sections: overview, students, faculty, courses, materials, attendance, schedule, todos, messages, broadcast, exams.
-                    Tone: Strategic, professional, concise. Use Markdown.`;
-                } else if (role === 'faculty') {
-                    systemContext = `You are VuAiAgent (FACULTY NEXUS MODE 🎓). 
-                    Goal: Assist teaching and content management.
-                    Action: Use {{NAVIGATE: section}} for navigation. Sections: overview, materials, attendance, exams, schedule, students, broadcast, messages.
-                    Tone: Organized, academic, helpful. Use Markdown.`;
-                } else {
-                    systemContext = `You are VuAiAgent (LUMINA STUDENT MODE ✨). 
-                    Goal: Motivating academic companion. 
+                    systemContext = `You are Friendly Agent (STUDY COMPANION). 
+                    Goal: Provide fast, clear, and accurate answers to students. Clear doubts and explain concepts simply.
                     Action: Use {{NAVIGATE: section}} to guide the student. Sections: overview, semester, journal, advanced, attendance, exams, faculty, schedule, marks.
-                    Tone: Encouraging, friendly, emoji-rich. Use Markdown.`;
+                    Tone: Super friendly, helpful, and concise.`;
                 }
 
-                const promptWithContext = `SYSTEM INSTRUCTIONS: ${systemContext}\n\nKNOWLEDGE BASE MATCH: ${findKnowledgeMatch(userMessage, knowledgeBase, context)}\n\nUser Message: ${userMessage}`;
-                console.log('[VuAiAgent] Dispatched to Gemini with navigation-aware persona:', role);
-                const result = await model.generateContent(promptWithContext);
-                reply = result.response.text();
-                console.log('[VuAiAgent] Response from Google Gemini');
-            } catch (geminiError) {
-                console.error("[VuAiAgent] Google Gemini Error:", geminiError.message);
+                // Append local context purely as "Contextual Data" (e.g., student name, year), NOT hardcoded FAQ answers.
+                const studentContext = `Student Profile: Year ${context.year}, Branch ${context.branch}, Name ${context.name}.`;
+
+                if (process.env.OPENAI_API_KEY) {
+                    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+                    const completion = await openai.chat.completions.create({
+                        messages: [
+                            { role: "system", content: systemContext },
+                            { role: "system", content: studentContext },
+                            { role: "user", content: rawMessage }
+                        ],
+                        model: "gpt-4o-mini", // Higher capability
+                        temperature: 0.8, // Higher creativity
+                        max_tokens: 500
+                    });
+                    reply = completion.choices[0].message.content;
+                } else if (process.env.GOOGLE_API_KEY) {
+                    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                    const promptWithContext = `${systemContext}\n\n${studentContext}\n\nUser Message: ${userMessage}`;
+                    const result = await model.generateContent(promptWithContext);
+                    reply = result.response.text();
+                }
+                console.log('[VuAiAgent] Response from Cloud LLM (Thinking Mode)');
+            } catch (aiError) {
+                console.error("[VuAiAgent] Cloud AI Error:", aiError.message);
             }
         }
 
-        // 2. Fallback: Use role-specific knowledge base
+        // 2. Fallback: Use role-specific knowledge base ONLY if LLMs failed
         if (!reply) {
+            console.log('[VuAiAgent] LLMs failed, falling back to local knowledge base.');
             reply = findKnowledgeMatch(userMessage, knowledgeBase, context);
-            console.log('[VuAiAgent] Response from knowledge base');
         }
 
         // 3. Return the response in the format expected by the frontend
@@ -308,19 +277,51 @@ router.post('/', async (req, res) => {
             timestamp: responsePayload.timestamp
         });
 
-        // 4. Update Student Stats (Link Data)
+        // 4. Update Student Stats (Link Data & Streak)
         if ((role === 'student' || !role) && userId && userId !== 'guest') {
             try {
-                // Find student by SID and increment stats.aiUsageCount
-                // Using findOneAndUpdate with upsert option just in case, but usually student exists
-                await Student.findOneAndUpdate(
-                    { sid: userId },
-                    {
-                        $inc: { "stats.aiUsageCount": 1 },
-                        $set: { "stats.lastLogin": new Date() } // Also update activity
+                // Fetch student to calculate streak
+                const student = await Student.findOne({ sid: userId });
+
+                if (student) {
+                    const now = new Date();
+                    const lastLogin = student.stats?.lastLogin ? new Date(student.stats.lastLogin) : null;
+                    let newStreak = student.stats?.streak || 0;
+
+                    if (lastLogin) {
+                        // Compare dates at midnight (ignore time)
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                        const last = new Date(lastLogin.getFullYear(), lastLogin.getMonth(), lastLogin.getDate()).getTime();
+                        const diffTime = Math.abs(today - last);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                        if (diffDays === 1) {
+                            // Visited yesterday: Increment streak
+                            newStreak += 1;
+                        } else if (diffDays > 1) {
+                            // Missing a day or more: Reset streak to 1 (starting today)
+                            newStreak = 1;
+                        } else if (newStreak === 0) {
+                            newStreak = 1;
+                        }
+                        // If diffDays === 0 (visited today), keep currrent streak
+                    } else {
+                        // First time login
+                        newStreak = 1;
                     }
-                );
-                console.log(`[VuAiAgent] 📈 Stats updated for student ${userId}`);
+
+                    await Student.updateOne(
+                        { sid: userId },
+                        {
+                            $inc: { "stats.aiUsageCount": 1 },
+                            $set: {
+                                "stats.lastLogin": now,
+                                "stats.streak": newStreak
+                            }
+                        }
+                    );
+                    console.log(`[VuAiAgent] 📈 Stats updated for student ${userId} (Streak: ${newStreak} days)`);
+                }
             } catch (statErr) {
                 console.warn('[VuAiAgent] Failed to update student stats:', statErr.message);
             }
