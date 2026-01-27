@@ -19,36 +19,50 @@ const Student = require('../models/Student');
 const Material = require('../models/Material');
 
 // GET students for a faculty (by matching year & section)
+// GET students for a faculty (by matching year & section)
 router.get('/:facultyId/students', requireAuthMongo, async (req, res) => {
     try {
         const { facultyId } = req.params;
         let assignments = [];
         let students = [];
 
-        // Enforce MongoDB-only for faculty/student lists used by dashboards
-        if (mongoose.connection.readyState !== 1) {
-            return res.status(503).json({ error: 'MongoDB not connected. Faculty/student data unavailable.' });
-        }
-
+        // Determine source: MongoDB or Local JSON
         if (mongoose.connection.readyState === 1) {
             const faculty = await Faculty.findOne({ facultyId });
             if (!faculty) {
                 console.warn(`[FACULTY STATS] Faculty not found for ID: ${facultyId}`);
-                return res.status(404).json({ error: 'Faculty not found' });
-            }
-            assignments = faculty.assignments || [];
-
-            // Build query for students
-            if (assignments.length > 0) {
-                const orConditions = assignments.map(a => ({
-                    year: String(a.year),
-                    section: a.section
-                }));
-                students = await Student.find({ $or: orConditions });
+                // Try fallback if not found in DB but DB is active (rare sync issue)
             } else {
-                students = [];
+                assignments = faculty.assignments || [];
+                if (assignments.length > 0) {
+                    const orConditions = assignments.map(a => ({
+                        year: String(a.year),
+                        section: a.section
+                    }));
+                    students = await Student.find({ $or: orConditions });
+                }
+                return res.json(students);
             }
         }
+
+        // Fallback to Local JSON (if Mongo offline or faculty not found in Mongo)
+        console.log('[FACULTY STATS] Using Local JSON fallback');
+        const allFaculty = readDB('faculty');
+        const fac = allFaculty.find(f => f.facultyId === facultyId);
+
+        if (fac) {
+            assignments = fac.assignments || [];
+            if (assignments.length > 0) {
+                const allStudents = readDB('students');
+                students = allStudents.filter(s =>
+                    assignments.some(a =>
+                        String(a.year) === String(s.year) &&
+                        (a.section === 'All' || a.section === s.section)
+                    )
+                );
+            }
+        }
+
         res.json(students);
     } catch (err) {
         console.error('[FACULTY STATS ERROR]:', err);

@@ -28,6 +28,7 @@ const FacultyHome = ({
             <FacultyAnalytics
                 myClasses={myClasses}
                 materialsList={materialsList}
+                studentsList={studentsList}
                 facultyId={facultyData.facultyId}
             />
 

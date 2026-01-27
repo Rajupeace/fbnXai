@@ -182,9 +182,14 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [] }) => {
                         )}
                     </AnimatePresence>
 
-                    <div style={{ display: 'grid', gap: '1.5rem' }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                        gap: '1.5rem',
+                        alignContent: 'start'
+                    }}>
                         {filteredNotes.length === 0 && !showForm ? (
-                            <div style={{ textAlign: 'center', padding: '4rem', opacity: 0.6 }}>
+                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '4rem', opacity: 0.6 }}>
                                 <FaStickyNote style={{ fontSize: '3rem', color: '#cbd5e1', marginBottom: '1rem' }} />
                                 <p style={{ fontSize: '1.1rem', color: '#64748b' }}>No notes yet for this subject.</p>
                                 <button onClick={() => setShowForm(true)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, marginTop: '0.5rem' }}>
@@ -198,25 +203,37 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [] }) => {
                                     layout
                                     initial={{ opacity: 0, scale: 0.98 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', position: 'relative' }}
+                                    style={{
+                                        background: 'white',
+                                        padding: '1.5rem',
+                                        borderRadius: '12px',
+                                        border: '1px solid #e2e8f0',
+                                        position: 'relative',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        height: '100%',
+                                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                                    }}
                                 >
                                     {editingId === note.id ? (
-                                        <div>
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                                             <textarea
                                                 value={editText}
                                                 onChange={(e) => setEditText(e.target.value)}
-                                                style={{ width: '100%', minHeight: '100px', padding: '0.75rem', border: '1px solid #3b82f6', borderRadius: '8px', marginBottom: '1rem' }}
+                                                style={{ width: '100%', flex: 1, padding: '0.75rem', border: '1px solid #3b82f6', borderRadius: '8px', marginBottom: '1rem', resize: 'vertical' }}
                                                 autoFocus
                                             />
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto' }}>
                                                 <button onClick={() => saveEdit(note.id)} className="admin-btn admin-btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>Save</button>
                                                 <button onClick={() => setEditingId(null)} className="admin-btn admin-btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>Cancel</button>
                                             </div>
                                         </div>
                                     ) : (
                                         <>
-                                            <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#334155', margin: '0 0 1rem 0' }}>{note.text}</p>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
+                                            <div style={{ flex: 1, marginBottom: '1rem' }}>
+                                                <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#334155', margin: 0 }}>{note.text}</p>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1rem', marginTop: 'auto' }}>
                                                 <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{note.timestamp}</span>
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                     <button onClick={() => startEdit(note.id, note.text)} title="Edit" style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '0.25rem' }}><FaPencilAlt /></button>
