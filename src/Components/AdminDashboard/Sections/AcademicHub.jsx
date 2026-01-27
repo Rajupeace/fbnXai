@@ -59,11 +59,14 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
         if (selectedBranchFilter !== 'All') {
             const staticData = getYearData(selectedBranchFilter, String(year));
             staticData?.semesters?.forEach(s => {
-                s.subjects.forEach(sub => {
-                    if (!dynamicCourses.some(dc => dc.code === sub.code)) {
+                // strict override: if ANY dynamic course exists for this semester, ignore static data completely
+                const hasDynamicForSem = dynamicCourses.some(dc => String(dc.semester) === String(s.sem));
+
+                if (!hasDynamicForSem) {
+                    s.subjects.forEach(sub => {
                         allCourses.push({ ...sub, year, semester: s.sem, branch: selectedBranchFilter, isStatic: true, section: 'All' });
-                    }
-                });
+                    });
+                }
             });
         }
 

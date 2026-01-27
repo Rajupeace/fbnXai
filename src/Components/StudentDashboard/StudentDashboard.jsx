@@ -188,7 +188,23 @@ export default function StudentDashboard({ studentData, onLogout }) {
             { id: `${id}-m5`, name: 'Module 5: Capstone Synthesis', description: 'Integration of all core competencies.' }
         ];
 
-        // 1. Merge Extra Courses
+        // 1. Identify Semesters with Dynamic Content (Overrides)
+        const contentOverrides = new Set();
+        extraCourses.forEach(c => {
+            const cSec = c.section || 'All';
+            if (cSec === 'All' || cSec === userData.section) {
+                if (c.semester) contentOverrides.add(Number(c.semester));
+            }
+        });
+
+        // 2. Clear Static Subjects for Overridden Semesters
+        semesters.forEach(sem => {
+            if (contentOverrides.has(sem.sem)) {
+                sem.subjects = []; // Wipe static data
+            }
+        });
+
+        // 3. Merge Extra Courses
         extraCourses.forEach(course => {
             // Filter by Section
             const courseSection = course.section || 'All';
@@ -200,10 +216,13 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     sem = { sem: Number(course.semester), subjects: [] };
                     semesters.push(sem);
                 }
+
+                // No need to check 'existing' since we wiped static, unless duplicates in dynamic
                 const existing = sem.subjects.find(s =>
                     s.name.toLowerCase() === course.name.toLowerCase() ||
                     (s.code && course.code && s.code.toLowerCase() === course.code.toLowerCase())
                 );
+
                 if (existing) {
                     existing.modules = course.modules && course.modules.length > 0 ? course.modules : existing.modules;
                     if (course.code) existing.code = course.code;

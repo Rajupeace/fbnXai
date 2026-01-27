@@ -547,46 +547,36 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
   };
 
   const handleDeleteCourse = async (id) => {
-    // Find the course to be deleted
-    const courseToDelete = courses.find(c => c.id === id || c._id === id);
-    if (!courseToDelete) return;
+
+    // 1. Resolve ID and Course
+    const courseToDelete = courses.find(c => String(c.id) === String(id) || String(c._id) === String(id));
+    if (!courseToDelete) return; // Silent return if not found
 
     if (!window.confirm(`Delete Subject: ${courseToDelete.name}?`)) return;
 
-    try {
-      if (USE_API) {
-        if (courseToDelete.isStatic || String(id).startsWith('static-')) {
-          // It's a static course. We can't "delete" it from the code.
-          // Strategy: Promote ALL *other* static courses of this (Year + Sem + Branch) to Dynamic (DB).
-          // Once Dynamic courses exist for a Sem, the Student Dashboard (updated logic) will ignore static ones.
-
+    // 2. Handle Static Courses (Complex Logic - No Optimistic)
+    if (courseToDelete.isStatic || String(id).startsWith('static-')) {
+      try {
+        if (USE_API) {
           const { year, semester, branch } = courseToDelete;
 
-          // 1. Find all static courses for this specific group
+          // 1. Find siblings
           const siblings = courses.filter(c => {
-            // Flexible branch matching: 'All' matches any, specific branch matches itself
             const courseBranch = String(c.branch || 'All').toLowerCase();
             const targetBranch = String(branch || 'All').toLowerCase();
-
-            const branchMatches = courseBranch === 'all' ||
-              targetBranch === 'all' ||
-              courseBranch === targetBranch ||
-              courseBranch.includes(targetBranch) ||
-              targetBranch.includes(courseBranch);
+            const branchMatches = courseBranch === 'all' || targetBranch === 'all' || courseBranch === targetBranch || courseBranch.includes(targetBranch) || targetBranch.includes(courseBranch);
 
             return (c.isStatic || String(c.id).startsWith('static-')) &&
               String(c.year) === String(year) &&
               String(c.semester) === String(semester) &&
               branchMatches &&
-              c.code !== courseToDelete.code; // Exclude the one we are deleting
+              c.code !== courseToDelete.code;
           });
 
-          // 2. Create them in DB
-          // We run these sequentially or parallel
+          // 2. Promote siblings
           let successCount = 0;
           for (const sib of siblings) {
             try {
-              // Construct payload matching apiPost('/api/courses')
               const payload = {
                 name: sib.name,
                 code: sib.code,
@@ -599,32 +589,40 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
               await api.apiPost('/api/courses', payload);
               successCount++;
             } catch (innerErr) {
-              // Ignore conflicts if we already promoted them
-              if (!innerErr.message.includes('409')) {
-                console.error('Failed to migrate sibling:', sib.name, innerErr);
-              }
+              if (!innerErr.message.includes('409')) console.error('Failed to migrate sibling:', sib.name, innerErr);
             }
           }
 
           alert(`Deleted default subject. Automatically migrated ${successCount} other subjects to database.`);
-
-          // Reload all data to reflect the new state (Static ones will be replaced by the fetched Dynamic ones)
           loadData();
-          return;
-
-        } else {
-          // Standard Dynamic Course Delete
-          await api.apiDelete(`/api/courses/${id}`);
         }
+      } catch (err) {
+        console.error(err);
+        alert('Failed to delete static subject: ' + err.message);
       }
+      return;
+    }
 
-      // Update Local State (Visual Only or LocalStorage fallback)
-      const newCourses = courses.filter(c => c.id !== id && c._id !== id);
-      setCourses(newCourses);
-      if (!USE_API) localStorage.setItem('courses', JSON.stringify(newCourses));
+    // 3. Handle Dynamic Courses (Optimistic Update)
+    const previousCourses = [...courses];
+
+    // Optimistic: Remove immediately from UI
+    setCourses(prev => prev.filter(c => c.id !== id && c._id !== id));
+
+    try {
+      if (USE_API) {
+        const safeId = typeof id === 'object' ? id.toString() : id;
+        await api.apiDelete(`/api/courses/${safeId}`);
+        // Success - UI already updated
+      } else {
+        const newCourses = previousCourses.filter(c => c.id !== id && c._id !== id);
+        localStorage.setItem('courses', JSON.stringify(newCourses));
+      }
     } catch (err) {
       console.error(err);
       alert('Failed to delete subject: ' + err.message);
+      // Revert if API fails
+      setCourses(previousCourses);
     }
   };
 

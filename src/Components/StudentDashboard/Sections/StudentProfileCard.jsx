@@ -16,7 +16,7 @@ const StudentProfileCard = ({ userData, setShowProfilePhotoModal, setView }) => 
                     {userData.profilePic ? (
                         <img src={userData.profilePic} alt="Identity" />
                     ) : userData.avatar ? (
-                        <img src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${userData.avatar}`} alt="Avatar" />
+                        <img src={userData.avatar.includes('http') ? userData.avatar : `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${userData.avatar}`} alt="Avatar" />
                     ) : (
                         <div className="profile-avatar-fallback">
                             <FaUserCircle />
