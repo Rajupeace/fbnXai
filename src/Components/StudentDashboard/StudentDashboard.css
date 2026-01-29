@@ -7071,3 +7071,12 @@
     cursor: pointer;
 }
 
+
+.mobile-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+    animation: fadeIn 0.3s ease;
+}

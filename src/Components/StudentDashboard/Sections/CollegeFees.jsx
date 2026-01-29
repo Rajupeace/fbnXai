@@ -30,14 +30,20 @@ const CollegeFees = ({ userData }) => {
         fetchFees();
     }, [fetchFees]);
 
-    const handlePayment = async (e) => {
+    const [showCheckout, setShowCheckout] = useState(false);
+
+    const startPayment = (e) => {
         e.preventDefault();
         if (!amount || isNaN(amount) || amount <= 0) {
             setNotification({ type: 'error', message: 'Please enter a valid amount' });
             return;
         }
+        setShowCheckout(true);
+    };
 
+    const confirmPayment = async () => {
         try {
+            setShowCheckout(false);
             setPaying(true);
             const result = await apiPost('/api/fees/pay', {
                 sid: userData.sid,
@@ -132,7 +138,7 @@ const CollegeFees = ({ userData }) => {
             <div className="payment-section">
                 <div className="payment-form-card">
                     <h3><FaCreditCard /> Fast Payment</h3>
-                    <form onSubmit={handlePayment}>
+                    <form onSubmit={startPayment}>
                         <div className="form-group">
                             <label>Payment Amount (INR)</label>
                             <input
@@ -244,6 +250,59 @@ const CollegeFees = ({ userData }) => {
                             </div>
                         </div>
                         <button className="close-receipt" onClick={() => setSelectedTxn(null)}>×</button>
+                    </div>
+                </div>
+            )}
+
+            {showCheckout && (
+                <div className="gateway-overlay">
+                    <div className="gateway-modal animate-pop-in">
+                        <div className="gateway-header">
+                            <div className="gateway-brand">
+                                <div className="clg-icon-box"><FaUniversity /></div>
+                                <div>
+                                    <h4>Vignan Secure Pay</h4>
+                                    <span>TRUSTED GATEWAY</span>
+                                </div>
+                            </div>
+                            <button className="gateway-close" onClick={() => setShowCheckout(false)}>×</button>
+                        </div>
+
+                        <div className="gateway-body">
+                            <div className="gateway-amount-display">
+                                <span>AMOUNT TO PAY</span>
+                                <h2>₹{parseFloat(amount || 0).toLocaleString()}</h2>
+                            </div>
+
+                            <div className="payment-method-strip">
+                                <div className="strip-label">METHOD: {method}</div>
+                                <div className="strip-badge">SECURE 256-BIT SSL</div>
+                            </div>
+
+                            <div className="gateway-options">
+                                <div className="gateway-option active">
+                                    <FaCheckCircle className="opt-check" />
+                                    <div className="opt-info">
+                                        <strong>DIRECT SETTLEMENT</strong>
+                                        <span>Instant credit to University A/C</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="gateway-notice">
+                                By clicking Confirm, you agree to our Terms of Service and authorize the transaction.
+                            </p>
+
+                            <button className="confirm-pay-btn" onClick={confirmPayment}>
+                                {paying ? 'VERIFYING...' : `CONFIRM PAYMENT - ₹${amount}`}
+                            </button>
+                        </div>
+
+                        <div className="gateway-footer">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" height="15" alt="PayPal" style={{ opacity: 0.5, filter: 'grayscale(1)' }} />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" height="20" alt="Mastercard" style={{ opacity: 0.5, filter: 'grayscale(1)' }} />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" height="12" alt="Visa" style={{ opacity: 0.5, filter: 'grayscale(1)' }} />
+                        </div>
                     </div>
                 </div>
             )}

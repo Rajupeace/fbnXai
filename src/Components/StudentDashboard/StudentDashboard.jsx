@@ -470,19 +470,19 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             <span>PRIORITY TASKS</span>
                         </div>
                         <div className="task-list-mini">
-                            {tasks.slice(0, 3).map((task, i) => (
-                                <div key={i} className="task-item-mini">
+                            {tasks.filter(t => !t.completed).slice(0, 3).map((task, i) => (
+                                <div key={i} className="task-item-mini" onClick={() => setView('tasks')} style={{ cursor: 'pointer' }}>
                                     <div className="task-checkbox"></div>
-                                    <span className="task-text-mini">{task.title}</span>
+                                    <span className="task-text-mini">{task.text}</span>
                                 </div>
                             ))}
-                            {tasks.length === 0 && (
+                            {tasks.filter(t => !t.completed).length === 0 && (
                                 <div className="task-item-mini" style={{ opacity: 0.5 }}>
-                                    <span className="task-text-mini">No tasks for today!</span>
+                                    <span className="task-text-mini">All caught up!</span>
                                 </div>
                             )}
                         </div>
-                        <button className="widget-action-btn" onClick={() => setView('marks')} style={{ borderStyle: 'dashed' }}>Manage All Tasks</button>
+                        <button className="widget-action-btn" onClick={() => setView('tasks')} style={{ borderStyle: 'dashed' }}>Manage All Tasks</button>
                     </div>
                 </aside>
 
@@ -546,6 +546,9 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     <button className="mobile-sidebar-toggle" onClick={() => setMobileSidebarOpen(true)} aria-label="Open menu">
                         ☰
                     </button>
+                    {mobileSidebarOpen && (
+                        <div className="mobile-overlay" onClick={() => setMobileSidebarOpen(false)}></div>
+                    )}
                     <StudentSidebar
                         userData={userData}
                         view={view}
