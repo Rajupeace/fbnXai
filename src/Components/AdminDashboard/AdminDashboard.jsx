@@ -10,7 +10,7 @@ import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
 import AdminExams from './AdminExams';
-import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup } from 'react-icons/fa';
+import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup, FaCreditCard, FaHistory, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import sseClient from '../../utils/sseClient';
 
@@ -52,6 +52,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
   const [materials, setMaterials] = useState([]);
   const [todos, setTodos] = useState([]);
   const [messages, setMessages] = useState([]);
+  const [fees, setFees] = useState([]);
 
   // Form States
   const [showModal, setShowModal] = useState(false);
@@ -188,13 +189,14 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           }
         };
 
-        const [s, f, c, m, msg, t] = await Promise.all([
+        const [s, f, c, m, msg, t, feesRes] = await Promise.all([
           fetchSafely('/api/students'),
           fetchSafely('/api/faculty'),
           fetchSafely('/api/courses'),
           fetchSafely('/api/materials'),
           fetchSafely('/api/messages'),
-          fetchSafely('/api/todos')
+          fetchSafely('/api/todos'),
+          fetchSafely('/api/fees')
         ]);
 
         // Ensure faculty data includes assignments properly
@@ -217,6 +219,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         setMaterials(m);
         setMessages(msg.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)));
         setTodos(t);
+        setFees(feesRes || []);
       } else {
         console.log('📊 loadData: Using local storage (API disabled)');
         const s = await readStudents();
@@ -912,6 +915,31 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     }
   };
 
+  // Fees
+  const handleSaveFee = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      if (USE_API) {
+        const sid = data.studentId || editItem?.studentId;
+        await api.apiPut(`/api/fees/${sid}`, {
+          totalFee: parseFloat(data.totalFee),
+          paidAmount: parseFloat(data.paidAmount),
+          academicYear: data.academicYear,
+          semester: data.semester
+        });
+        await loadData();
+      }
+      closeModal();
+      alert('Fee record updated successfully');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save fee record');
+    }
+  };
+
   // ToDos
   const handleSaveTodo = async (e) => {
     e.preventDefault();
@@ -1140,6 +1168,11 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     <div className="value">{materials.length}</div>
                     <div className="label">UPLOADED FILES</div>
                   </div>
+                  <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('fees')} style={{ animationDelay: '0.4s', cursor: 'pointer', transition: 'all 0.3s' }}>
+                    <div className="summary-icon-box" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--admin-primary)' }}><FaCreditCard /></div>
+                    <div className="value">₹{(fees.reduce((acc, f) => acc + (f.paidAmount || 0), 0) / 1000).toFixed(1)}K+</div>
+                    <div className="label">REVENUE COLLECTED</div>
+                  </div>
                 </div>
 
                 <div className="admin-split-layout">
@@ -1334,6 +1367,75 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
               </div>
             )}
 
+            {activeSection === 'fees' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>FINANCE MANAGER</h2>
+                  <div className="admin-badge primary">FEE RECORDS</div>
+                </div>
+
+                <div className="admin-equal-layout" style={{ marginBottom: '2rem' }}>
+                  <div className="f-node-card">
+                    <h3 className="f-node-title">Fee Summary</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                      <div className="admin-summary-card" style={{ padding: '1.5rem' }}>
+                        <div className="value">₹{fees.reduce((acc, f) => acc + (f.paidAmount || 0), 0).toLocaleString()}</div>
+                        <div className="label">TOTAL REVENUE</div>
+                      </div>
+                      <div className="admin-summary-card" style={{ padding: '1.5rem' }}>
+                        <div className="value">₹{fees.reduce((acc, f) => acc + (f.dueAmount || 0), 0).toLocaleString()}</div>
+                        <div className="label">TOTAL OUTSTANDING</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="f-node-card">
+                  <div className="f-node-head">
+                    <h3 className="f-node-title">STUDENT FEE RECORDS</h3>
+                  </div>
+                  <div className="f-node-body">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Student ID</th>
+                          <th>Status</th>
+                          <th>Total Fee</th>
+                          <th>Paid</th>
+                          <th>Due</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fees.map(f => (
+                          <tr key={f._id}>
+                            <td style={{ fontWeight: 950 }}>{f.studentId}</td>
+                            <td>
+                              <span className={`admin-badge ${f.status === 'Paid' ? 'success' : 'warning'}`}>
+                                {f.status}
+                              </span>
+                            </td>
+                            <td>₹{f.totalFee?.toLocaleString()}</td>
+                            <td style={{ color: '#10b981', fontWeight: 700 }}>₹{f.paidAmount?.toLocaleString()}</td>
+                            <td style={{ color: '#ef4444', fontWeight: 700 }}>₹{f.dueAmount?.toLocaleString()}</td>
+                            <td>
+                              <button className="icon-btn-v2" onClick={() => {
+                                setEditItem(f);
+                                setModalType('fee');
+                                setShowModal(true);
+                              }}>
+                                <FaPlus />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
           </motion.div>
         </AnimatePresence>
       </main>
@@ -1400,6 +1502,40 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                           <strong style={{ display: 'block', fontSize: '1.4rem', color: 'var(--admin-primary)', marginTop: '0.4rem', fontWeight: 950 }}>BOBBYMARTION</strong>
                         </div>
                       </div>
+                    )}
+
+                    {/* FEE MODAL */}
+                    {modalType === 'fee' && (
+                      <form onSubmit={handleSaveFee} className="admin-form">
+                        <div className="form-group">
+                          <label>Student ID</label>
+                          <input type="text" name="studentId" defaultValue={editItem?.studentId} readOnly={!!editItem} required />
+                        </div>
+                        <div className="form-grid">
+                          <div className="form-group">
+                            <label>Total Fee (INR)</label>
+                            <input type="number" name="totalFee" defaultValue={editItem?.totalFee || 75000} required />
+                          </div>
+                          <div className="form-group">
+                            <label>Paid Amount (INR)</label>
+                            <input type="number" name="paidAmount" defaultValue={editItem?.paidAmount || 0} required />
+                          </div>
+                        </div>
+                        <div className="form-grid">
+                          <div className="form-group">
+                            <label>Academic Year</label>
+                            <input type="text" name="academicYear" defaultValue={editItem?.academicYear || '2023-24'} placeholder="e.g. 2023-24" required />
+                          </div>
+                          <div className="form-group">
+                            <label>Semester</label>
+                            <input type="text" name="semester" defaultValue={editItem?.semester || '1st Year'} placeholder="e.g. 1st Year" required />
+                          </div>
+                        </div>
+                        <div className="modal-footer" style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
+                          <button type="button" onClick={closeModal} className="admin-btn">CANCEL</button>
+                          <button type="submit" className="admin-btn admin-btn-primary">UPDATE RECORD</button>
+                        </div>
+                      </form>
                     )}
 
                     {modalType === 'syllabus-view' && editItem && (

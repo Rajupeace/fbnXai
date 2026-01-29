@@ -77,4 +77,41 @@ router.post('/pay', async (req, res) => {
     }
 });
 
+// Admin: Get all fee records
+router.get('/', async (req, res) => {
+    try {
+        const fees = await Fee.find().sort({ updatedAt: -1 });
+        res.json(fees);
+    } catch (error) {
+        console.error('Error fetching all fees:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Admin: Update fee record (set total fee, manual payment, etc.)
+router.put('/:sid', async (req, res) => {
+    try {
+        const { sid } = req.params;
+        const updateData = req.body;
+
+        let fee = await Fee.findOne({ studentId: sid });
+        if (!fee) {
+            fee = new Fee({ studentId: sid, ...updateData });
+        } else {
+            Object.assign(fee, updateData);
+            // Recalculate due
+            fee.dueAmount = Math.max(0, (fee.totalFee || 0) - (fee.paidAmount || 0));
+            if (fee.dueAmount === 0) fee.status = 'Paid';
+            else if (fee.paidAmount > 0) fee.status = 'Partial';
+            else fee.status = 'Unpaid';
+        }
+
+        await fee.save();
+        res.json({ message: 'Fee record updated', fee });
+    } catch (error) {
+        console.error('Error updating fee:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 module.exports = router;

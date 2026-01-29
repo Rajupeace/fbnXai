@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     FaEnvelope, FaClipboardList, FaSignOutAlt,
     FaChartLine, FaUserGraduate, FaChalkboardTeacher, FaLayerGroup, FaBullhorn, FaRobot, FaCog, FaCalendarAlt, FaFileAlt, FaShieldAlt,
-    FaBars
+    FaBars, FaCreditCard
 } from 'react-icons/fa';
 
 /**
@@ -50,6 +50,7 @@ const AdminHeader = ({
                 { id: 'schedule', label: 'Schedule', icon: <FaCalendarAlt /> },
                 { id: 'exams', label: 'Exams', icon: <FaFileAlt /> },
                 { id: 'materials', label: 'Materials', icon: <FaLayerGroup /> },
+                { id: 'fees', label: 'Finance', icon: <FaCreditCard /> },
             ]
         },
         {

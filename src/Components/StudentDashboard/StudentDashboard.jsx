@@ -461,6 +461,28 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             </div>
                         </div>
                     </div>
+
+                    {/* Daily Tasks Mini Widget */}
+                    <div className="task-mini-widget animate-slide-in">
+                        <div className="widget-header">
+                            <FaClipboardList className="icon" style={{ color: '#ec4899' }} />
+                            <span>PRIORITY TASKS</span>
+                        </div>
+                        <div className="task-list-mini">
+                            {tasks.slice(0, 3).map((task, i) => (
+                                <div key={i} className="task-item-mini">
+                                    <div className="task-checkbox"></div>
+                                    <span className="task-text-mini">{task.title}</span>
+                                </div>
+                            ))}
+                            {tasks.length === 0 && (
+                                <div className="task-item-mini" style={{ opacity: 0.5 }}>
+                                    <span className="task-text-mini">No tasks for today!</span>
+                                </div>
+                            )}
+                        </div>
+                        <button className="widget-action-btn" onClick={() => setView('marks')} style={{ borderStyle: 'dashed' }}>Manage All Tasks</button>
+                    </div>
                 </aside>
 
                 <section className="nexus-content-col">
@@ -469,6 +491,32 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             <FaLayerGroup /> <span>Your Academic Progress</span>
                         </div>
                         <SubjectAttendanceMarks overviewData={overviewData} enrolledSubjects={enrolledSubjects} />
+                    </div>
+
+                    {/* Weekly Analytics Chart */}
+                    <div className="weekly-progress-card animate-slide-in">
+                        <div className="weekly-header">
+                            <h3><FaChartBar style={{ color: 'var(--nexus-primary)' }} /> STUDY HOURS (WEEKLY)</h3>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8' }}>AVG: 6.4h/day</span>
+                        </div>
+                        <div className="chart-container">
+                            {[
+                                { day: 'MON', val: 70 },
+                                { day: 'TUE', val: 45 },
+                                { day: 'WED', val: 90 },
+                                { day: 'THU', val: 65 },
+                                { day: 'FRI', val: 80 },
+                                { day: 'SAT', val: 30 },
+                                { day: 'SUN', val: 20 }
+                            ].map((d, i) => (
+                                <div key={i} className="bar-wrapper">
+                                    <div className="bar-bg">
+                                        <div className="bar-fill" style={{ height: `${d.val}%`, transitionDelay: `${i * 0.1}s` }}></div>
+                                    </div>
+                                    <span className="bar-day">{d.day}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </section>
             </main>
