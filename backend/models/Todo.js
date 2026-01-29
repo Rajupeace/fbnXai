@@ -10,6 +10,10 @@ const todoSchema = new mongoose.Schema({
     enum: ['admin', 'faculty', 'student', 'all'],
     default: 'admin'
   },
+  userId: {
+    type: String,
+    default: null
+  },
   dueDate: {
     type: Date
   },

@@ -34,6 +34,7 @@ const StudentSidebar = ({
             title: 'CORE',
             items: [
                 { id: 'overview', label: 'Dashboard', icon: <FaChartBar /> },
+                { id: 'tasks', label: 'Task List', icon: <FaClipboardList /> },
                 { id: 'announcements', label: 'Announcements', icon: <FaBullhorn /> },
                 { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
             ]

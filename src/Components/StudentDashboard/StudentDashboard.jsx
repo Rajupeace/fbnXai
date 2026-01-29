@@ -30,6 +30,7 @@ import './StudentDashboard.css';
 import SkillsRadar from './Sections/SkillsRadar';
 import GlobalNotifications from '../GlobalNotifications/GlobalNotifications';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
+import StudentTasks from './Sections/StudentTasks';
 // StudyTools intentionally removed (unused) to satisfy linting
 
 /**
@@ -110,7 +111,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 setServerMaterials(materialsData);
             }
 
-            const tasksData = await apiGet(`/api/todos?role=student`);
+            const tasksData = await apiGet(`/api/todos?role=student&userId=${userData.sid}`);
             if (Array.isArray(tasksData)) {
                 console.log(`   ✅ Tasks fetched: ${tasksData.length} items`);
                 setTasks(tasksData);
@@ -399,7 +400,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 <StatCard icon={FaFire} label="Study Streak" value={`${overviewData?.activity?.streak || 0} Days`} color="#f97316" delay={0.4} subtext="Daily Activity" />
                 <StatCard icon={FaRobot} label="AI Insights" value={overviewData?.activity?.aiUsage || 0} color="#0ea5e9" delay={0.5} subtext="Sessions Active" />
                 <StatCard icon={FaBriefcase} label="Placement" value="4 MNCs" color="#8b5cf6" delay={0.55} subtext="Interview Prep" onClick={() => setView('placement')} />
-                <StatCard icon={FaClipboardList} label="Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" />
+                <StatCard icon={FaClipboardList} label="Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" onClick={() => setView('tasks')} />
                 <StatCard icon={FaCreditCard} label="Fee Due" value={`₹${(feeData?.dueAmount || 0).toLocaleString()}`} color="#ef4444" delay={0.65} subtext={feeData?.status || 'Pending'} onClick={() => setView('fees')} />
             </div>
 
@@ -594,6 +595,12 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 {view === 'advanced' && (
                     <div className="nexus-page-container">
                         <AdvancedLearning userData={userData} overviewData={overviewData} />
+                    </div>
+                )}
+
+                {view === 'tasks' && (
+                    <div className="nexus-page-container">
+                        <StudentTasks tasks={tasks} userData={userData} onRefresh={fetchData} />
                     </div>
                 )}
 

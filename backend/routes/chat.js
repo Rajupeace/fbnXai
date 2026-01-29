@@ -250,6 +250,16 @@ router.post('/', async (req, res) => {
                         newStreak = 1;
                     }
 
+                    // Update Weekly Activity (Study Hours)
+                    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const currentDayName = dayNames[now.getDay()];
+
+                    // Increment hours for today
+                    await Student.updateOne(
+                        { sid: userId, "stats.weeklyActivity.day": currentDayName },
+                        { $inc: { "stats.weeklyActivity.$.hours": 0.2 } }
+                    );
+
                     await Student.updateOne(
                         { sid: userId },
                         {

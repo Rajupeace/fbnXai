@@ -198,12 +198,22 @@ app.get('/api/todos', async (req, res) => {
       return res.status(503).json({ error: 'MongoDB not connected' });
     }
     const Todo = require('./models/Todo');
-    const { role } = req.query;
+    const { role, userId } = req.query;
     let query = {};
+
     if (role && role !== 'admin') {
-      query = { $or: [{ target: 'all' }, { target: role }] };
+      // Show tasks targeted at all students OR targeted at this specific student
+      query = {
+        $or: [
+          { target: 'all' },
+          { target: role, userId: null }, // Global role-based tasks
+          { userId: userId }              // Personal tasks
+        ]
+      };
+    } else if (role === 'admin') {
+      query = { target: 'admin' };
     }
-    const todos = await Todo.find(query).lean();
+    const todos = await Todo.find(query).sort({ createdAt: -1 }).lean();
     res.json(todos);
   } catch (err) {
     console.error('Error fetching todos:', err);
@@ -217,10 +227,11 @@ app.post('/api/todos', async (req, res) => {
       return res.status(503).json({ error: 'MongoDB not connected' });
     }
     const Todo = require('./models/Todo');
-    const { text, target, dueDate } = req.body;
+    const { text, target, dueDate, userId } = req.body;
     const item = new Todo({
       text,
       target: target || 'admin',
+      userId: userId || null,
       dueDate,
       completed: false
     });

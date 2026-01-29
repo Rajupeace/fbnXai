@@ -2,11 +2,18 @@ const express = require('express');
 const router = express.Router();
 const Fee = require('../models/Fee');
 const Student = require('../models/Student');
+const { protect, admin } = require('../middleware/authMiddleware');
 
-// Get fee details for a student
-router.get('/:sid', async (req, res) => {
+// Get fee details for a student (Student Access)
+router.get('/:sid', protect, async (req, res) => {
     try {
         const { sid } = req.params;
+
+        // Authorization check: User can only see their own fees unless they are admin
+        if (req.user.role !== 'admin' && req.user.sid !== sid) {
+            return res.status(403).json({ message: 'Not authorized to view these fee records' });
+        }
+
         let fee = await Fee.findOne({ studentId: sid }).sort({ createdAt: -1 });
 
         // If no fee record exists, create a dummy one for demonstration/testing
@@ -44,9 +51,14 @@ router.get('/:sid', async (req, res) => {
 });
 
 // Record a new payment
-router.post('/pay', async (req, res) => {
+router.post('/pay', protect, async (req, res) => {
     try {
         const { sid, amount, method } = req.body;
+
+        // Only allow student to pay their own fees or admin to record
+        if (req.user.role !== 'admin' && req.user.sid !== sid) {
+            return res.status(403).json({ message: 'Not authorized to pay for this account' });
+        }
 
         const fee = await Fee.findOne({ studentId: sid });
         if (!fee) return res.status(404).json({ message: 'Fee record not found' });
@@ -78,7 +90,7 @@ router.post('/pay', async (req, res) => {
 });
 
 // Admin: Get all fee records
-router.get('/', async (req, res) => {
+router.get('/', protect, admin, async (req, res) => {
     try {
         const fees = await Fee.find().sort({ updatedAt: -1 });
         res.json(fees);
@@ -89,7 +101,7 @@ router.get('/', async (req, res) => {
 });
 
 // Admin: Update fee record (set total fee, manual payment, etc.)
-router.put('/:sid', async (req, res) => {
+router.put('/:sid', protect, admin, async (req, res) => {
     try {
         const { sid } = req.params;
         const updateData = req.body;
