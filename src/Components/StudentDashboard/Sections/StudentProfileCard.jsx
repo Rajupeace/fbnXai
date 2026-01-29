@@ -26,6 +26,7 @@ const StudentProfileCard = ({ userData, setShowProfilePhotoModal, setView }) => 
                 <div className="profile-avatar-shield">
                     <FaShieldAlt />
                 </div>
+                <div className="profile-status-dot pulse" title="System Active"></div>
             </div>
 
             <div className="profile-info">

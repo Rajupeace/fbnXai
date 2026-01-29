@@ -109,6 +109,25 @@ const CollegeFees = ({ userData }) => {
                 </div>
             </div>
 
+            <div className="fee-progress-panel glass-panel">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-sm font-bold text-slate-700">PAYMENT PROGRESS</h3>
+                    <span className="text-sm font-black text-indigo-600">
+                        {Math.round((feeData?.paidAmount / feeData?.totalFee) * 100)}% COMPLETE
+                    </span>
+                </div>
+                <div className="progress-track">
+                    <div
+                        className="progress-fill"
+                        style={{ width: `${(feeData?.paidAmount / feeData?.totalFee) * 100}%` }}
+                    ></div>
+                </div>
+                <div className="flex justify-between text-[0.65rem] font-bold text-slate-400 mt-2">
+                    <span>ACADEMIC YEAR {feeData?.academicYear}</span>
+                    <span>SEMESTER: {feeData?.semester}</span>
+                </div>
+            </div>
+
             <div className="payment-section">
                 <div className="payment-form-card">
                     <h3><FaCreditCard /> Fast Payment</h3>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaAward, FaCalendarAlt, FaTrophy, FaLayerGroup } from 'react-icons/fa';
+import { FaAward, FaCalendarAlt, FaTrophy, FaLayerGroup, FaLightbulb } from 'react-icons/fa';
 import SubjectAttendanceCard from '../SubjectAttendanceCard';
 
 /**
@@ -132,8 +132,52 @@ const SubjectAttendanceMarks = ({ overviewData, enrolledSubjects }) => {
                             </div>
                         </div>
 
+                        <div className="intel-insight-grid">
+                            <div className="intel-panel glass-panel">
+                                <div className="panel-label">
+                                    <FaAward style={{ color: '#0ea5e9' }} /> SMART FORECASTER
+                                </div>
+                                <div className="forecaster-content">
+                                    {selectedSubject.attendance < 75 ? (
+                                        <div className="forecaster-item danger">
+                                            <p>TO REACH 75% ATTENDANCE:</p>
+                                            <div className="val-box">
+                                                <span>{Math.ceil((0.75 * selectedSubject.totalClasses - selectedSubject.attendedClasses) / 0.25)}</span>
+                                                <small>More Classes Required</small>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="forecaster-item success">
+                                            <p>SAFE TO MISS:</p>
+                                            <div className="val-box">
+                                                <span>{Math.floor((selectedSubject.attendedClasses - 0.75 * selectedSubject.totalClasses) / 0.75)}</span>
+                                                <small>Classes (to stay @ 75%)</small>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="forecaster-tip">
+                                        <FaLightbulb /> Aim for 85% for internal marks bonus.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="intel-panel glass-panel">
+                                <div className="panel-label">
+                                    <FaTrophy style={{ color: '#f59e0b' }} /> ACADEMIC INTEL
+                                </div>
+                                <div className="intel-academic-content">
+                                    <div className="status-indicator">
+                                        <div className={`status-dot ${selectedSubject.marks >= 80 ? 'good' : 'warning'}`}></div>
+                                        <span>Current Potential: <strong>{selectedSubject.marks >= 80 ? 'Distinction' : 'First Class'}</strong></span>
+                                    </div>
+                                    <p className="intel-desc">Your midterm performance is <strong>{selectedSubject.marks}%</strong>. Complete the next assignment to secure your grade.</p>
+                                    <button className="intel-action-btn" onClick={() => { }}>View Resources</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="assessment-chain">
-                            <h3>ASSESSMENT SECRETS</h3>
+                            <h3>ASSESSMENT HISTORY</h3>
                             {selectedSubject.tests.map((test, idx) => (
                                 <div key={idx} className="chain-link">
                                     <div className="link-info">
@@ -142,7 +186,14 @@ const SubjectAttendanceMarks = ({ overviewData, enrolledSubjects }) => {
                                     </div>
                                     <div className="link-score">
                                         <div className="val">{test.marks}/{test.total}</div>
-                                        <div className="progress"><div style={{ width: `${(test.marks / test.total) * 100}%` }}></div></div>
+                                        <div className="progress">
+                                            <div
+                                                style={{
+                                                    width: `${(test.marks / test.total) * 100}%`,
+                                                    background: (test.marks / test.total) >= 0.75 ? '#10b981' : '#f59e0b'
+                                                }}
+                                            ></div>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
