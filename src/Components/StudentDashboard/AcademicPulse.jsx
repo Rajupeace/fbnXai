@@ -3,8 +3,8 @@ import { FaChartLine, FaClock, FaFire, FaRobot, FaGraduationCap, FaShieldAlt, Fa
 import './AcademicPulse.css';
 
 /**
- * NEXUS CORE PULSE (Academic 360)
- * A premium real-time visualization of student academic health.
+ * DASHBOARD SUMMARY
+ * A premium real-time visualization of student academic progress.
  */
 const AcademicPulse = ({ data }) => {
     const attendance = data?.attendance?.overall ?? 0;
@@ -21,10 +21,10 @@ const AcademicPulse = ({ data }) => {
                     <h3 className="pulse-brand">
                         <FaWaveSquare className="pulse-icon-anim" /> FRIENDLY NOTEBOOK
                     </h3>
-                    <span className="pulse-sub">ACADEMIC HEALTH</span>
+                    <span className="pulse-sub">ACADEMIC SUMMARY</span>
                 </div>
                 <div className="pulse-live-indicator">
-                    <span className="dot"></span> LIVE SYNC
+                    <span className="dot"></span> LIVE UPDATES
                 </div>
             </div>
 
@@ -38,7 +38,7 @@ const AcademicPulse = ({ data }) => {
                         </svg>
                         <div className="ring-content">
                             <span className="ring-val">{attendance}%</span>
-                            <span className="ring-label">PRESENCE</span>
+                            <span className="ring-label">ATTENDANCE</span>
                             {(data?.attendance?.totalClasses > 0) && (
                                 <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.7, marginTop: '2px' }}>
                                     {data.attendance.totalPresent}/{data.attendance.totalClasses}
@@ -54,7 +54,7 @@ const AcademicPulse = ({ data }) => {
                         </svg>
                         <div className="ring-content">
                             <span className="ring-val">{marks}%</span>
-                            <span className="ring-label">MASTERY</span>
+                            <span className="ring-label">PERFORMANCE</span>
                         </div>
                     </div>
                 </div>
@@ -71,14 +71,14 @@ const AcademicPulse = ({ data }) => {
                         <div className="node-icon"><FaRobot /></div>
                         <div className="node-info">
                             <span className="node-val">{aiUsage}%</span>
-                            <span className="node-title">AI SYNC</span>
+                            <span className="node-title">AI USAGE</span>
                         </div>
                     </div>
                     <div className="pulse-node-item exam">
                         <div className="node-icon"><FaGraduationCap /></div>
                         <div className="node-info">
                             <span className="node-val">{examsTaken} Tests</span>
-                            <span className="node-title">CHALLENGES</span>
+                            <span className="node-title">EXAMS</span>
                         </div>
                     </div>
                     <div className="pulse-node-item dev">
@@ -112,8 +112,8 @@ const AcademicPulse = ({ data }) => {
             )}
 
             <div className="pulse-footer-status">
-                <span><FaShieldAlt /> SYSTEM NOMINAL</span>
-                <span><FaClock /> LAST SCAN: {new Date().toLocaleTimeString()}</span>
+                <span><FaShieldAlt /> SYSTEM READY</span>
+                <span><FaClock /> LAST UPDATED: {new Date().toLocaleTimeString()}</span>
             </div>
         </div>
     );

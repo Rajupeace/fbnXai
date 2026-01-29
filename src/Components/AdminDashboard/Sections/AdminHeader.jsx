@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     FaEnvelope, FaClipboardList, FaSignOutAlt,
-    FaChartLine, FaUserGraduate, FaChalkboardTeacher, FaBook, FaLayerGroup, FaBullhorn, FaRobot, FaCog, FaCalendarAlt, FaFileAlt, FaShieldAlt,
+    FaChartLine, FaUserGraduate, FaChalkboardTeacher, FaLayerGroup, FaBullhorn, FaRobot, FaCog, FaCalendarAlt, FaFileAlt, FaShieldAlt,
     FaBars
 } from 'react-icons/fa';
 

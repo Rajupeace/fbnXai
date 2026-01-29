@@ -37,11 +37,11 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
             <header className="admin-page-header">
                 <div className="admin-page-title">
                     <h1>FACULTY <span>DIRECTORY</span></h1>
-                    <p>Commanding Staff Count: {filteredFaculty.length}</p>
+                    <p>Total Faculty: {filteredFaculty.length}</p>
                 </div>
                 <div className="admin-action-bar" style={{ margin: 0 }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('faculty')}>
-                        <FaPlus /> RECRUIT FACULTY
+                        <FaPlus /> ADD NEW FACULTY
                     </button>
                 </div>
             </header>
@@ -68,11 +68,11 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                         <thead>
                             <tr>
                                 <th>FACULTY NAME</th>
-                                <th>SECTOR ID</th>
+                                <th>FACULTY ID</th>
                                 <th>DEPARTMENT</th>
-                                <th>ASSIGNED INTEL</th>
-                                <th>CADET COUNT</th>
-                                <th>OPS LOAD</th>
+                                <th>ASSIGNED SUBJECTS</th>
+                                <th>STUDENT COUNT</th>
+                                <th>CLASS LOAD</th>
                                 <th>ACTIONS</th>
                             </tr>
                         </thead>
@@ -114,7 +114,7 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                                                             </span>
                                                         ))
                                                     ) : (
-                                                        <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontStyle: 'italic' }}>PENDING ASSIGNMENT</span>
+                                                        <span style={{ color: '#94a3b8', fontSize: '0.75rem', fontStyle: 'italic' }}>NO ASSIGNMENTS</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -127,14 +127,14 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                                             <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                     <FaBook style={{ color: '#94a3b8', fontSize: '0.8rem' }} />
-                                                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{assignments.length} UNITS</span>
+                                                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{assignments.length} CLASSES</span>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="Profile Link" onClick={() => openModal('faculty-view', f)}><FaEye /></motion.button>
-                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Recalibrate" onClick={() => openModal('faculty', f)}><FaEdit /></motion.button>
-                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Purge" onClick={() => handleDeleteFaculty(f.facultyId)}><FaTrash /></motion.button>
+                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View Profile" onClick={() => openModal('faculty-view', f)}><FaEye /></motion.button>
+                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Edit" onClick={() => openModal('faculty', f)}><FaEdit /></motion.button>
+                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete" onClick={() => handleDeleteFaculty(f.facultyId)}><FaTrash /></motion.button>
                                                 </div>
                                             </td>
                                         </motion.tr>
@@ -145,7 +145,7 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                                     <td colSpan="7">
                                         <div className="admin-empty-state" style={{ padding: '6rem' }}>
                                             <FaChalkboardTeacher className="admin-empty-icon" style={{ opacity: 0.3 }} />
-                                            <p className="admin-empty-text" style={{ fontWeight: 950, color: 'var(--admin-text-muted)' }}>NO PERSONNEL FOUND IN THIS SECTOR</p>
+                                            <p className="admin-empty-text" style={{ fontWeight: 950, color: 'var(--admin-text-muted)' }}>NO FACULTY FOUND</p>
                                         </div>
                                     </td>
                                 </tr>

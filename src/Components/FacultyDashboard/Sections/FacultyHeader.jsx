@@ -5,9 +5,10 @@ import {
 } from 'react-icons/fa';
 
 /**
- * PREMIUM NEXUS HEADER (FACULTY EDITION)
- * Glassmorphism, interactive navigation, and real-time alerts.
- * Matches StudentDashboard UI/UX with Luxe Pearl theme.
+ * FRIENDLY NOTEBOOK HEADER
+ * FACULTY DASHBOARD (OVERVIEW)
+ * Clean analytics and activity monitoring.
+ * Theme: Friendly Notebook
  */
 const FacultyHeader = ({
     facultyData,
@@ -19,7 +20,7 @@ const FacultyHeader = ({
 
     const localHandleLogout = (e) => {
         e.preventDefault();
-        if (window.confirm('Terminate faculty session and logout?')) {
+        if (window.confirm('Are you sure you want to log out?')) {
             if (onLogout) {
                 onLogout();
             } else {
@@ -30,7 +31,7 @@ const FacultyHeader = ({
     };
 
     const navItems = [
-        { id: 'overview', label: 'COMMAND HUB', iconType: 'chart-line', color: '#6366f1' },
+        { id: 'overview', label: 'DASHBOARD', iconType: 'chart-line', color: '#6366f1' },
         { id: 'materials', label: 'MATERIALS', iconType: 'layer-group', color: '#3b82f6' },
         { id: 'attendance', label: 'ATTENDANCE', iconType: 'user-check', color: '#10b981' },
         { id: 'exams', label: 'EXAMS', iconType: 'shield-alt', color: '#f59e0b' },
@@ -63,8 +64,8 @@ const FacultyHeader = ({
                 <div className="sd-brand-group">
                     <FaGraduationCap className="sd-brand-icon" style={{ fontSize: '2.4rem' }} />
                     <div>
-                        <h1 className="sd-brand-name">FBN XAI</h1>
-                        <span className="sd-brand-tag">FACULTY NEXUS</span>
+                        <h1 className="sd-brand-name">FBN Admin</h1>
+                        <span className="sd-brand-tag">FACULTY PORTAL</span>
                     </div>
                 </div>
 
@@ -93,7 +94,6 @@ const FacultyHeader = ({
                 <div className="header-icon-stack" style={{ display: 'flex', gap: '0.75rem' }}>
                     <button className="f-msg-btn" onClick={toggleMsgModal}>
                         <FaEnvelope />
-                        {/* {unreadCount > 0 && <span className="nexus-badge">1</span>} */}
                     </button>
                 </div>
 

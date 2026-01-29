@@ -37,7 +37,14 @@ const materialSchema = new mongoose.Schema({
 
   // Interaction Stats
   views: { type: Number, default: 0 },
-  downloads: { type: Number, default: 0 }
+  downloads: { type: Number, default: 0 },
+  likes: { type: Number, default: 0 },
+
+  // Extra Metadata
+  duration: String, // For videos
+  examYear: String, // For model papers
+  dueDate: Date,    // For assignments
+  message: String   // For notifications or descriptions
 });
 
 // Middleware to sync url and fileUrl

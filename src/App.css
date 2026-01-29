@@ -91,3 +91,29 @@
     opacity: 1;
   }
 }
+
+/* Global responsive helpers for dashboards */
+@media (max-width: 1024px) {
+  .nexus-sidebar,
+  .sidebar-v2,
+  .nexus-sidebar.collapsed {
+    display: none !important;
+  }
+  .dashboard-content-area {
+    padding: 1rem !important;
+    min-height: 100vh !important;
+    height: auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .nexus-stats-grid {
+    grid-template-columns: 1fr !important;
+    padding: 0 1rem 1rem !important;
+  }
+  .nexus-main-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+}

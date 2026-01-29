@@ -1,8 +1,16 @@
 const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
+const { DASHBOARD_PATHS } = require('../dashboardConfig');
 const Material = require('../models/Material');
 const Course = require('../models/Course');
 const Faculty = require('../models/Faculty');
 
+const uploadsDir = DASHBOARD_PATHS.uploads;
+
+// @desc    Get all materials
+// @route   GET /api/materials
+// @access  Private
 // @desc    Get all materials
 // @route   GET /api/materials
 // @access  Private
@@ -30,7 +38,7 @@ exports.getMaterials = async (req, res) => {
 
         const materials = await Material.find(query)
           .populate('course', 'courseCode courseName')
-          .populate('uploadedBy', 'name email')
+          .populate({ path: 'uploadedBy', model: 'Faculty', select: 'name email' })
           .sort('-createdAt')
           .lean();
 
@@ -41,6 +49,7 @@ exports.getMaterials = async (req, res) => {
           description: material.description,
           url: material.fileUrl,
           type: material.type,
+          semester: material.semester,
           subject: material.subject,
           year: material.year,
           section: material.section,
@@ -73,7 +82,7 @@ exports.getMaterialById = async (req, res) => {
   try {
     const material = await Material.findById(req.params.id)
       .populate('course', 'courseCode courseName')
-      .populate('uploadedBy', 'name email');
+      .populate({ path: 'uploadedBy', model: 'Faculty', select: 'name email' });
 
     if (!material) {
       return res.status(404).json({ message: 'Material not found' });
@@ -94,82 +103,67 @@ exports.getMaterialById = async (req, res) => {
 // @access  Private/Faculty
 exports.uploadMaterial = async (req, res) => {
   try {
-    const { title, description, courseId, year, section, subject, type, module, unit, topic } = req.body;
+    const {
+      title, description, courseId, year, section, subject, type,
+      module, unit, topic, semester,
+      duration, examYear, dueDate, message, link
+    } = req.body;
 
     // DEBUG: Log received fields
     console.log('[MaterialController] Upload Request:', {
       file: req.file ? 'Present' : 'Missing',
       url: req.body.url,
-      link: req.body.link,
+      link: link || req.body.link,
       fileUrl: req.body.fileUrl,
-      bodykeys: Object.keys(req.body)
+      type
     });
 
-    const providedUrl = req.body.url || req.body.link || req.body.fileUrl;
+    const providedUrl = req.body.url || link || req.body.link || req.body.fileUrl;
 
     // Require either a file upload or a URL/link
     if (!req.file && !providedUrl) {
-      console.log('[MaterialController] Validation Failed: No File or URL provided.');
       return res.status(400).json({ message: 'Please upload a file or provide a URL' });
     }
 
-    // Check if course exists (Optional)
-    let course = null;
-    if (courseId) {
-      course = await Course.findById(courseId);
-    }
-    // If no courseId sent, we proceed without linking to a formal Course object, using just subject string.
-
     // Identify Uploader
     let uploaderId = null;
-
     if (req.user.role === 'admin') {
-      try {
-        let adminFaculty = await Faculty.findOne({ facultyId: 'admin' });
-        if (!adminFaculty) {
-          adminFaculty = await Faculty.create({
-            facultyId: 'admin',
-            name: 'Administrator',
-            email: 'admin@system.local',
-            password: 'admin_managed_externally',
-            department: 'Administration',
-            designation: 'System Administrator',
-            assignments: []
-          });
-        }
-        uploaderId = adminFaculty._id;
-      } catch (e) {
-        console.error("Admin uploader resolution failed:", e);
-        // Fallback or error? Let's try to proceed without specific uploader ID if admin
-        // But schema might require it. Let's rely on the created admin.
+      let adminFaculty = await Faculty.findOne({ facultyId: 'admin' });
+      if (!adminFaculty) {
+        adminFaculty = await Faculty.create({
+          facultyId: 'admin',
+          name: 'Administrator',
+          email: 'admin@system.local',
+          password: 'admin_managed_externally',
+          department: 'Administration',
+          designation: 'System Administrator'
+        });
       }
+      uploaderId = adminFaculty._id;
     } else {
-      // For faculty
       uploaderId = req.user._id;
-      // Ensure this user exists in Faculty collection (double check)
-      if (!uploaderId) {
-        const f = await Faculty.findOne({ facultyId: req.user.id });
-        if (f) uploaderId = f._id;
-      }
     }
 
-    if (!uploaderId && req.user.role !== 'admin') {
-      return res.status(500).json({ message: 'Uploader identity could not be verified.' });
-    }
-
-    // Create new material with role-based path
-    const roleFolder = req.user.role === 'admin' ? 'admin' : 'faculty';
     let fileUrl;
     let fileType;
     let fileSize;
+    let filename;
+    let originalName;
 
     if (req.file) {
-      // Since we are using uploadLocal which stores in root uploads/
-      // we should not append roleFolder to URL unless we change uploadLocal.
-      // For now, index.js serves /uploads maps to backend/uploads.
-      fileUrl = `/uploads/${req.file.filename}`;
+      // Robust Cloudinary/Local Path detection
+      fileUrl = req.file.path || req.file.secure_url;
+
+      // If not starting with http, assume local path relative to uploadsDir
+      if (fileUrl && !fileUrl.startsWith('http')) {
+        const relPath = path.relative(uploadsDir, fileUrl);
+        fileUrl = `/uploads/${relPath}`.replace(/\\/g, '/');
+      }
+
       fileType = req.file.mimetype;
       fileSize = req.file.size;
+      filename = req.file.filename;
+      originalName = req.file.originalname;
     } else {
       fileUrl = providedUrl;
       fileType = req.body.type || 'link';
@@ -177,20 +171,27 @@ exports.uploadMaterial = async (req, res) => {
     }
 
     const material = new Material({
-      title,
+      title: title || originalName || 'Untitled',
       description,
       fileUrl,
+      url: fileUrl, // Synchronize url field
       fileType,
       fileSize,
-      course: course ? courseId : undefined,
+      course: courseId ? courseId : undefined,
       uploadedBy: uploaderId,
-      year,
-      section,
-      subject,
-      type,
-      module,
-      unit,
-      topic
+      year: year || '1',
+      semester: semester || '1',
+      section: section || 'All',
+      subject: subject || 'General',
+      type: type || 'notes',
+      module: module || '1',
+      unit: unit || '1',
+      topic: topic || 'General Topics',
+      // New metadata fields
+      duration,
+      examYear,
+      dueDate,
+      message
     });
 
     await material.save();
@@ -198,8 +199,12 @@ exports.uploadMaterial = async (req, res) => {
     // No file sync: materials persist in MongoDB only
 
     // Populate the response
-    await material.populate('course', 'courseCode courseName');
-    await material.populate('uploadedBy', 'name email');
+    try {
+      await material.populate('course', 'courseCode courseName');
+      await material.populate({ path: 'uploadedBy', model: 'Faculty', select: 'name email' });
+    } catch (popErr) {
+      console.warn('Material populate failed (non-critical):', popErr.message);
+    }
 
     // AUTO-NOTIFICATION: Create a message for students in MongoDB
     try {
@@ -226,7 +231,7 @@ exports.uploadMaterial = async (req, res) => {
     }
 
     // Notify dashboards that materials changed
-    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'create', data: { id: material._id.toString(), title: material.title, course: material.course, year: material.year, section: material.section } }); } catch (e) {}
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'create', data: { id: material._id.toString(), title: material.title, course: material.course, year: material.year, section: material.section } }); } catch (e) { }
 
     res.status(201).json(material);
   } catch (error) {
@@ -254,12 +259,12 @@ exports.updateMaterial = async (req, res) => {
 
     // Check if the user is the uploader or an admin
     console.log('[Update] Check:', {
-      materialUploader: material.uploadedBy.toString(),
+      materialUploader: material.uploadedBy ? material.uploadedBy.toString() : 'null',
       requestUserId: req.user._id ? req.user._id.toString() : 'missing',
       role: req.user.role
     });
 
-    const isUploader = req.user._id && material.uploadedBy.toString() === req.user._id.toString();
+    const isUploader = req.user._id && material.uploadedBy && material.uploadedBy.toString() === req.user._id.toString();
     if (!isUploader && req.user.role !== 'admin') {
       return res.status(401).json({ message: 'Not authorized to update this material' });
     }
@@ -277,12 +282,9 @@ exports.updateMaterial = async (req, res) => {
       // Delete old file if it exists
       if (material.fileUrl && material.fileUrl.startsWith('/uploads')) {
         try {
-          const fs = require('fs');
-          const path = require('path');
-          const uploadsDir = process.platform === 'win32'
-            ? 'D:\\fbn_database\\uploads'
-            : path.join(__dirname, '..', 'uploads');
-          const oldFilePath = path.join(uploadsDir, material.fileUrl.replace('/uploads/', ''));
+          // Use uploadsDir from config for deletion path resolution
+          const relOld = material.fileUrl.replace('/uploads/', '').replace(/\//g, path.sep);
+          const oldFilePath = path.join(uploadsDir, relOld);
           if (fs.existsSync(oldFilePath)) {
             fs.unlinkSync(oldFilePath);
             console.log(`[Update] Deleted old file: ${oldFilePath}`);
@@ -292,7 +294,8 @@ exports.updateMaterial = async (req, res) => {
         }
       }
 
-      material.fileUrl = `/uploads/${req.file.filename}`;
+      const relPath = path.relative(uploadsDir, req.file.path);
+      material.fileUrl = `/uploads/${relPath}`.replace(/\\/g, '/');
       material.fileType = req.file.mimetype;
       material.fileSize = req.file.size;
     } else if (req.body.url || req.body.link) {
@@ -304,11 +307,15 @@ exports.updateMaterial = async (req, res) => {
     await material.save();
 
     // Populate the response
-    await material.populate('course', 'courseCode courseName');
-    await material.populate('uploadedBy', 'name email');
+    try {
+      await material.populate('course', 'courseCode courseName');
+      await material.populate({ path: 'uploadedBy', model: 'Faculty', select: 'name email' });
+    } catch (popErr) {
+      console.warn('Material populate failed (non-critical):', popErr.message);
+    }
 
     // Notify dashboards that a material was updated
-    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'update', data: { id: material._id.toString(), title: material.title, year: material.year, section: material.section } }); } catch (e) {}
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'update', data: { id: material._id.toString(), title: material.title, year: material.year, section: material.section } }); } catch (e) { }
 
     res.json(material);
   } catch (error) {
@@ -333,12 +340,12 @@ exports.deleteMaterial = async (req, res) => {
 
     // Check if the user is the uploader or an admin
     console.log('[Delete] Check:', {
-      materialUploader: material.uploadedBy.toString(),
+      materialUploader: material.uploadedBy ? material.uploadedBy.toString() : 'null',
       requestUserId: req.user._id ? req.user._id.toString() : 'missing',
       role: req.user.role
     });
 
-    const isUploader = req.user._id && material.uploadedBy.toString() === req.user._id.toString();
+    const isUploader = req.user._id && material.uploadedBy && material.uploadedBy.toString() === req.user._id.toString();
     if (!isUploader && req.user.role !== 'admin') {
       return res.status(401).json({ message: 'Not authorized to delete this material' });
     }
@@ -346,14 +353,8 @@ exports.deleteMaterial = async (req, res) => {
     // Delete the file from physical storage
     if (material.fileUrl && material.fileUrl.startsWith('/uploads')) {
       try {
-        const fs = require('fs');
-        const path = require('path');
-        const uploadsDir = process.platform === 'win32'
-          ? 'D:\\fbn_database\\uploads'
-          : path.join(__dirname, '..', 'uploads');
-        // Get relative path by removing /uploads/ prefix
-        const relativePath = material.fileUrl.replace('/uploads/', '');
-        const filePath = path.join(uploadsDir, relativePath);
+        const relPath = material.fileUrl.replace('/uploads/', '').replace(/\//g, path.sep);
+        const filePath = path.join(uploadsDir, relPath);
 
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
@@ -371,7 +372,7 @@ exports.deleteMaterial = async (req, res) => {
     // No local file sync: deletion persisted in MongoDB only
 
     // Notify dashboards that a material was deleted
-    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'delete', data: { id: material._id.toString() } }); } catch (e) {}
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'delete', data: { id: material._id.toString() } }); } catch (e) { }
 
     res.json({ message: 'Material removed' });
   } catch (error) {
@@ -379,6 +380,25 @@ exports.deleteMaterial = async (req, res) => {
     if (error.kind === 'ObjectId') {
       return res.status(404).json({ message: 'Material not found' });
     }
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+exports.likeMaterial = async (req, res) => {
+  try {
+    const material = await Material.findById(req.params.id);
+    if (!material) {
+      return res.status(404).json({ message: 'Material not found' });
+    }
+
+    material.likes = (material.likes || 0) + 1;
+    await material.save();
+
+    try { global.broadcastEvent && global.broadcastEvent({ resource: 'materials', action: 'update', data: material }); } catch (e) { }
+
+    res.json({ success: true, likes: material.likes });
+  } catch (error) {
+    console.error('Error liking material:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 };

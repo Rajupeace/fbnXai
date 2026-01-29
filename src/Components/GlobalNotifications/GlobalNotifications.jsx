@@ -30,7 +30,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                     id: Date.now(),
                     type: 'info',
                     iconType: 'user-plus',
-                    title: 'New Cadet Enrolled',
+                    title: 'New Student Enrolled',
                     message: `${student.studentName} joined Year ${student.year} (${student.branch} - Sec ${student.section})`,
                     time: timestamp
                 };
@@ -69,7 +69,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                     id: Date.now(),
                     type: 'info',
                     iconType: 'book',
-                    title: 'Asset Deployed',
+                    title: 'Material Uploaded',
                     message: `Faculty uploaded "${material.title}" for Year ${material.year} ${material.subject}.`,
                     time: timestamp
                 };
@@ -114,7 +114,7 @@ const GlobalNotifications = ({ userRole, userData }) => {
                     id: Date.now(),
                     type: msg.senderRole === 'faculty' ? 'success' : 'warning',
                     iconType: 'bullhorn',
-                    title: msg.senderRole === 'faculty' ? 'Faculty Directive' : 'System Broadcast',
+                    title: msg.senderRole === 'faculty' ? 'Faculty Announcement' : 'System Announcement',
                     message: msg.message || msg.text,
                     time: timestamp
                 };

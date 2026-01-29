@@ -51,8 +51,8 @@
   opacity: 0.4;
 }
 
-/* Boot Sequence */
-.faculty-boot-overlay {
+/* Initial Load */
+.faculty-load-overlay {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -98,11 +98,11 @@
   font-weight: 850;
 }
 
-.boot-content {
+.load-content {
   text-align: center;
 }
 
-.boot-icon-box {
+.load-icon-box {
   width: 100px;
   height: 100px;
   margin: 0 auto 2.5rem;
@@ -117,7 +117,7 @@
   animation: hubEntry 1s var(--nexus-ease);
 }
 
-.boot-shimmer {
+.load-shimmer {
   font-size: 1.5rem;
   font-weight: 950;
   background: linear-gradient(90deg, #1e293b, #6366f1, #1e293b);
@@ -129,7 +129,7 @@
   letter-spacing: -0.02em;
 }
 
-.boot-progress-wrap {
+.load-progress-wrap {
   width: 240px;
   height: 4px;
   background: rgba(0, 0, 0, 0.05);
@@ -138,11 +138,11 @@
   overflow: hidden;
 }
 
-.boot-progress-bar {
+.load-progress-bar {
   height: 100%;
   background: var(--nexus-primary);
   width: 0;
-  animation: bootProgress 1.5s var(--nexus-ease) forwards;
+  animation: loadProgress 1.5s var(--nexus-ease) forwards;
 }
 
 .nexus-subtitle {
@@ -168,7 +168,7 @@
   box-shadow: 0 0 10px var(--accent-teal);
 }
 
-@keyframes bootProgress {
+@keyframes loadProgress {
   to {
     width: 100%;
   }

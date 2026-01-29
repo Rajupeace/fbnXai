@@ -12,14 +12,14 @@ const CommandPalette = ({ isOpen, onClose, role, userData }) => {
     const navigate = useNavigate();
 
     // Commands/Actions based on role
-    const actions = [
+    const actions = React.useMemo(() => [
         { id: 'ai', name: 'Ask AI Assistant', iconType: 'robot', category: 'AI', action: () => { onClose(); window.dispatchEvent(new CustomEvent('open-ai-modal')); } },
         { id: 'settings', name: 'Account Settings', iconType: 'cog', category: 'General', action: () => { onClose(); navigate(role === 'student' ? '/dashboard?view=settings' : role === 'admin' ? '/admin' : '/faculty'); } },
-        { id: 'logout', name: 'Logout System', iconType: 'sign-out-alt', category: 'Danger', action: () => { if (window.confirm('Logout?')) { onClose(); document.querySelector('.btn-logout')?.click() || document.querySelector('.btn-terminate')?.click(); } } }
-    ];
+        { id: 'logout', name: 'Logout', iconType: 'sign-out-alt', category: 'Danger', action: () => { if (window.confirm('Logout?')) { onClose(); document.querySelector('.btn-logout')?.click() || document.querySelector('.btn-terminate')?.click(); } } }
+    ], [onClose, navigate, role]);
 
     const getCommandIcon = (iconType) => {
-        switch(iconType) {
+        switch (iconType) {
             case 'robot': return <FaRobot />;
             case 'cog': return <FaCog />;
             case 'sign-out-alt': return <FaSignOutAlt />;
@@ -70,7 +70,7 @@ const CommandPalette = ({ isOpen, onClose, role, userData }) => {
 
         const timer = setTimeout(fetchRemoteData, 200);
         return () => clearTimeout(timer);
-    }, [query, role]);
+    }, [query, role, actions, navigate, onClose]);
 
     const handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
@@ -94,7 +94,7 @@ const CommandPalette = ({ isOpen, onClose, role, userData }) => {
                     <input
                         ref={inputRef}
                         type="text"
-                        placeholder="Search subjects, actions, or commands..."
+                        placeholder="Search subjects or actions..."
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -119,7 +119,7 @@ const CommandPalette = ({ isOpen, onClose, role, userData }) => {
                             </div>
                         ))
                     ) : (
-                        <div className="cmd-no-results">No matches found for system query.</div>
+                        <div className="cmd-no-results">No matches found for your search.</div>
                     )}
                 </div>
 

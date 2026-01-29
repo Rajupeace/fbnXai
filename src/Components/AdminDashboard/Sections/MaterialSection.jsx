@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { FaPlus, FaEdit, FaTrash, FaEye, FaDownload, FaDatabase, FaBoxOpen } from 'react-icons/fa';
 
 /**
@@ -30,12 +30,12 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>MATERIAL <span>REPOSITORY</span></h1>
-                    <p>Archived Knowledge Assets: {filteredMaterials.length}</p>
+                    <h1>MATERIAL <span>MANAGER</span></h1>
+                    <p>Total Files: {filteredMaterials.length}</p>
                 </div>
                 <div className="admin-action-bar" style={{ margin: 0 }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('material')}>
-                        <FaPlus /> UPLOAD ASSET
+                        <FaPlus /> UPLOAD MATERIAL
                     </button>
                 </div>
             </header>
@@ -65,11 +65,11 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
                     <table className="admin-grid-table">
                         <thead>
                             <tr>
-                                <th>ASSET TITLE</th>
-                                <th>SUBJECT ORIGIN</th>
-                                <th>PHASE/SEC</th>
-                                <th>TOPICAL FOCUS</th>
-                                <th>CATEGORY</th>
+                                <th>TITLE</th>
+                                <th>SUBJECT</th>
+                                <th>YEAR/SEC</th>
+                                <th>TOPIC</th>
+                                <th>TYPE</th>
                                 <th>ACTIONS</th>
                             </tr>
                         </thead>
@@ -88,7 +88,7 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
                                             </div>
                                             <div>
                                                 <div style={{ fontWeight: 600 }}>{m.title}</div>
-                                                <div style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', fontWeight: 500 }}>Uplinked by: {m.uploadedBy?.name || m.uploadedBy || 'CENTRAL'}</div>
+                                                <div style={{ fontSize: '0.7rem', color: 'var(--admin-text-muted)', fontWeight: 500 }}>Uploaded by: {m.uploadedBy?.name || m.uploadedBy || 'Admin'}</div>
                                             </div>
                                         </div>
                                     </td>
@@ -110,9 +110,9 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View Intel" onClick={() => openModal('material-view', m)}><FaEye /></motion.button>
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Recalibrate" onClick={() => openModal('material', m)}><FaEdit /></motion.button>
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Purge" onClick={() => handleDeleteMaterial(m._id || m.id)}><FaTrash /></motion.button>
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View" onClick={() => openModal('material-view', m)}><FaEye /></motion.button>
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Edit" onClick={() => openModal('material', m)}><FaEdit /></motion.button>
+                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete" onClick={() => handleDeleteMaterial(m._id || m.id)}><FaTrash /></motion.button>
                                             {m.url && m.url !== '#' && (
                                                 <motion.a
                                                     whileHover={{ scale: 1.1 }}
@@ -122,7 +122,7 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
                                                     rel="noreferrer"
                                                     className="f-exam-card"
                                                     style={{ padding: '0.5rem', background: 'var(--admin-primary)', color: 'white' }}
-                                                    title="Sync Down"
+                                                    title="Download"
                                                 >
                                                     <FaDownload />
                                                 </motion.a>
@@ -135,7 +135,7 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
                                 <tr>
                                     <td colSpan="6" style={{ textAlign: 'center', padding: '6rem' }}>
                                         <FaBoxOpen style={{ fontSize: '4rem', color: 'var(--admin-border)', marginBottom: '1.5rem', opacity: 0.5 }} />
-                                        <div className="f-empty-text" style={{ fontWeight: 950, color: 'var(--admin-text-muted)' }}>NO INTEL ASSETS MATCHING COORDINATES</div>
+                                        <div className="f-empty-text" style={{ fontWeight: 950, color: 'var(--admin-text-muted)' }}>NO MATERIALS FOUND</div>
                                     </td>
                                 </tr>
                             )}

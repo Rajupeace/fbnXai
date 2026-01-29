@@ -32,7 +32,6 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
     };
 
     // Management View State
-    const [manageYear, setManageYear] = useState('1');
     const [searchTerm, setSearchTerm] = useState('');
 
     const alphaSections = Array.from({ length: 16 }, (_, i) => String.fromCharCode(65 + i)); // A-P
@@ -100,7 +99,7 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                                                 <div className="hub-subject-actions">
                                                     <button onClick={() => openModal('material', { subject: c.name, year: c.year, semester: c.semester, branch: c.branch || selectedBranchFilter })} className="hub-icon-btn upload" title="Upload Resources"><FaFileUpload /></button>
                                                     <button onClick={() => openModal('course', c)} className="hub-icon-btn" title="Edit Subject"><FaEdit /></button>
-                                                    <button onClick={() => handleDeleteCourse(c._id || c.id)} className="hub-icon-btn delete" title="Delete Subject"><FaTrash /></button>
+                                                    <button onClick={() => handleDeleteCourse(c)} className="hub-icon-btn delete" title="Delete Subject"><FaTrash /></button>
                                                 </div>
                                             </div>
                                         );
@@ -125,7 +124,7 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                     const sCount = students.filter(s => s.section === sec).length;
                     const cCount = courses.filter(c => c.section === sec || c.section === 'All').length;
                     return (
-                        <div key={sec} className="section-card" onClick={() => { setHubView('management'); setManageYear('1'); setSearchTerm(`Sec ${sec}`); }}>
+                        <div key={sec} className="section-card" onClick={() => { setHubView('management'); setActiveYearTab(1); setSearchTerm(`Sec ${sec}`); }}>
                             <div className="label">SECTION {sec}</div>
                             <div className="count">{sec}</div>
                             <div className="stats-row">
@@ -205,8 +204,8 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
         <div className="academic-hub-v2">
             <header className="hub-main-header">
                 <div className="hub-title-section">
-                    <h1>ACADEMIC <span>STRATEGY HUB</span></h1>
-                    <p>Orchestrate curriculum, section telemetry, and deployment logic from a single interface.</p>
+                    <h1>ACADEMIC <span>HUB</span></h1>
+                    <p>Manage curriculum, section analysis, and subject assignments from a single interface.</p>
                 </div>
 
                 <div className="hub-nav-controls">
@@ -225,7 +224,7 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                             className={hubView === 'sections' ? 'active' : ''}
                             onClick={() => setHubView('sections')}
                         >
-                            <FaChartPie /> TELEMETRY
+                            <FaChartPie /> ANALYSIS
                         </motion.button>
                         <motion.button
                             whileHover={{ y: -2 }}
@@ -233,7 +232,7 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                             className={hubView === 'management' ? 'active' : ''}
                             onClick={() => setHubView('management')}
                         >
-                            <FaListUl /> DEPLOYMENT
+                            <FaListUl /> SUBJECTS
                         </motion.button>
                     </div>
 
@@ -258,7 +257,7 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                             className="admin-btn admin-btn-primary hub-global-add"
                             onClick={() => openModal('course')}
                         >
-                            <FaPlus /> DEPLOY SUBJECT
+                            <FaPlus /> ADD SUBJECT
                         </motion.button>
                     </div>
                 </div>

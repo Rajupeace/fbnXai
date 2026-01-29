@@ -185,11 +185,13 @@ exports.getStudentOverview = async (req, res) => {
         year: student.year,
         section: student.section,
         profilePic: student.profileImage || student.profilePic || student.avatar,
-        stats: student.stats || {}
+        stats: student.stats || {},
+        roadmapProgress: student.roadmapProgress || {}
       },
       semesterProgress: 72,
       attendance: attendanceSummary,
       academics: academicsSummary,
+      roadmapProgress: student.roadmapProgress || {}, // Also at top level for convenience
       activity,
       myFaculty // New Field
     });

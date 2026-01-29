@@ -28,7 +28,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   const [materialsList, setMaterialsList] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
   const [, setSyncing] = useState(false); // syncing unused
-  const [bootSequence, setBootSequence] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [showMsgModal, setShowMsgModal] = useState(false);
 
   const navigate = useNavigate();
@@ -73,7 +73,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   useEffect(() => {
     console.log('🚀 FacultyDashboard: Initial data load started');
     refreshAll();
-    const timer = setTimeout(() => setBootSequence(false), 1500);
+    const timer = setTimeout(() => setInitialLoad(false), 1500);
 
     // Optimized polling: 5 seconds (more efficient than 3s)
     const interval = setInterval(() => {
@@ -179,16 +179,16 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
     }
   };
 
-  if (bootSequence) {
+  if (initialLoad) {
     return (
-      <div className="faculty-boot-overlay">
-        <div className="boot-content">
-          <div className="boot-icon-box">
+      <div className="faculty-load-overlay">
+        <div className="load-content">
+          <div className="load-icon-box">
             <FaUniversity className="pulse" />
           </div>
-          <h2 className="boot-shimmer">Loading Dashboard...</h2>
-          <div className="boot-progress-wrap">
-            <div className="boot-progress-bar"></div>
+          <h2 className="load-shimmer">Loading Dashboard...</h2>
+          <div className="load-progress-wrap">
+            <div className="load-progress-bar"></div>
           </div>
         </div>
       </div>
@@ -257,7 +257,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
               <div className="f-upload-stage animate-slide-up">
                 <MaterialManager
-                  selectedSubject={`${ctx.subject} (YEAR ${ctx.year})`}
+                  selectedSubject={`${ctx.subject} - Year ${ctx.year}`}
                   selectedSections={ctx.sections}
                   onUploadSuccess={refreshAll}
                 />

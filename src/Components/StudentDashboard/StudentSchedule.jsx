@@ -6,7 +6,7 @@ import StudentLabsSchedule from './StudentLabsSchedule';
 /**
 /**
  * Daily Schedule (Student Schedule)
- * A mission-critical timeline interface for daily academic objectives.
+ * A daily schedule interface for tracking classes and labs.
  */
 const StudentSchedule = ({ studentData }) => {
     const [subView, setSubView] = useState('theory'); // 'theory' or 'labs'
@@ -99,16 +99,16 @@ const StudentSchedule = ({ studentData }) => {
             {/* Header Area */}
             <div className="chronos-header">
                 <div className="header-left">
-                    <div className="protocol-tag"><FaBolt /> Daily Timeline</div>
+                    <div className="protocol-tag"><FaBolt /> Daily Schedule</div>
                     <h1>My <span className="highlight">Schedule</span></h1>
                 </div>
                 <div className="chronos-meta">
                     <div className="meta-item">
-                        <span className="lab">SYSTEM STATUS</span>
+                        <span className="lab">STATUS</span>
                         <span className="val pulse-green">ACTIVE</span>
                     </div>
                     <div className="meta-item">
-                        <span className="lab">SECTOR</span>
+                        <span className="lab">SECTION</span>
                         <span className="val">{studentData.section}</span>
                     </div>
                 </div>
@@ -144,7 +144,7 @@ const StudentSchedule = ({ studentData }) => {
                                     className={`chronos-day-btn ${selectedDay === idx ? 'active' : ''}`}
                                 >
                                     <span className="day-name">{day.toUpperCase()}</span>
-                                    {isToday && <span className="today-badge">SYNCED</span>}
+                                    {isToday && <span className="today-badge">TODAY</span>}
                                 </button>
                             );
                         })}

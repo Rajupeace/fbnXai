@@ -14,65 +14,23 @@ const adminKnowledge = require('../knowledge/adminKnowledge');
 
 console.log('✅ Chat routes initialized with role-specific knowledge bases');
 
-const dataDir = path.join(__dirname, '..', 'data');
-const chatHistoryPath = path.join(dataDir, 'chatHistory.json');
 const mongoose = require('mongoose');
 const ChatModel = require('../models/Chat');
 
-function ensureChatHistoryStore() {
-    try {
-        // If MongoDB is available, prefer DB and avoid local file creation
-        if (mongoose.connection && mongoose.connection.readyState === 1) return;
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-        if (!fs.existsSync(chatHistoryPath)) {
-            fs.writeFileSync(chatHistoryPath, JSON.stringify([]));
-        }
-    } catch (err) {
-        console.error('[VuAiAgent] Failed to initialize chat history store:', err.message);
-    }
-}
-
-async function readChatHistory() {
-    // Prefer MongoDB storage when available
-    if (mongoose.connection.readyState === 1) {
-        try {
-            const docs = await ChatModel.find({}).sort({ timestamp: -1 }).limit(500).lean();
-            return docs.reverse(); // oldest first
-        } catch (err) {
-            console.warn('[VuAiAgent] Mongo readChatHistory failed:', err.message);
-        }
-    }
-
-    try {
-        ensureChatHistoryStore();
-        const raw = fs.readFileSync(chatHistoryPath, 'utf8') || '[]';
-        return JSON.parse(raw);
-    } catch (err) {
-        console.error('[VuAiAgent] Failed to read chat history:', err.message);
+async function readChatHistory(userId, role) {
+    if (mongoose.connection.readyState !== 1) {
+        console.warn('[VuAiAgent] MongoDB not connected for history fetch');
         return [];
     }
-}
-
-async function writeChatHistory(history) {
-    // If Mongo connected, write each entry into DB (replace file storage)
-    if (mongoose.connection.readyState === 1) {
-        try {
-            // Bulk insert but ensure we don't duplicate: insert new ones only
-            const ops = history.map(h => ({ insertOne: { document: h } }));
-            if (ops.length) await ChatModel.bulkWrite(ops);
-            return;
-        } catch (err) {
-            console.warn('[VuAiAgent] Mongo writeChatHistory failed:', err.message);
-        }
-    }
-
     try {
-        ensureChatHistoryStore();
-        fs.writeFileSync(chatHistoryPath, JSON.stringify(history, null, 2));
+        const query = userId ? { userId } : {};
+        if (role) query.role = role;
+
+        const docs = await ChatModel.find(query).sort({ timestamp: -1 }).limit(50).lean();
+        return docs.reverse(); // oldest first for context
     } catch (err) {
-        console.error('[VuAiAgent] Failed to write chat history:', err.message);
+        console.error('[VuAiAgent] Mongo readChatHistory failed:', err.message);
+        return [];
     }
 }
 
@@ -83,17 +41,11 @@ async function appendChatEntry(entry) {
             await doc.save();
             return;
         } catch (err) {
-            console.warn('[VuAiAgent] Failed to append chat to Mongo:', err.message);
-            // fallback to file append
+            console.error('[VuAiAgent] Failed to append chat to Mongo:', err.message);
         }
     }
-
-    const history = await readChatHistory();
-    history.push(entry);
-    const MAX_ENTRIES = 500;
-    const trimmed = history.length > MAX_ENTRIES ? history.slice(history.length - MAX_ENTRIES) : history;
-    await writeChatHistory(trimmed);
 }
+
 
 // Helper function to find matching knowledge
 function findKnowledgeMatch(userMessage, knowledgeBase, context) {
@@ -141,24 +93,12 @@ function getKnowledgeBase(role) {
 router.get('/history', async (req, res) => {
     try {
         const { userId, role, limit } = req.query;
-        // Require MongoDB for chat history used in dashboards and analytics
         if (mongoose.connection.readyState !== 1) {
             return res.status(503).json({ message: 'MongoDB not connected. Chat history unavailable.' });
         }
 
-        const history = await readChatHistory();
-        let filtered = history;
-
-        if (userId) {
-            filtered = filtered.filter(entry => String(entry.userId || 'guest') === String(userId));
-        }
-        if (role) {
-            filtered = filtered.filter(entry => (entry.role || 'student').toLowerCase() === role.toLowerCase());
-        }
-
-        const cap = Math.max(1, Math.min(parseInt(limit, 10) || 50, 200));
-        const result = filtered.slice(-cap);
-        res.json(result);
+        const history = await readChatHistory(userId, role);
+        res.json(history);
     } catch (error) {
         console.error('[VuAiAgent] Failed to fetch history:', error);
         res.status(500).json({ message: 'Unable to fetch chat history', error: error.message });

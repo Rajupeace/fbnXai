@@ -11,8 +11,8 @@ import { apiGet } from '../../../utils/apiClient';
 import '../AdvancedLearning.css';
 
 /**
- * NEXUS ADVANCED LEARNING HUB
- * A premium workstation for elite programming and full-stack development.
+ * ADVANCED LEARNING HUB
+ * A premium workstation for advanced programming and full-stack development.
  */
 const AdvancedLearning = ({ userData, overviewData }) => {
     const [activeTab, setActiveTab] = useState('languages'); // 'languages' | 'fullstack' | 'faculty' | 'exams'
@@ -20,8 +20,8 @@ const AdvancedLearning = ({ userData, overviewData }) => {
     const [materials, setMaterials] = useState([]);
     const [loading, setLoading] = useState(false);
 
-    // Dynamic Faculty Data from Synchronized Mesh
-    const activeCommanders = overviewData?.myFaculty || [];
+    // Dynamic Faculty Data from Synchronized Database
+    const facultyMembers = overviewData?.myFaculty || [];
 
     const techCategories = {
         languages: [
@@ -34,11 +34,11 @@ const AdvancedLearning = ({ userData, overviewData }) => {
         ],
         fullstack: [
             { name: 'React', icon: <FaJs />, color: '#61dafb', desc: 'Reactive UI Architectures' },
-            { name: 'Node.js', icon: <FaNodeJs />, color: '#339933', desc: 'Scalable Backend Meshes' },
+            { name: 'Node.js', icon: <FaNodeJs />, color: '#339933', desc: 'Scalable Backend Applications' },
             { name: 'DevOps', icon: <FaTerminal />, color: '#2496ed', desc: 'Docker & Kubernetes Infra' },
             { name: 'Cloud', icon: <FaDatabase />, color: '#ff9900', desc: 'AWS & Azure Architectures' },
             { name: 'Modern CSS', icon: <FaCss3Alt />, color: '#1572b6', desc: 'Grid/Flex & Glassmorphism' },
-            { name: 'AI Engineering', icon: <FaBrain />, color: '#8e44ad', desc: 'Neural Network Deployment' }
+            { name: 'AI Engineering', icon: <FaBrain />, color: '#8e44ad', desc: 'AI Model Deployment' }
         ]
     };
 
@@ -49,7 +49,7 @@ const AdvancedLearning = ({ userData, overviewData }) => {
             const data = await apiGet(`/api/materials?subject=${selectedTech}&isAdvanced=true`);
             setMaterials(Array.isArray(data) ? data : []);
         } catch (e) {
-            console.error("Advanced Sync Failed:", e);
+            console.error("Advanced Data Load Failed:", e);
         } finally {
             setLoading(false);
         }
@@ -62,7 +62,7 @@ const AdvancedLearning = ({ userData, overviewData }) => {
     const renderResources = (type) => {
         const filtered = materials.filter(m => m.type === type);
         if (filtered.length === 0) {
-            return <div className="empty-resource">NO {type.toUpperCase()} DECRYPTED FOR {selectedTech.toUpperCase()}</div>;
+            return <div className="empty-resource">NO {type.toUpperCase()} FOUND FOR {selectedTech.toUpperCase()}</div>;
         }
 
         return (
@@ -74,7 +74,7 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                         </div>
                         <div className="res-text">
                             <h4>{m.title}</h4>
-                            <span>{m.description || 'Advanced Module'}</span>
+                            <span>{m.description || 'Advanced Tutorial'}</span>
                         </div>
                         <FaChevronRight className="arrow" />
                     </div>
@@ -96,10 +96,10 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                     animate={{ opacity: 1, x: 0 }}
                 >
                     <div className="nexus-page-subtitle">
-                        <FaRocket /> Advanced Mastery Protocol
+                        <FaRocket /> Advanced Learning Track
                     </div>
                     <h1 className="nexus-page-title">
-                        STARSHIP <span>COMMAND</span>
+                        LEARNING <span>HUB</span>
                     </h1>
                 </motion.div>
                 <motion.div
@@ -108,7 +108,7 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                     className="stat-node"
                 >
                     <span className="val">85%</span>
-                    <span className="lab">SYNC LEVEL</span>
+                    <span className="lab">COMPLETION</span>
                 </motion.div>
             </div>
 
@@ -130,7 +130,7 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                     className={`adv-tab ${activeTab === 'faculty' ? 'active' : ''}`}
                     onClick={() => setActiveTab('faculty')}
                 >
-                    <FaUserTie /> COMMANDERS
+                    <FaUserTie /> FACULTY
                 </button>
                 <button
                     className={`adv-tab ${activeTab === 'exams' ? 'active' : ''}`}
@@ -166,15 +166,15 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                         <div className="interaction-pane">
                             <div className="pane-header">
                                 <div className="pane-title">
-                                    <h2>{selectedTech.toUpperCase()} INTERFACE</h2>
-                                    <span>REAL-TIME KNOWLEDGE SYNC ACTIVE</span>
+                                    <h2>{selectedTech.toUpperCase()} RESOURCES</h2>
+                                    <span>KNOWLEDGE DATABASE CONNECTED</span>
                                 </div>
                                 {loading && <div className="nexus-loading-ring"></div>}
                             </div>
 
                             <div className="resource-grid">
                                 <div className="resource-column">
-                                    <h3 className="col-title"><FaVideo /> VIDEO DIRECTIVES</h3>
+                                    <h3 className="col-title"><FaVideo /> VIDEO TUTORIALS</h3>
                                     {renderResources('videos')}
                                 </div>
                                 <div className="resource-column">
@@ -182,7 +182,7 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                                     {renderResources('notes')}
                                 </div>
                                 <div className="resource-column">
-                                    <h3 className="col-title"><FaQuestionCircle /> INTERVIEW INTEL</h3>
+                                    <h3 className="col-title"><FaQuestionCircle /> INTERVIEW PREP</h3>
                                     {renderResources('interviewQnA')}
                                 </div>
                             </div>
@@ -193,11 +193,11 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                 {activeTab === 'faculty' && (
                     <div className="faculty-nexus">
                         <div className="faculty-header">
-                            <h2 className="mission-commanders-title">Mission Commanders</h2>
-                            <p className="mission-commanders-desc">Direct synchronization with faculty members assigned to your section.</p>
+                            <h2 className="mission-commanders-title">Subject Faculty</h2>
+                            <p className="mission-commanders-desc">Connect with faculty members assigned to your subject.</p>
                         </div>
                         <div className="f-grid">
-                            {activeCommanders.length > 0 ? activeCommanders.map((f, i) => (
+                            {facultyMembers.length > 0 ? facultyMembers.map((f, i) => (
                                 <div key={i} className="f-card">
                                     <div className="f-avatar"><FaUserTie /></div>
                                     <div className="f-main">
@@ -209,13 +209,13 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                                             <div className="f-detail"><FaCalendarAlt className="text-primary" /> {f.room || 'Department Faculty Hub'}</div>
                                         </div>
                                     </div>
-                                    <button className="f-connect">REACH OUT</button>
+                                    <button className="f-connect">CONTACT</button>
                                 </div>
                             )) : (
                                 <div className="nexus-empty-journal no-synced-faculty">
                                     <FaUserTie className="no-synced-icon" />
-                                    <h3>NO COMMANDERS SYNCED</h3>
-                                    <p>Your faculty mesh is currently awaiting assignment data.</p>
+                                    <h3>NO FACULTY ASSIGNED</h3>
+                                    <p>Faculty assignment data is currently being updated.</p>
                                 </div>
                             )}
                         </div>
@@ -230,13 +230,13 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                             <div className="nexus-empty-journal">
                                 <FaShieldAlt className="no-synced-icon" />
                                 <h3>NO ACTIVE ASSESSMENTS</h3>
-                                <p>No scheduled evaluations detected in the neural mesh.</p>
+                                <p>No upcoming exams or assignments found.</p>
                             </div>
                         ) : (
                             <>
                                 {materials.filter(m => m.type === 'exam').sort((a, b) => new Date(a.date) - new Date(b.date))[0] && (
                                     <div className="exam-status-banner">
-                                        <FaShieldAlt /> NEXT ASSESSMENT CRITICAL: {materials.filter(m => m.type === 'exam').sort((a, b) => new Date(a.date) - new Date(b.date))[0].title.toUpperCase()}
+                                        <FaShieldAlt /> NEXT UPCOMING EXAM: {materials.filter(m => m.type === 'exam').sort((a, b) => new Date(a.date) - new Date(b.date))[0].title.toUpperCase()}
                                     </div>
                                 )}
                                 <div className="exam-grid">
@@ -246,12 +246,12 @@ const AdvancedLearning = ({ userData, overviewData }) => {
                                             <p>{exam.subject} - {exam.desc || 'Scheduled Assessment'}</p>
                                             <div className="exam-meta">
                                                 <span>TIME: {exam.duration || '60m'}</span>
-                                                <span>TYPE: {exam.mode || 'THEORETICAL'}</span>
+                                                <span>TYPE: {exam.mode || 'THEORY'}</span>
                                             </div>
                                             <div className="exam-meta" style={{ marginTop: '0.5rem', color: '#64748b' }}>
                                                 <FaCalendarAlt /> {new Date(exam.date || Date.now()).toLocaleDateString()}
                                             </div>
-                                            <button className="exam-btn" onClick={() => window.open(exam.link || '#', '_blank')}>INITIATE TEST</button>
+                                            <button className="exam-btn" onClick={() => window.open(exam.link || '#', '_blank')}>START TEST</button>
                                         </div>
                                     ))}
                                 </div>

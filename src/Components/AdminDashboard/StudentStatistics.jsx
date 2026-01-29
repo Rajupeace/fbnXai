@@ -3,8 +3,8 @@ import { apiGet } from '../../utils/apiClient';
 import { FaUserGraduate, FaChartBar, FaUsers, FaLayerGroup, FaDotCircle } from 'react-icons/fa';
 
 /**
- * SENTINEL CADET ANALYTICS
- * Comprehensive demographic and engagement telemetry for the student cohort.
+ * STUDENT ANALYTICS
+ * Comprehensive demographics and engagement metrics for students.
  */
 const StudentStatistics = () => {
     const [students, setStudents] = useState([]);
@@ -79,8 +79,8 @@ const StudentStatistics = () => {
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>CADET <span>ANALYTICS</span></h1>
-                    <p>Strategic cohort demographics and engagement metrics</p>
+                    <h1>STUDENT <span>ANALYTICS</span></h1>
+                    <p>Student demographics and engagement metrics</p>
                 </div>
             </header>
 
@@ -88,29 +88,29 @@ const StudentStatistics = () => {
             <div className="admin-stats-grid" style={{ marginBottom: '3rem' }}>
                 <div className="admin-summary-card" style={{ background: 'var(--admin-primary)', color: 'white' }}>
                     <div className="value" style={{ color: 'white' }}>{stats.total}</div>
-                    <div className="label" style={{ color: 'rgba(255,255,255,0.7)' }}>TOTAL CADETS INDEXED</div>
+                    <div className="label" style={{ color: 'rgba(255,255,255,0.7)' }}>TOTAL STUDENTS</div>
                 </div>
                 <div className="admin-summary-card" style={{ background: 'var(--admin-success)', color: 'white' }}>
                     <div className="value" style={{ color: 'white' }}>{stats.loggedInToday}</div>
-                    <div className="label" style={{ color: 'rgba(255,255,255,0.7)' }}>ACTIVE TERMINAL SESSIONS</div>
+                    <div className="label" style={{ color: 'rgba(255,255,255,0.7)' }}>ACTIVE TODAY</div>
                 </div>
                 <div className="admin-summary-card" style={{ background: 'var(--admin-warning)', color: 'white' }}>
                     <div className="value" style={{ color: 'white' }}>{Object.keys(stats.byBranch).length}</div>
-                    <div className="label" style={{ color: 'rgba(255,255,255,0.7)' }}>OPERATIONAL SECTORS</div>
+                    <div className="label" style={{ color: 'rgba(255,255,255,0.7)' }}>ACTIVE BRANCHES</div>
                 </div>
             </div>
 
             {/* Phase Distribution */}
             <div className="f-node-card" style={{ marginBottom: '3.5rem' }}>
                 <div className="f-node-head" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-                    <h2 className="f-node-title" style={{ fontSize: '1.2rem' }}>PHASE DISTRIBUTION</h2>
-                    <span className="admin-badge primary">CHRONOLOGICAL MAPPING</span>
+                    <h2 className="f-node-title" style={{ fontSize: '1.2rem' }}>YEAR DISTRIBUTION</h2>
+                    <span className="admin-badge primary">YEAR-WISE</span>
                 </div>
 
                 <div className="admin-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem' }}>
                     {Object.entries(stats.byYear).sort().map(([year, count]) => (
                         <div key={year} className="admin-summary-card" style={{ borderTop: `4px solid ${getYearColor(year)}` }}>
-                            <div style={{ fontSize: '0.7rem', fontWeight: 950, color: 'var(--admin-text-muted)', marginBottom: '0.75rem' }}>PHASE {year}</div>
+                            <div style={{ fontSize: '0.7rem', fontWeight: 950, color: 'var(--admin-text-muted)', marginBottom: '0.75rem' }}>YEAR {year}</div>
                             <div style={{ fontSize: '2rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{count}</div>
                             <div style={{ marginTop: '1rem', height: '4px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
                                 <div style={{ width: `${(count / stats.total) * 100}%`, height: '100%', background: getYearColor(year) }}></div>
@@ -123,19 +123,19 @@ const StudentStatistics = () => {
             {/* Sector Operations */}
             <div className="f-node-card" style={{ marginBottom: '3.5rem' }}>
                 <div className="f-node-head" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-                    <h2 className="f-node-title" style={{ fontSize: '1.2rem' }}>SECTOR OPERATIONS</h2>
-                    <span className="admin-badge accent">BRANCH-WISE ANALYTICS</span>
+                    <h2 className="f-node-title" style={{ fontSize: '1.2rem' }}>BRANCH OVERVIEW</h2>
+                    <span className="admin-badge accent">BRANCH-WISE</span>
                 </div>
 
                 <div className="admin-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                     {Object.entries(stats.byBranch).map(([branch, count]) => (
                         <div key={branch} className="admin-summary-card" style={{ borderLeft: `5px solid ${getBranchColor(branch)}` }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{branch} SECTOR</div>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{branch} BRANCH</div>
                                 <div style={{ fontSize: '0.7rem', fontWeight: 850, color: 'var(--admin-text-muted)' }}>{((count / stats.total) * 100).toFixed(1)}%</div>
                             </div>
                             <div style={{ fontSize: '2.25rem', fontWeight: 950, color: getBranchColor(branch) }}>{count}</div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', fontWeight: 850, marginTop: '0.25rem' }}>TOTAL ASSIGNED PERSONNEL</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--admin-text-muted)', fontWeight: 850, marginTop: '0.25rem' }}>TOTAL STUDENTS</div>
                         </div>
                     ))}
                 </div>
@@ -144,8 +144,8 @@ const StudentStatistics = () => {
             {/* Sub-Sector Mapping */}
             <div className="f-node-card">
                 <div className="f-node-head" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-                    <h2 className="f-node-title" style={{ fontSize: '1.2rem' }}>SUB-SECTOR MAPPING</h2>
-                    <span className="admin-badge primary">SECTIONAL LOAD</span>
+                    <h2 className="f-node-title" style={{ fontSize: '1.2rem' }}>SECTION OVERVIEW</h2>
+                    <span className="admin-badge primary">SECTION-WISE</span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
@@ -158,7 +158,7 @@ const StudentStatistics = () => {
                             </div>
                             <div>
                                 <div style={{ fontSize: '0.65rem', fontWeight: 950, color: 'var(--admin-text-muted)' }}>SEC {section}</div>
-                                <div style={{ fontSize: '1.25rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{count} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>UNITS</span></div>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{count} <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>STUDENTS</span></div>
                             </div>
                         </div>
                     ))}

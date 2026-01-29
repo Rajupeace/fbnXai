@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn
+    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn, FaUniversity
 } from 'react-icons/fa';
 
 /**
@@ -13,7 +13,8 @@ const StudentSidebar = ({
     setView,
     collapsed,
     setCollapsed,
-    onLogout
+    onLogout,
+    onNavigate
 }) => {
 
     const localHandleLogout = (e) => {
@@ -28,20 +29,46 @@ const StudentSidebar = ({
         }
     };
 
-    const navItems = [
-        { id: 'overview', label: 'Dashboard', icon: <FaChartBar /> },
-        { id: 'semester', label: 'Classroom', icon: <FaBook /> },
-        { id: 'journal', label: 'My Notes', icon: <FaPen /> },
-        { id: 'marks', label: 'Grades', icon: <FaChartBar /> },
-        { id: 'schedule', label: 'Schedule', icon: <FaClipboardList /> },
-        { id: 'faculty', label: 'Faculty', icon: <FaGraduationCap /> },
-        { id: 'announcements', label: 'Announcements', icon: <FaBullhorn /> },
-        { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
-        { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
-        { id: 'placement', label: 'Placement', icon: <FaBriefcase /> },
-        { id: 'roadmaps', label: 'Roadmaps', icon: <FaRoad /> },
-        { id: 'advanced', label: 'Advanced', icon: <FaRocket /> },
-        { id: 'settings', label: 'Settings', icon: <FaShieldAlt /> }
+    const menuGroups = [
+        {
+            title: 'CORE',
+            items: [
+                { id: 'overview', label: 'Dashboard', icon: <FaChartBar /> },
+                { id: 'announcements', label: 'Announcements', icon: <FaBullhorn /> },
+                { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
+            ]
+        },
+        {
+            title: 'ACADEMICS',
+            items: [
+                { id: 'semester', label: 'Classroom', icon: <FaBook /> },
+                { id: 'journal', label: 'My Notes', icon: <FaPen /> },
+                { id: 'marks', label: 'Grades & Intel', icon: <FaChartBar /> },
+                { id: 'schedule', label: 'Daily Schedule', icon: <FaClipboardList /> },
+                { id: 'faculty', label: 'My Faculty', icon: <FaGraduationCap /> },
+                { id: 'exams', label: 'Exam Portal', icon: <FaShieldAlt /> },
+            ]
+        },
+        {
+            title: 'FINANCE',
+            items: [
+                { id: 'fees', label: 'College Fees', icon: <FaUniversity /> },
+            ]
+        },
+        {
+            title: 'PREPARATION',
+            items: [
+                { id: 'placement', label: 'Placement Prep', icon: <FaBriefcase /> },
+                { id: 'roadmaps', label: 'Career Paths', icon: <FaRoad /> },
+                { id: 'advanced', label: 'Skill Boost', icon: <FaRocket /> },
+            ]
+        },
+        {
+            title: 'ACCOUNT',
+            items: [
+                { id: 'settings', label: 'Settings', icon: <FaShieldAlt /> },
+            ]
+        }
     ];
 
     return (
@@ -65,17 +92,22 @@ const StudentSidebar = ({
             </div>
 
             <nav className="sidebar-nav">
-                {navItems.map(item => (
-                    <button
-                        key={item.id}
-                        onClick={() => setView(item.id)}
-                        className={`nav-item ${view === item.id ? 'active' : ''}`}
-                        title={collapsed ? item.label : ''}
-                    >
-                        <span className="nav-icon">{item.icon}</span>
-                        {!collapsed && <span className="nav-label fade-in">{item.label}</span>}
-                        {view === item.id && <div className="active-indicator"></div>}
-                    </button>
+                {menuGroups.map((group, gIdx) => (
+                    <div key={gIdx} className="nav-group">
+                        {!collapsed && <div className="group-title">{group.title}</div>}
+                        {group.items.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => { setView(item.id); if (onNavigate) onNavigate(); }}
+                                className={`nav-item ${view === item.id ? 'active' : ''}`}
+                                title={collapsed ? item.label : ''}
+                            >
+                                <span className="nav-icon">{item.icon}</span>
+                                {!collapsed && <span className="nav-label fade-in">{item.label}</span>}
+                                {view === item.id && <div className="active-indicator"></div>}
+                            </button>
+                        ))}
+                    </div>
                 ))}
             </nav>
 

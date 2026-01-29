@@ -3,13 +3,13 @@ import { FaEnvelope, FaPhone, FaBook, FaUserTie, FaFilter, FaShieldAlt, FaLinked
 import { apiGet } from '../../utils/apiClient';
 
 /**
- * NEXUS MENTOR CIRCLE v4
- * A premium interface for students to connect with their academic mentors.
+ * FACULTY DIRECTORY
+ * An interface for students to connect with their academic faculty and mentors.
  */
 const StudentFacultyList = ({ studentData }) => {
     const [facultyList, setFacultyList] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [selectedSector, setSelectedSector] = useState('all');
+    const [selectedDepartment, setSelectedDepartment] = useState('all');
 
     useEffect(() => {
         const fetchFacultyList = async () => {
@@ -46,7 +46,7 @@ const StudentFacultyList = ({ studentData }) => {
                 });
                 setFacultyList(list);
             } catch (error) {
-                console.error('Mentor Network Synchronization Failed:', error);
+                console.error('Faculty List Synchronization Failed:', error);
                 setFacultyList([]);
             } finally {
                 setLoading(false);
@@ -57,15 +57,15 @@ const StudentFacultyList = ({ studentData }) => {
     }, [studentData]);
 
     const getFilteredFaculty = () => {
-        if (selectedSector === 'all') return facultyList;
-        return facultyList.filter(f => f.branch.toLowerCase().includes(selectedSector.toLowerCase()));
+        if (selectedDepartment === 'all') return facultyList;
+        return facultyList.filter(f => f.branch.toLowerCase().includes(selectedDepartment.toLowerCase()));
     };
 
     if (loading) {
         return (
             <div className="nexus-schedule-loading">
                 <div className="nexus-loading-ring"></div>
-                <div className="loading-text">SYNCING MENTOR NETWORK...</div>
+                <div className="loading-text">LOADING FACULTY LIST...</div>
             </div>
         );
     }
@@ -78,29 +78,29 @@ const StudentFacultyList = ({ studentData }) => {
             {/* Header Area */}
             <div className="nexus-page-header">
                 <div>
-                    <div className="nexus-page-subtitle"><FaUserTie /> Academic Sovereignty</div>
-                    <h1 className="nexus-page-title">MENTOR <span>CIRCLE</span></h1>
+                    <div className="nexus-page-subtitle"><FaUserTie /> Academic Faculty</div>
+                    <h1 className="nexus-page-title">FACULTY <span>DIRECTORY</span></h1>
                 </div>
                 <div className="hub-stats">
                     <div className="nexus-intel-badge">
-                        ACTIVE NODES: {filtered.length}
+                        TOTAL FACULTY: {filtered.length}
                     </div>
                 </div>
             </div>
 
-            {/* Sector Navigation */}
+            {/* Department Navigation */}
             <div className="sector-nav">
                 <div className="sector-label">
-                    <FaFilter /> SECTOR FILTER
+                    <FaFilter /> DEPARTMENT FILTER
                 </div>
                 <div className="nexus-glass-pills">
-                    {sectors.map(sector => (
+                    {sectors.map(dept => (
                         <button
-                            key={sector}
-                            onClick={() => setSelectedSector(sector)}
-                            className={`nexus-pill ${selectedSector === sector ? 'active' : ''}`}
+                            key={dept}
+                            onClick={() => setSelectedDepartment(dept)}
+                            className={`nexus-pill ${selectedDepartment === dept ? 'active' : ''}`}
                         >
-                            {sector === 'all' ? 'CENTRAL HUB' : sector.toUpperCase()}
+                            {dept === 'all' ? 'ALL DEPARTMENTS' : dept.toUpperCase()}
                         </button>
                     ))}
                 </div>
@@ -123,7 +123,7 @@ const StudentFacultyList = ({ studentData }) => {
                                 <h3>{mentor.name}</h3>
                                 <div className="mentor-role">{mentor.qualification}</div>
                                 <div className={`status-tag ${mentor.isAvailable ? '' : 'gold'}`}>
-                                    {mentor.isAvailable ? 'AVAILABLE FOR COUNSEL' : 'IN SESSION'}
+                                    {mentor.isAvailable ? 'AVAILABLE FOR SUPPORT' : 'IN SESSION'}
                                 </div>
                             </div>
                         </div>
@@ -132,7 +132,7 @@ const StudentFacultyList = ({ studentData }) => {
                             <FaBook />
                             <div className="subject-info">
                                 <span className="active-module-label">
-                                    ACTIVE MODULE
+                                    SUBJECT
                                 </span>
                                 <span className="active-module-val">{mentor.subject}</span>
                             </div>
@@ -151,13 +151,13 @@ const StudentFacultyList = ({ studentData }) => {
 
                         <div className="mentor-channels">
                             <div className="channel-group">
-                                <a href={`mailto:${mentor.email}`} title="Dispatch Email" className="channel-link"><FaEnvelope /></a>
-                                <a href={`tel:${mentor.phone}`} title="Voice Comms" className="channel-link"><FaPhone /></a>
+                                <a href={`mailto:${mentor.email}`} title="Send Email" className="channel-link"><FaEnvelope /></a>
+                                <a href={`tel:${mentor.phone}`} title="Call Faculty" className="channel-link"><FaPhone /></a>
                                 <div className="channel-link"><FaLinkedin /></div>
                                 <div className="channel-link"><FaGithub /></div>
                             </div>
                             <button className="counsel-btn">
-                                INITIATE LINK <FaShieldAlt />
+                                VIEW PROFILE
                             </button>
                         </div>
                     </div>
@@ -168,9 +168,9 @@ const StudentFacultyList = ({ studentData }) => {
                 filtered.length === 0 && (
                     <div className="nexus-empty-sector">
                         <FaUserTie className="empty-sector-icon" />
-                        <h3>SECTOR EMPTY</h3>
-                        <p className="empty-sector-msg">No mentors are currently registered in this academic sector. Please check the Central Hub.</p>
-                        <button onClick={() => setSelectedSector('all')} className="counsel-btn center-btn">RETURN TO HUB</button>
+                        <h3>NO FACULTY FOUND</h3>
+                        <p className="empty-sector-msg">No faculty members are currently registered in this department. Please check the All Departments view.</p>
+                        <button onClick={() => setSelectedDepartment('all')} className="counsel-btn center-btn">ALL DEPARTMENTS</button>
                     </div>
                 )
             }

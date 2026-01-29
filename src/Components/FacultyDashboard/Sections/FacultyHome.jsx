@@ -5,9 +5,9 @@ import FacultyAnalytics from '../FacultyAnalytics';
 import FacultyTeachingStats from '../FacultyTeachingStats';
 
 /**
- * FACULTY COMMAND HUB (OVERVIEW)
- * High-density analytics and activity monitoring.
- * Theme: Luxe Pearl / Nexus
+ * FACULTY DASHBOARD (OVERVIEW)
+ * Clean analytics and activity monitoring.
+ * Theme: Friendly Notebook
  */
 const FacultyHome = ({
     studentsList,
@@ -38,7 +38,7 @@ const FacultyHome = ({
             </div>
 
             <div className="f-grid-v2" style={{ marginTop: '4rem', gridColumn: '1 / -1' }}>
-                {/* SYSTEM INTEL / NEW FEATURES */}
+                {/* SYSTEM UPDATES */}
                 <div className="f-node-card f-intel-card">
                     <div className="f-node-head">
                         <h3 className="f-card-title">

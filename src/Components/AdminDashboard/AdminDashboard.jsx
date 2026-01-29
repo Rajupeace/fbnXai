@@ -536,8 +536,10 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     } catch (err) {
       console.error('Course Save Error:', err);
       const errorMsg = err.message || 'Unknown error';
-      if (errorMsg.includes('401') || errorMsg.includes('Authentication required')) {
+      if (errorMsg.includes('401') || errorMsg.includes('Authentication required') || errorMsg.toLowerCase().includes('session expired')) {
         alert('Authentication failed: Your session may have expired. Please log out and log in again.');
+        // Force logout to clear stale tokens
+        try { handleLogout(); } catch (e) { console.warn('Logout failed', e); }
       } else if (errorMsg.includes('409')) {
         alert('Course code already exists. Please use a unique course code.');
       } else {
@@ -546,32 +548,49 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     }
   };
 
-  const handleDeleteCourse = async (id) => {
-
+  const handleDeleteCourse = async (courseOrId) => {
     // 1. Resolve ID and Course
-    const courseToDelete = courses.find(c => String(c.id) === String(id) || String(c._id) === String(id));
-    if (!courseToDelete) return; // Silent return if not found
+    let courseToDelete;
 
-    if (!window.confirm(`Delete Subject: ${courseToDelete.name}?`)) return;
+    if (typeof courseOrId === 'object' && courseOrId !== null) {
+      courseToDelete = courseOrId;
+    } else {
+      courseToDelete = courses.find(c => String(c.id) === String(courseOrId) || String(c._id) === String(courseOrId));
+    }
+
+    if (!courseToDelete) {
+      console.warn("handleDeleteCourse: Course not found", courseOrId);
+      return;
+    }
+
+    const { id, _id, name, isStatic } = courseToDelete;
+    const realId = _id || id;
+
+    if (!window.confirm(`Delete Subject: ${name}?`)) return;
 
     // 2. Handle Static Courses (Complex Logic - No Optimistic)
-    if (courseToDelete.isStatic || String(id).startsWith('static-')) {
+    // Check if explicitly marked static OR no ID (implies static/generated)
+    if (isStatic || String(realId).startsWith('static-') || !realId) {
       try {
         if (USE_API) {
-          const { year, semester, branch } = courseToDelete;
+          const { year, semester, branch } = courseToDelete; // These should be present on the object passed from AcademicHub
 
-          // 1. Find siblings
-          const siblings = courses.filter(c => {
-            const courseBranch = String(c.branch || 'All').toLowerCase();
-            const targetBranch = String(branch || 'All').toLowerCase();
-            const branchMatches = courseBranch === 'all' || targetBranch === 'all' || courseBranch === targetBranch || courseBranch.includes(targetBranch) || targetBranch.includes(courseBranch);
+          // 1. Find siblings - We must re-generate the full list for that context to know what to migrate
+          // We can't rely just on 'courses' state because it lacks static items.
+          // Strategy: Use getYearData again or assume AcademicHub logic.
+          // Better Strategy: Just fetch the static data for that specific Year/Branch
+          const staticData = getYearData(branch || 'CSE', String(year));
+          let siblings = [];
 
-            return (c.isStatic || String(c.id).startsWith('static-')) &&
-              String(c.year) === String(year) &&
-              String(c.semester) === String(semester) &&
-              branchMatches &&
-              c.code !== courseToDelete.code;
-          });
+          if (staticData && staticData.semesters) {
+            const semData = staticData.semesters.find(s => String(s.sem) === String(semester));
+            if (semData && semData.subjects) {
+              // Filter out the one we are deleting
+              siblings = semData.subjects.filter(s => s.code !== courseToDelete.code && s.name !== courseToDelete.name);
+            }
+          }
+
+          console.log(`[Delete Static] Found ${siblings.length} siblings to migrate.`);
 
           // 2. Promote siblings
           let successCount = 0;
@@ -580,16 +599,22 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
               const payload = {
                 name: sib.name,
                 code: sib.code,
-                year: sib.year,
-                semester: sib.semester,
-                branch: sib.branch,
+                year: year,       // Ensure these context fields are preserved
+                semester: semester,
+                branch: branch || 'CSE',
                 description: sib.description || '',
-                credits: sib.credits || 3
+                credits: sib.credits || 3,
+                section: 'All' // Default to all sections when migrating base curriculum
               };
               await api.apiPost('/api/courses', payload);
               successCount++;
             } catch (innerErr) {
-              if (!innerErr.message.includes('409')) console.error('Failed to migrate sibling:', sib.name, innerErr);
+              if (innerErr.message && !innerErr.message.includes('409')) {
+                console.error('Failed to migrate sibling:', sib.name, innerErr);
+              } else if (innerErr.message && innerErr.message.includes('409')) {
+                // Clone existing checks? If 409, it means it's already dynamic, so we are good.
+                successCount++;
+              }
             }
           }
 
@@ -605,17 +630,17 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
     // 3. Handle Dynamic Courses (Optimistic Update)
     const previousCourses = [...courses];
+    const targetId = _id || id;
 
     // Optimistic: Remove immediately from UI
-    setCourses(prev => prev.filter(c => c.id !== id && c._id !== id));
+    setCourses(prev => prev.filter(c => c.id !== targetId && c._id !== targetId));
 
     try {
       if (USE_API) {
-        const safeId = typeof id === 'object' ? id.toString() : id;
-        await api.apiDelete(`/api/courses/${safeId}`);
+        await api.apiDelete(`/api/courses/${targetId}`);
         // Success - UI already updated
       } else {
-        const newCourses = previousCourses.filter(c => c.id !== id && c._id !== id);
+        const newCourses = previousCourses.filter(c => c.id !== targetId && c._id !== targetId);
         localStorage.setItem('courses', JSON.stringify(newCourses));
       }
     } catch (err) {
@@ -703,9 +728,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           if (!idToUpdate) throw new Error("Missing ID for update");
 
           console.log('[Material Upload] Updating existing material:', idToUpdate);
-          await api.apiPut(`/api/materials/${idToUpdate}`, data);
 
-          const updatedMat = { ...editItem, ...data };
+          // Use apiUpload which handles FormData correctly (including files)
+          // We pass 'PUT' as the third argument which we enabled in apiClient
+          const res = await api.apiUpload(`/api/materials/${idToUpdate}`, apiFormData, 'PUT');
+
+          const updatedMat = { ...editItem, ...res.data || res };
           allMaterials = allMaterials.map(m => (m.id === editItem.id || m._id === editItem._id) ? updatedMat : m);
         } else {
           console.log('[Material Upload] Creating new material...');
@@ -985,11 +1013,11 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
         setMessages(newMsgs);
         localStorage.setItem('adminMessages', JSON.stringify(newMsgs));
       }
-      alert('✅ Transmission Successfully Dispatched');
+      alert('✅ Announcement Successfully Sent');
       closeModal();
     } catch (err) {
-      console.error('Message Transmission Failed:', err);
-      alert('Transmission Error: ' + (err.message || 'Unknown error'));
+      console.error('Announcement Sending Failed:', err);
+      alert('Error: ' + (err.message || 'Unknown error'));
     }
   };
 
@@ -1034,7 +1062,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
   return (
     <div className="admin-dashboard-v2">
       <AdminHeader
-        adminData={{ name: 'System Administrator', role: 'Governance Level 1' }}
+        adminData={{ name: 'System Administrator', role: 'Main Administrator' }}
         view={activeSection}
         setView={setActiveSection}
         openModal={openModal}
@@ -1066,8 +1094,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
               <div className="animate-fade-in">
                 <header className="admin-page-header">
                   <div className="admin-page-title">
-                    <h1>{new Date().getHours() < 12 ? 'MORNING' : new Date().getHours() < 18 ? 'AFTERNOON' : 'EVENING'} <span>COMMAND</span></h1>
-                    <p>Strategic oversight and real-time operational telemetry</p>
+                    <h1>{new Date().getHours() < 12 ? 'MORNING' : new Date().getHours() < 18 ? 'AFTERNOON' : 'EVENING'} <span>ADMIN</span></h1>
+                    <p>Dashboard Overview and Real-time Status</p>
                   </div>
                   <div className="f-sync-badge">
                     SYSTEM TIME: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -1095,22 +1123,22 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                   <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('students')} style={{ cursor: 'pointer', transition: 'all 0.3s' }}>
                     <div className="summary-icon-box" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--admin-primary)' }}><FaUserGraduate /></div>
                     <div className="value">{students.length}</div>
-                    <div className="label">TOTAL CADET CORPS</div>
+                    <div className="label">TOTAL STUDENTS</div>
                   </div>
                   <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('faculty')} style={{ animationDelay: '0.1s', cursor: 'pointer', transition: 'all 0.3s' }}>
                     <div className="summary-icon-box" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}><FaChalkboardTeacher /></div>
                     <div className="value">{faculty.length}</div>
-                    <div className="label">COMMAND STAFF</div>
+                    <div className="label">FACULTY MEMBERS</div>
                   </div>
                   <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('courses')} style={{ animationDelay: '0.2s', cursor: 'pointer', transition: 'all 0.3s' }}>
                     <div className="summary-icon-box" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}><FaBook /></div>
                     <div className="value">{courses.length}</div>
-                    <div className="label">ACTIVE MODULES</div>
+                    <div className="label">ACTIVE SUBJECTS</div>
                   </div>
                   <div className="admin-summary-card animate-slide-up" onClick={() => setActiveSection('materials')} style={{ animationDelay: '0.3s', cursor: 'pointer', transition: 'all 0.3s' }}>
                     <div className="summary-icon-box" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}><FaLayerGroup /></div>
                     <div className="value">{materials.length}</div>
-                    <div className="label">DATA ARCHIVES</div>
+                    <div className="label">UPLOADED FILES</div>
                   </div>
                 </div>
 
@@ -1119,28 +1147,28 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
                   <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.5s', display: 'flex', flexDirection: 'column' }}>
                     <div className="f-node-head">
-                      <h3 className="f-node-title">DIRECTIVES QUEUE</h3>
+                      <h3 className="f-node-title">TASKS QUEUE</h3>
                       <button onClick={() => setActiveSection('todos')} className="admin-btn admin-btn-outline" style={{ height: '32px', fontSize: '0.65rem', border: 'none' }}>MANAGE</button>
                     </div>
                     <div className="admin-list-container" style={{ gap: '0.75rem', marginTop: '1.25rem', flex: 1 }}>
                       {todos.filter(t => !t.completed).slice(0, 5).map(t => (
-                        <div key={t.id} className="admin-telemetry-tag">
-                          <div className="admin-telemetry-dot"></div>
+                        <div key={t.id} className="admin-summary-tag">
+                          <div className="admin-summary-dot"></div>
                           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.text}</span>
                         </div>
                       ))}
-                      {todos.filter(t => !t.completed).length === 0 && <p className="admin-empty-text" style={{ margin: 'auto' }}>ALL OBJECTIVES CLEARED</p>}
+                      {todos.filter(t => !t.completed).length === 0 && <p className="admin-empty-text" style={{ margin: 'auto' }}>ALL TASKS COMPLETED</p>}
                     </div>
                   </div>
                   <div className="admin-equal-layout">
                     <div className="f-node-card animate-slide-up" style={{ animationDelay: '0.7s' }}>
                       <div className="f-node-head">
-                        <h3 className="f-node-title">CADET PERFORMANCE ANALYTICS</h3>
+                        <h3 className="f-node-title">STUDENT PERFORMANCE</h3>
                         <span className="admin-badge accent">REAL-TIME</span>
                       </div>
                       <div style={{ padding: '0.5rem' }}>
                         <div className="admin-empty-state">
-                          <p className="admin-empty-text">MODULE OFFLINE</p>
+                          <p className="admin-empty-text">MODULE UNAVAILABLE</p>
                         </div>
                       </div>
                     </div>
@@ -1152,8 +1180,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     <FaRobot size={32} />
                   </div>
                   <div>
-                    <h3 style={{ color: 'white', margin: 0, fontSize: '1.8rem', fontWeight: 950, letterSpacing: '-0.5px' }}>SENTINEL AI CORE</h3>
-                    <p style={{ margin: '0.4rem 0 0', opacity: 0.85, fontSize: '0.9rem', fontWeight: 850 }}>Initialize high-level cognitive assistance for departmental orchestration and data processing.</p>
+                    <h3 style={{ color: 'white', margin: 0, fontSize: '1.8rem', fontWeight: 950, letterSpacing: '-0.5px' }}>AI ASSISTANT</h3>
+                    <p style={{ margin: '0.4rem 0 0', opacity: 0.85, fontSize: '0.9rem', fontWeight: 850 }}>Launch AI agent for automated assistance.</p>
                   </div>
                 </div>
               </div>
@@ -1163,8 +1191,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'students' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>PERSONNEL REGISTRY</h2>
-                  <div className="admin-badge primary">ACTIVE SESSION</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>STUDENT REGISTRY</h2>
+                  <div className="admin-badge primary">MANAGE STUDENTS</div>
                 </div>
                 <StudentSection
                   students={students}
@@ -1177,8 +1205,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'faculty' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>COMMANDING STAFF</h2>
-                  <div className="admin-badge accent">AUTHORIZED PERSONNEL</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>FACULTY DIRECTORY</h2>
+                  <div className="admin-badge accent">MANAGE STAFF</div>
                 </div>
                 <FacultySection
                   faculty={faculty}
@@ -1207,8 +1235,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'materials' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 3rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '3rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>KNOWLEDGE REPOSITORY</h2>
-                  <div className="admin-badge warning">ENCRYPTED ARCHIVE</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>MATERIAL MANAGER</h2>
+                  <div className="admin-badge warning">FILES & NOTES</div>
                 </div>
 
                 <MaterialSection
@@ -1226,8 +1254,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'attendance' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>PRESENCE TELEMETRY</h2>
-                  <div className="admin-badge warning">LIVE STREAM</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>ATTENDANCE MONITOR</h2>
+                  <div className="admin-badge warning">LIVE VIEW</div>
                 </div>
                 <AdminAttendancePanel />
               </div>
@@ -1236,8 +1264,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'schedule' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>TEMPORAL ORCHESTRATION</h2>
-                  <div className="admin-badge primary">CHRONOS SYNC</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>SCHEDULE MANAGER</h2>
+                  <div className="admin-badge primary">TIMETABLES</div>
                 </div>
                 <AdminScheduleManager />
               </div>
@@ -1246,8 +1274,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'todos' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>OPERATIONAL DIRECTIVES</h2>
-                  <div className="admin-badge danger">CRITICAL PATH</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>ADMIN TASKS</h2>
+                  <div className="admin-badge danger">PRIORITY</div>
                 </div>
                 <TodoSection
                   todos={todos}
@@ -1261,8 +1289,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'messages' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>SIGNAL INTELLIGENCE</h2>
-                  <div className="admin-badge primary">SECURE LINK</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>ANNOUNCEMENTS</h2>
+                  <div className="admin-badge primary"> BROADCAST</div>
                 </div>
                 <MessageSection
                   messages={messages}
@@ -1274,13 +1302,13 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'broadcast' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div style={{ textAlign: 'center', margin: '4rem 0' }}>
-                  <h2 style={{ fontSize: '3rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-2px', marginBottom: '1rem' }}>GLOBAL BROADCAST SYSTEM</h2>
-                  <p style={{ color: 'var(--admin-text-muted)', fontWeight: 850 }}>Initialize high-priority transmissions to all terminal nodes.</p>
+                  <h2 style={{ fontSize: '3rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-2px', marginBottom: '1rem' }}>BROADCAST SYSTEM</h2>
+                  <p style={{ color: 'var(--admin-text-muted)', fontWeight: 850 }}>Send announcements to all students and faculty.</p>
                 </div>
                 <div style={{ maxWidth: '700px', margin: '0 auto', background: 'white', padding: '4rem', borderRadius: '32px', border: '1px solid var(--admin-border)', boxShadow: 'var(--admin-shadow-lg)', textAlign: 'center' }}>
                   <div style={{ fontSize: '4rem', color: '#f43f5e', marginBottom: '2rem' }}><FaBullhorn /></div>
                   <button onClick={() => openModal('message')} className="admin-btn admin-btn-primary" style={{ width: '100%', height: '70px', fontSize: '1.2rem' }}>
-                    INITIATE EMERGENCY BROADCAST
+                    CREATE ANNOUNCEMENT
                   </button>
                 </div>
               </div>
@@ -1289,8 +1317,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'exams' && (
               <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>SIMULATION CONTROL</h2>
-                  <div className="admin-badge accent">EXAM RIG</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>EXAM MANAGEMENT</h2>
+                  <div className="admin-badge accent">CONTROLS</div>
                 </div>
                 <AdminExams />
               </div>
@@ -1299,8 +1327,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             {activeSection === 'ai-agent' && (
               <div style={{ height: 'calc(100vh - 120px)', padding: '0 2rem' }}>
                 <div className="f-node-head" style={{ marginBottom: '2.5rem', background: 'transparent' }}>
-                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>NEURAL INTERFACE</h2>
-                  <div className="admin-badge primary">VU CORE ONLINE</div>
+                  <h2 style={{ fontSize: '2.4rem', fontWeight: 950, color: 'var(--admin-secondary)', letterSpacing: '-1px' }}>AI ASSISTANT</h2>
+                  <div className="admin-badge primary">VU AI</div>
                 </div>
                 <VuAiAgent onNavigate={setActiveSection} />
               </div>
@@ -1328,12 +1356,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                 <div className="modal-content" style={{ width: '95%', maxWidth: modalType === 'syllabus-view' || modalType === 'student-view' ? '900px' : '650px' }}>
                   <div className="modal-header">
                     <h2 style={{ fontWeight: 950, letterSpacing: '0.05em' }}>
-                      {modalType === 'about' ? 'SYSTEM POLICIES' :
-                        modalType === 'syllabus-view' ? 'CURRICULUM ARCHIVE' :
-                          modalType === 'student-view' ? 'CADET PROFILE' :
-                            modalType === 'material-view' ? 'ASSET INTEL' :
-                              editItem ? 'RECALIBRATE ' + modalType.toUpperCase() :
-                                'INITIALIZE ' + modalType.toUpperCase()}
+                      {modalType === 'about' ? 'SYSTEM INFO' :
+                        modalType === 'syllabus-view' ? 'CURRICULUM' :
+                          modalType === 'student-view' ? 'STUDENT PROFILE' :
+                            modalType === 'material-view' ? 'MATERIAL DETAILS' :
+                              editItem ? 'EDIT ' + modalType.toUpperCase() :
+                                'CREATE ' + modalType.toUpperCase()}
                     </h2>
                     <button onClick={closeModal} className="close-btn">&times;</button>
                   </div>
@@ -1346,19 +1374,19 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                           <div style={{ width: '100px', height: '100px', margin: '0 auto 1.5rem', borderRadius: '50%', overflow: 'hidden', border: '4px solid var(--admin-primary)', boxShadow: '0 0 20px rgba(79, 70, 229, 0.2)' }}>
                             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Bobbymartion" alt="Admin" style={{ width: '100%', height: '100%' }} />
                           </div>
-                          <h3 style={{ margin: '0 0 0.5rem', color: 'var(--admin-secondary)', fontWeight: 950 }}>SENTINEL COMMAND CONSOLE</h3>
-                          <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontWeight: 850, fontSize: '0.9rem' }}>Strategic Academic Governance Interface</p>
+                          <h3 style={{ margin: '0 0 0.5rem', color: 'var(--admin-secondary)', fontWeight: 950 }}>ADMIN DASHBOARD</h3>
+                          <p style={{ margin: 0, color: 'var(--admin-text-muted)', fontWeight: 850, fontSize: '0.9rem' }}>School Administration System</p>
                         </div>
 
                         <div className="f-node-card" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                          <h4 style={{ color: 'var(--admin-secondary)', borderBottom: '1px solid var(--admin-border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', fontWeight: 950, fontSize: '0.9rem' }}>OPERATIONAL CAPABILITIES</h4>
+                          <h4 style={{ color: 'var(--admin-secondary)', borderBottom: '1px solid var(--admin-border)', paddingBottom: '0.75rem', marginBottom: '1.25rem', fontWeight: 950, fontSize: '0.9rem' }}>SYSTEM CAPABILITIES</h4>
                           <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: '1rem' }}>
                             {[
-                              { text: 'Personnel Management (Student/Faculty)', icon: '👥' },
-                              { text: 'Dynamic Curriculum Orchestration', icon: '📚' },
-                              { text: 'Knowledge Archive Synchronization', icon: '📦' },
-                              { text: 'Global Transmission Broadcasts', icon: '📡' },
-                              { text: 'Strategic Task Governance', icon: '📋' }
+                              { text: 'Student & Faculty Management', icon: '👥' },
+                              { text: 'Curriculum Management', icon: '📚' },
+                              { text: 'Material Synchronization', icon: '📦' },
+                              { text: 'Global Announcements', icon: '📡' },
+                              { text: 'Task Management', icon: '📋' }
                             ].map((feat, i) => (
                               <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--admin-text-muted)', fontWeight: 850, fontSize: '0.9rem' }}>
                                 <span style={{ fontSize: '1.2rem' }}>{feat.icon}</span> {feat.text}
@@ -1381,7 +1409,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             <h4 style={{ margin: 0, color: 'var(--admin-secondary)', fontWeight: 950, fontSize: '1.3rem' }}>{editItem.name}</h4>
                             <div style={{ margin: '0.5rem 0 0', display: 'flex', gap: '0.5rem' }}>
                               <span className="admin-badge primary">{editItem.code}</span>
-                              <span className="admin-badge accent">PHASE {editItem.year} • SEM {editItem.semester}</span>
+                              <span className="admin-badge accent">YEAR {editItem.year} • SEM {editItem.semester}</span>
                             </div>
                           </div>
                           <button
@@ -1389,12 +1417,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             className="admin-btn admin-btn-primary"
                             style={{ padding: '0.6rem 1.25rem', fontSize: '0.75rem' }}
                           >
-                            <FaPlus /> DEPLOY ASSET
+                            <FaPlus /> UPLOAD MATERIAL
                           </button>
                         </div>
 
                         <h5 style={{ color: 'var(--admin-secondary)', fontWeight: 950, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <FaBookOpen /> CURRICULUM HIERARCHY
+                          <FaBookOpen /> CURRICULUM
                         </h5>
 
                         {(() => {
@@ -1406,8 +1434,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             return (
                               <div className="admin-empty-state">
                                 <FaBook className="admin-empty-icon" />
-                                <p className="admin-empty-title">NO ASSETS INDEXED</p>
-                                <p className="admin-empty-text">Deploy syllabus, notes, or analytical modules to populate this archive.</p>
+                                <p className="admin-empty-title">NO MATERIALS FOUND</p>
+                                <p className="admin-empty-text">Upload notes, videos or syllabus.</p>
                               </div>
                             );
                           }
@@ -1443,8 +1471,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                                                 <span style={{ fontWeight: 850, fontSize: '0.9rem', color: 'var(--admin-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '300px' }}>{m.topic || m.title}</span>
                                               </div>
                                               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button onClick={() => window.open(getFileUrl(m.url), '_blank')} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="Analyze"><FaEye /></button>
-                                                <button onClick={() => handleDeleteMaterial(m.id || m._id)} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Purge"><FaTrash /></button>
+                                                <button onClick={() => window.open(getFileUrl(m.url), '_blank')} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View"><FaEye /></button>
+                                                <button onClick={() => handleDeleteMaterial(m.id || m._id)} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete"><FaTrash /></button>
                                               </div>
                                             </div>
                                           ))}
@@ -1459,7 +1487,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                         })()}
 
                         <div className="admin-modal-actions">
-                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>DISMISS ARCHIVE</button>
+                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CLOSE</button>
                         </div>
                       </div>
                     )}
@@ -1552,43 +1580,43 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                       <form onSubmit={handleSaveStudent}>
                         <div className="admin-form-grid">
                           <div className="admin-form-group full-width">
-                            <label className="admin-form-label">FULL IDENTITY *</label>
+                            <label className="admin-form-label">FULL NAME *</label>
                             <input className="admin-search-input" name="studentName" defaultValue={editItem?.studentName} required placeholder="Enter student's full name" />
                           </div>
                           <div className="admin-form-group">
-                            <label className="admin-form-label">IDENTIFICATION TOKEN (ID) *</label>
+                            <label className="admin-form-label">STUDENT ID *</label>
                             <input className="admin-search-input" name="sid" defaultValue={editItem?.sid} required placeholder="e.g. S-100234" />
                           </div>
                           <div className="admin-form-group">
-                            <label className="admin-form-label">PRIMARY UPLINK (EMAIL) *</label>
+                            <label className="admin-form-label">EMAIL *</label>
                             <input className="admin-search-input" name="email" type="email" defaultValue={editItem?.email} required placeholder="email@nexus.edu" />
                           </div>
                           <div className="admin-form-group">
-                            <label className="admin-form-label">CADET COHORT (YEAR) *</label>
+                            <label className="admin-form-label">YEAR *</label>
                             <select className="admin-search-input" name="year" defaultValue={editItem?.year || '1'} style={{ paddingLeft: '1rem' }}>
                               <option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option>
                             </select>
                           </div>
                           <div className="admin-form-group">
-                            <label className="admin-form-label">SECTOR ASSIGNMENT (BRANCH) *</label>
+                            <label className="admin-form-label">BRANCH *</label>
                             <select className="admin-search-input" name="branch" defaultValue={editItem?.branch || 'CSE'} style={{ paddingLeft: '1rem' }}>
                               {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIML'].map(b => <option key={b} value={b}>{b}</option>)}
                             </select>
                           </div>
                           <div className="admin-form-group">
-                            <label className="admin-form-label">SECTION PROTOCOL *</label>
+                            <label className="admin-form-label">SECTION *</label>
                             <select className="admin-search-input" name="section" defaultValue={editItem?.section || 'A'} style={{ paddingLeft: '1rem' }}>
                               {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
                             </select>
                           </div>
                           <div className="admin-form-group">
-                            <label className="admin-form-label">SECURITY PASSCODE</label>
+                            <label className="admin-form-label">PASSWORD</label>
                             <input className="admin-search-input" name="password" type="password" placeholder={editItem ? "Leave empty to retain" : "Initial password"} />
                           </div>
                         </div>
                         <div className="admin-modal-actions">
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
-                          <button className="admin-btn admin-btn-primary">COMMIT RECORD</button>
+                          <button className="admin-btn admin-btn-primary">SAVE STUDENT</button>
                         </div>
                       </form>
                     )}
@@ -1597,7 +1625,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                       <form onSubmit={handleBulkUploadStudents}>
                         <div className="f-node-card" style={{ padding: '2rem', textAlign: 'center' }}>
                           <div style={{ fontSize: '3rem', color: 'var(--admin-primary)', marginBottom: '1.5rem' }}><FaFileUpload /></div>
-                          <label style={{ display: 'block', fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem' }}>CSV UPLINK INITIATED</label>
+                          <label style={{ display: 'block', fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem' }}>CSV UPLOAD</label>
                           <input type="file" name="file" accept=".csv" required style={{ width: '100%', padding: '2rem', border: '2px dashed var(--admin-border)', borderRadius: '16px', background: '#f8fafc' }} />
                           <div style={{ marginTop: '1.5rem', textAlign: 'left', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
                             <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: 0 }}>
@@ -1606,8 +1634,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                           </div>
                         </div>
                         <div className="modal-actions" style={{ marginTop: '2rem' }}>
-                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>ABORT</button>
-                          <button className="admin-btn admin-btn-primary">EXECUTE MASS UPLOAD</button>
+                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
+                          <button className="admin-btn admin-btn-primary">UPLOAD STUDENTS</button>
                         </div>
                       </form>
                     )}
@@ -1622,7 +1650,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             <h3 style={{ margin: '0 0 0.5rem', color: 'var(--admin-secondary)', fontWeight: 950, fontSize: '1.5rem' }}>{editItem.studentName}</h3>
                             <div style={{ display: 'flex', gap: '0.6rem' }}>
                               <span className="admin-badge primary">{editItem.sid}</span>
-                              <span className="admin-badge accent">PHASE {editItem.year} • {editItem.branch}</span>
+                              <span className="admin-badge accent">YEAR {editItem.year} • {editItem.branch}</span>
                               <span className="admin-badge warning">SEC {editItem.section}</span>
                             </div>
                             <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--admin-text-muted)', fontWeight: 850 }}>
@@ -1632,7 +1660,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                         </div>
 
                         <div className="admin-modal-actions">
-                          <button onClick={closeModal} className="admin-btn admin-btn-primary">DISMISS PROFILE</button>
+                          <button onClick={closeModal} className="admin-btn admin-btn-primary">CLOSE</button>
                         </div>
                       </div>
                     )}
@@ -1651,7 +1679,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                                 <div style={{ fontWeight: 850, color: 'var(--admin-secondary)' }}>{editItem.subject || 'General'}</div>
                               </div>
                               <div className="detail-row" style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: 950, color: 'var(--admin-text-muted)', marginBottom: '0.25rem' }}>TARGET PHASE</div>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 950, color: 'var(--admin-text-muted)', marginBottom: '0.25rem' }}>TARGET YEAR</div>
                                 <div style={{ fontWeight: 850, color: 'var(--admin-secondary)' }}>YEAR {editItem.year} • SEC {editItem.section || 'GLOBAL'}</div>
                               </div>
                               <div className="detail-row" style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px' }}>
@@ -1659,7 +1687,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                                 <div style={{ fontWeight: 850, color: 'var(--admin-secondary)' }}>{editItem.topic || 'General Strategy'}</div>
                               </div>
                               <div className="detail-row" style={{ padding: '1rem', background: '#f8fafc', borderRadius: '12px' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: 950, color: 'var(--admin-text-muted)', marginBottom: '0.25rem' }}>COORD (MOD / UNIT)</div>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 950, color: 'var(--admin-text-muted)', marginBottom: '0.25rem' }}>MODULE / UNIT</div>
                                 <div style={{ fontWeight: 850, color: 'var(--admin-secondary)' }}>MOD {editItem.module} / UNIT {editItem.unit}</div>
                               </div>
                             </div>
@@ -1673,7 +1701,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
                             {editItem.url && (
                               <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#eff6ff', borderRadius: '12px', border: '1px solid #dbeafe' }}>
-                                <div style={{ fontSize: '0.65rem', fontWeight: 950, color: 'var(--admin-primary)', marginBottom: '0.25rem' }}>DATA BUFFER LINK</div>
+                                <div style={{ fontSize: '0.65rem', fontWeight: 950, color: 'var(--admin-primary)', marginBottom: '0.25rem' }}>MATERIAL LINK</div>
                                 <a href={getFileUrl(editItem.url)} target="_blank" rel="noreferrer" style={{ color: 'var(--admin-primary)', fontWeight: 950, textDecoration: 'none', wordBreak: 'break-all', fontSize: '0.85rem' }}>
                                   {editItem.url}
                                 </a>
@@ -1683,8 +1711,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                         </div>
 
                         <div className="modal-actions" style={{ marginTop: '2rem' }}>
-                          <button onClick={() => openModal('material', editItem)} className="admin-btn admin-btn-outline" style={{ marginRight: '1rem', border: 'none' }}>RECALIBRATE</button>
-                          <button onClick={closeModal} className="admin-btn admin-btn-primary">DISMISS INTEL</button>
+                          <button onClick={() => openModal('material', editItem)} className="admin-btn admin-btn-outline" style={{ marginRight: '1rem', border: 'none' }}>EDIT</button>
+                          <button onClick={closeModal} className="admin-btn admin-btn-primary">CLOSE</button>
                         </div>
                       </div>
                     )}
@@ -1894,12 +1922,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                           </div>
                           <div className="form-group" style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
                             <input type="checkbox" name="isAdvanced" id="isAdvanced" defaultChecked={editItem?.isAdvanced || false} style={{ width: '20px', height: '20px' }} />
-                            <label htmlFor="isAdvanced" style={{ margin: 0, fontWeight: 950, color: 'var(--admin-secondary)', fontSize: '0.85rem' }}>CLASSIFIED AS ADVANCED INTELLIGENCE CONTENT</label>
+                            <label htmlFor="isAdvanced" style={{ margin: 0, fontWeight: 950, color: 'var(--admin-secondary)', fontSize: '0.85rem' }}>MARK AS ADVANCED LEARNING CONTENT</label>
                           </div>
                         </div>
                         <div className="modal-actions" style={{ marginTop: '2.5rem' }}>
-                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>ABORT</button>
-                          <button className="admin-btn admin-btn-primary">DEPLOY ASSET</button>
+                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
+                          <button className="admin-btn admin-btn-primary">UPLOAD MATERIAL</button>
                         </div>
                       </form>
                     )}
@@ -1907,27 +1935,27 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     {modalType === 'todo' && (
                       <form onSubmit={handleSaveTodo}>
                         <div className="form-group">
-                          <label>OPERATIONAL OBJECTIVE *</label>
-                          <textarea className="admin-search-input" name="text" defaultValue={editItem?.text} required rows="4" style={{ padding: '1.25rem' }} placeholder="Define the task or mission objective..."></textarea>
+                          <label>TASK DESCRIPTION *</label>
+                          <textarea className="admin-search-input" name="text" defaultValue={editItem?.text} required rows="4" style={{ padding: '1.25rem' }} placeholder="Define the task details..."></textarea>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
                           <div className="form-group">
                             <label>ASSIGNMENT SCOPE</label>
                             <select className="admin-search-input" name="target" defaultValue={editItem?.target || 'admin'} style={{ paddingLeft: '1rem' }}>
-                              <option value="admin">Admin Only (Classified)</option>
-                              <option value="all">Global (Public Directive)</option>
-                              <option value="student">Student Corps</option>
-                              <option value="faculty">Commanding Staff</option>
+                              <option value="admin">Admin Only (Private)</option>
+                              <option value="all">Global (Public Announcement)</option>
+                              <option value="student">All Students</option>
+                              <option value="faculty">All Faculty</option>
                             </select>
                           </div>
                           <div className="form-group">
-                            <label>DEADLINE (TEMPORAL)</label>
+                            <label>DEADLINE</label>
                             <input className="admin-search-input" type="date" name="dueDate" defaultValue={editItem?.dueDate} style={{ paddingLeft: '1rem' }} />
                           </div>
                         </div>
                         <div className="modal-actions" style={{ marginTop: '2.5rem' }}>
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
-                          <button className="admin-btn admin-btn-primary">COMMIT OBJECTIVE</button>
+                          <button className="admin-btn admin-btn-primary">SAVE TASK</button>
                         </div>
                       </form>
                     )}
@@ -1935,19 +1963,19 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     {modalType === 'message' && (
                       <form onSubmit={handleSendMessage}>
                         <div className="form-group">
-                          <label>TRANSMISSION AUDIENCE</label>
+                          <label>TARGET AUDIENCE</label>
                           <select className="admin-search-input" name="target" value={msgTarget} onChange={(e) => setMsgTarget(e.target.value)} style={{ paddingLeft: '1rem' }}>
-                            <option value="all">EVERYONE (GLOBAL BROADCAST)</option>
-                            <option value="students">STUDENT CORPS (ALL)</option>
-                            <option value="students-specific">SPECIFIC SECTOR (PHASE/SEC)</option>
-                            <option value="faculty">COMMANDING STAFF (ONLY)</option>
+                            <option value="all">EVERYONE (GLOBAL ANNOUNCEMENT)</option>
+                            <option value="students">ALL STUDENTS</option>
+                            <option value="students-specific">SPECIFIC SECTION (YEAR/SEC)</option>
+                            <option value="faculty">ALL FACULTY</option>
                           </select>
                         </div>
 
                         {msgTarget === 'students-specific' && (
                           <div className="animate-fade-in" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', marginBottom: '2rem', border: '1px solid var(--admin-border)' }}>
                             <div className="form-group">
-                              <label>TARGET PHASE</label>
+                              <label>TARGET YEAR</label>
                               <select className="admin-search-input" name="targetYear" style={{ paddingLeft: '1rem' }}>
                                 {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
                               </select>
@@ -1962,12 +1990,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                         )}
 
                         <div className="form-group">
-                          <label>TRANSMISSION INTEL *</label>
-                          <textarea className="admin-search-input" name="message" required rows="6" style={{ padding: '1.25rem' }} placeholder="Type strategic transmission content..."></textarea>
+                          <label>ANNOUNCEMENT CONTENT *</label>
+                          <textarea className="admin-search-input" name="message" required rows="6" style={{ padding: '1.25rem' }} placeholder="Type announcement here..."></textarea>
                         </div>
                         <div className="modal-actions" style={{ marginTop: '2rem' }}>
-                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>ABORT</button>
-                          <button className="admin-btn admin-btn-primary">INITIATE BROADCAST</button>
+                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
+                          <button className="admin-btn admin-btn-primary">SEND ANNOUNCEMENT</button>
                         </div>
                       </form>
                     )}
@@ -1980,7 +2008,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       }
 
 
-      <PersonalDetailsBall role="admin" data={{ name: 'System Administrator', role: 'Governance Level 1' }} />
+      <PersonalDetailsBall role="admin" data={{ name: 'System Administrator', role: 'Main Administrator' }} />
     </div >
   );
 }

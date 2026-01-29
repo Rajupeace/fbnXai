@@ -123,7 +123,7 @@ const StudyTools = ({ focusMode, setFocusMode }) => {
                             <button onClick={() => deleteTask(task.id)} className="del-btn"><FaTrash /></button>
                         </div>
                     ))}
-                    {tasks.length === 0 && <div className="no-tasks">No goals set yet by Commander.</div>}
+                    {tasks.length === 0 && <div className="no-tasks">No goals set yet.</div>}
                 </div>
             </div>
         </div>

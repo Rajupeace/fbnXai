@@ -146,10 +146,12 @@
 
 .ring-progress.att {
     stroke: #6366f1;
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
 }
 
 .ring-progress.perf {
     stroke: #a855f7;
+    filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.6));
 }
 
 .ring-content {

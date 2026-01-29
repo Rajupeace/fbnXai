@@ -3,8 +3,8 @@ import { FaCalendarAlt, FaPlus, FaEdit, FaTrash, FaClock, FaChalkboardTeacher, F
 import { apiGet, apiPost, apiPut, apiDelete } from '../../utils/apiClient';
 
 /**
- * SENTINEL CHRONOS COMMAND
- * Strategic orchestration of academic timelines and resource allocation.
+ * SCHEDULE MANAGER
+ * Management of academic schedules and resource allocation.
  */
 const AdminScheduleManager = () => {
     const [schedules, setSchedules] = useState([]);
@@ -82,7 +82,7 @@ const AdminScheduleManager = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('TERMINATE TIMELINE ENTRY?\n\nThis action will purge this schedule sequence from the neural buffers.')) {
+        if (window.confirm('DELETE SCHEDULE ENTRY?\n\nThis action will delete this schedule entry from the database.')) {
             try {
                 await apiDelete(`/api/schedule/${id}`);
                 fetchSchedules();
@@ -143,20 +143,20 @@ const AdminScheduleManager = () => {
         <div className="animate-fade-in">
             <header className="admin-page-header">
                 <div className="admin-page-title">
-                    <h1>CHRONOS <span>COMMAND</span></h1>
-                    <p>Timeline orchestration and tactical resource management</p>
+                    <h1>SCHEDULE <span>MANAGER</span></h1>
+                    <p>Academic schedule and resource management</p>
                 </div>
                 <div className="admin-action-bar" style={{ margin: 0 }}>
                     <button
                         onClick={() => { resetForm(); setEditingSchedule(null); setShowModal(true); }}
                         className="admin-btn admin-btn-primary"
                     >
-                        <FaPlus /> INITIALIZE TIMELINE
+                        <FaPlus /> CREATE SCHEDULE
                     </button>
                 </div>
             </header>
 
-            {/* Tactical Filters */}
+            {/* Filters */}
             <div className="admin-card" style={{ marginBottom: '2.5rem' }}>
                 <div className="admin-filter-bar">
                     <div className="admin-search-wrapper">
@@ -182,7 +182,7 @@ const AdminScheduleManager = () => {
                         </select>
                     </div>
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">SECTOR BRANCH</label>
+                        <label className="admin-detail-label">BRANCH</label>
                         <select
                             className="admin-filter-select"
                             value={filters.branch}
@@ -193,7 +193,7 @@ const AdminScheduleManager = () => {
                         </select>
                     </div>
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">OPERATIONAL DAY</label>
+                        <label className="admin-detail-label">DAY</label>
                         <select
                             className="admin-filter-select"
                             value={filters.day}
@@ -206,10 +206,10 @@ const AdminScheduleManager = () => {
                 </div>
             </div>
 
-            {/* Timeline Stream */}
+            {/* Schedule List */}
             {loading ? (
                 <div style={{ padding: '6rem', textAlign: 'center' }}>
-                    <div className="f-empty-text">SYNCING TEMPORAL BUFFER...</div>
+                    <div className="f-empty-text">LOADING SCHEDULES...</div>
                 </div>
             ) : Object.keys(groupedSchedules).length > 0 ? (
                 Object.entries(groupedSchedules).map(([key, classSchedules]) => {
@@ -220,7 +220,7 @@ const AdminScheduleManager = () => {
                                 <h2 className="f-node-title" style={{ fontSize: '1.3rem' }}>
                                     YEAR {year} <span>•</span> SECTION {section} <span>•</span> {branch}
                                 </h2>
-                                <span className="admin-badge primary">{classSchedules.length} SEQUENCES</span>
+                                <span className="admin-badge primary">{classSchedules.length} ENTRIES</span>
                             </div>
 
                             <div className="admin-card-grid">
@@ -256,14 +256,14 @@ const AdminScheduleManager = () => {
 
                                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
                                                 <span className={`admin-badge ${schedule.type === 'Lab' ? 'success' : 'primary'}`} style={{ fontSize: '0.65rem' }}>{schedule.type.toUpperCase()}</span>
-                                                {schedule.batch && <span className="admin-badge warning" style={{ fontSize: '0.65rem' }}>PATCH {schedule.batch}</span>}
+                                                {schedule.batch && <span className="admin-badge warning" style={{ fontSize: '0.65rem' }}>BATCH {schedule.batch}</span>}
                                                 {schedule.courseCode && <span className="admin-badge primary" style={{ fontSize: '0.65rem', background: '#f1f5f9', color: '#64748b' }}>{schedule.courseCode}</span>}
                                             </div>
                                         </div>
 
                                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', borderTop: '1px solid var(--admin-border)', paddingTop: '1.25rem' }}>
-                                            <button className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} onClick={() => handleEdit(schedule)} title="Recalibrate"><FaEdit /></button>
-                                            <button className="f-cancel-btn" style={{ padding: '0.5rem' }} onClick={() => handleDelete(schedule._id)} title="Purge Sequence"><FaTrash /></button>
+                                            <button className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} onClick={() => handleEdit(schedule)} title="Edit"><FaEdit /></button>
+                                            <button className="f-cancel-btn" style={{ padding: '0.5rem' }} onClick={() => handleDelete(schedule._id)} title="Delete"><FaTrash /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -274,52 +274,52 @@ const AdminScheduleManager = () => {
             ) : (
                 <div className="admin-card" style={{ textAlign: 'center', padding: '6rem' }}>
                     <FaCalendarAlt style={{ fontSize: '4rem', color: 'var(--admin-border)', marginBottom: '1.5rem' }} />
-                    <h2 style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>TEMPORAL BUFFER EMPTY</h2>
-                    <p style={{ color: 'var(--admin-text-muted)', fontWeight: 850 }}>No timeline sequences detected for current parameters. Initialize a new schedule deploy.</p>
+                    <h2 style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>NO SCHEDULES FOUND</h2>
+                    <p style={{ color: 'var(--admin-text-muted)', fontWeight: 850 }}>No schedule entries found for current parameters. Create a new schedule entry.</p>
                 </div>
             )}
 
-            {/* Tactical Modal Overlay */}
+            {/* Schedule Modal Overlay */}
             {showModal && (
                 <div className="admin-modal-overlay">
                     <div className="admin-modal-content">
                         <div className="f-node-head" style={{ marginBottom: '2rem' }}>
                             <h2 style={{ fontWeight: 950, fontSize: '1.5rem', margin: 0 }}>
-                                {editingSchedule ? 'RECALIBRATE TIMELINE' : 'INITIALIZE CHRONOS'}
+                                {editingSchedule ? 'EDIT SCHEDULE' : 'CREATE SCHEDULE'}
                             </h2>
                             <button onClick={() => { setShowModal(false); setEditingSchedule(null); }} className="f-node-btn" style={{ border: 'none' }}><FaTimes /></button>
                         </div>
 
                         <div className="admin-form-grid">
                             <div className="admin-form-group full-width">
-                                <label className="admin-form-label">SUBJECT IDENTITY *</label>
+                                <label className="admin-form-label">SUBJECT NAME *</label>
                                 <input className="admin-filter-select" style={{ width: '100%' }} value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} placeholder="Enter subject name..." required />
                             </div>
 
                             <div className="admin-form-group">
-                                <label className="admin-form-label">OPERATIONAL DAY *</label>
+                                <label className="admin-form-label">DAY *</label>
                                 <select className="admin-filter-select" style={{ width: '100%' }} value={formData.day} onChange={e => setFormData({ ...formData, day: e.target.value })}>
                                     {days.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
 
                             <div className="admin-form-group">
-                                <label className="admin-form-label">TIME SLOT (UTC/IST) *</label>
+                                <label className="admin-form-label">TIME SLOT *</label>
                                 <input className="admin-filter-select" style={{ width: '100%' }} value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} placeholder="e.g., 09:00 - 10:00" required />
                             </div>
 
                             <div className="admin-form-group">
-                                <label className="admin-form-label">INSTRUCTOR IDENTITY *</label>
+                                <label className="admin-form-label">FACULTY NAME *</label>
                                 <input className="admin-filter-select" style={{ width: '100%' }} value={formData.faculty} onChange={e => setFormData({ ...formData, faculty: e.target.value })} placeholder="Enter instructor name..." required />
                             </div>
 
                             <div className="admin-form-group">
-                                <label className="admin-form-label">RESOURCE COORDINATES (ROOM) *</label>
+                                <label className="admin-form-label">ROOM / LOCATION *</label>
                                 <input className="admin-filter-select" style={{ width: '100%' }} value={formData.room} onChange={e => setFormData({ ...formData, room: e.target.value })} placeholder="e.g., Nexus 301" required />
                             </div>
 
                             <div className="admin-form-group">
-                                <label className="admin-form-label">SEQUENCE TYPE *</label>
+                                <label className="admin-form-label">TYPE *</label>
                                 <select className="admin-filter-select" style={{ width: '100%' }} value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
                                     {types.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
@@ -333,14 +333,14 @@ const AdminScheduleManager = () => {
                             </div>
 
                             <div className="admin-form-group">
-                                <label className="admin-form-label">SECTOR SECTION *</label>
+                                <label className="admin-form-label">SECTION *</label>
                                 <select className="admin-filter-select" style={{ width: '100%' }} value={formData.section} onChange={e => setFormData({ ...formData, section: e.target.value })}>
                                     {sections.map(s => <option key={s} value={s}>Section {s}</option>)}
                                 </select>
                             </div>
 
                             <div className="admin-form-group">
-                                <label className="admin-form-label">SECTOR BRANCH *</label>
+                                <label className="admin-form-label">BRANCH *</label>
                                 <select className="admin-filter-select" style={{ width: '100%' }} value={formData.branch} onChange={e => setFormData({ ...formData, branch: e.target.value })}>
                                     {branches.map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
@@ -350,7 +350,7 @@ const AdminScheduleManager = () => {
                         <div className="admin-modal-actions">
                             <button onClick={() => { setShowModal(false); setEditingSchedule(null); }} className="f-cancel-btn">CANCEL</button>
                             <button onClick={handleSave} className="admin-btn admin-btn-primary">
-                                <FaSave /> COMMIT TIMELINE
+                                <FaSave /> SAVE SCHEDULE
                             </button>
                         </div>
                     </div>

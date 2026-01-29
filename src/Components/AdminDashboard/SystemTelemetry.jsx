@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FaServer, FaDatabase, FaNetworkWired, FaMemory } from 'react-icons/fa';
 
 /**
- * SENTINEL CORE TELEMETRY
- * Real-time diagnostic stream of system resource allocation and terminal connectivity.
+ * SYSTEM PERFORMANCE
+ * Real-time system health and resource monitoring.
  */
 const SystemTelemetry = () => {
     const [stats, setStats] = useState({
@@ -27,10 +27,10 @@ const SystemTelemetry = () => {
 
     return (
         <div className="admin-stats-grid" style={{ marginBottom: '2.5rem' }}>
-            {/* Logic Processor */}
+            {/* CPU Usage */}
             <div className="admin-summary-card" style={{ borderLeft: '4px solid var(--admin-primary)' }}>
                 <div className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                    <FaServer /> LOGIC PROCESSOR
+                    <FaServer /> CPU USAGE
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="value" style={{ margin: 0 }}>{stats.cpu}%</div>
@@ -47,10 +47,10 @@ const SystemTelemetry = () => {
                 </div>
             </div>
 
-            {/* Buffer Allocation */}
+            {/* Memory Usage */}
             <div className="admin-summary-card" style={{ borderLeft: '4px solid var(--admin-warning)' }}>
                 <div className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                    <FaMemory /> BUFFER ALLOCATION
+                    <FaMemory /> MEMORY USAGE
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="value" style={{ margin: 0 }}>{stats.mem}%</div>
@@ -65,21 +65,21 @@ const SystemTelemetry = () => {
                 </div>
             </div>
 
-            {/* Cluster Sync */}
+            {/* Database Latency */}
             <div className="admin-summary-card" style={{ borderLeft: '4px solid var(--admin-success)' }}>
                 <div className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                    <FaDatabase /> CLUSTER SYNC
+                    <FaDatabase /> DB LATENCY
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="value" style={{ margin: 0 }}>{stats.db}ms</div>
-                    <span className="admin-badge success" style={{ fontSize: '0.6rem' }}>SYNCHRONIZED</span>
+                    <span className="admin-badge success" style={{ fontSize: '0.6rem' }}>CONNECTED</span>
                 </div>
             </div>
 
-            {/* Node Transmission */}
+            {/* Network Traffic */}
             <div className="admin-summary-card" style={{ borderLeft: '4px solid #f43f5e' }}>
                 <div className="label" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-                    <FaNetworkWired /> NODE TRANSMISSION
+                    <FaNetworkWired /> NETWORK TRAFFIC
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="value" style={{ margin: 0 }}>{stats.network}<span style={{ fontSize: '0.7rem', fontWeight: 850 }}>MBPS</span></div>

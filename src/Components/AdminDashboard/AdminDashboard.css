@@ -1,6 +1,6 @@
 /* 
-  LUMINA NEXUS: SENTINEL ENTERPRISE THEME (ADMIN)
-  High-fidelity command center aesthetic.
+  FRIENDLY NOTEBOOK: ACADEMIC ADMINISTRATION THEME
+  Clean, accessible, and organized workspace.
 */
 
 :root {
@@ -494,7 +494,7 @@
   letter-spacing: 0.1em;
 }
 
-/* Sentinel Specialized Components */
+/* Management Dashboard Components */
 .admin-list-container {
   display: grid;
   gap: 1.25rem;
@@ -658,7 +658,7 @@
   box-shadow: 0 30px 60px rgba(99, 102, 241, 0.3);
 }
 
-.admin-telemetry-tag {
+.admin-summary-tag {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -671,7 +671,7 @@
   color: var(--admin-secondary);
 }
 
-.admin-telemetry-dot {
+.admin-summary-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -781,7 +781,7 @@
 }
 
 /* Animations Hub */
-@keyframes sentinelShow {
+@keyframes workspaceShow {
   from {
     opacity: 0;
     transform: translateY(30px);
@@ -793,8 +793,8 @@
   }
 }
 
-.sentinel-animate {
-  animation: sentinelShow 0.8s var(--admin-ease) forwards;
+.workspace-animate {
+  animation: workspaceShow 0.8s var(--admin-ease) forwards;
 }
 
 /* Stats Grid */

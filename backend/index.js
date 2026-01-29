@@ -115,16 +115,16 @@ app.get('/api/stream', (req, res) => {
 const staticUploads = DASHBOARD_PATHS.uploads;
 app.use('/uploads', express.static(staticUploads));
 
-// Mount Student Routes (CRITICAL for student dashboard data)
-const studentRoutes = require('./routes/studentRoutes');
-app.use('/api/students', studentRoutes);
-console.log('✅ Student routes mounted at /api/students');
+// Static and early routes handled below in main routes section.
 
 // Health check route - Early registration
 app.get('/api/health', (req, res) => {
   console.log('Health endpoint called');
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+const syncController = require('./controllers/syncController');
+app.post('/api/cloud-sync', syncController.syncLocalToCloud);
 
 let server;
 
@@ -277,6 +277,7 @@ const chatRoutes = require('./routes/chat');
 const examRoutes = require('./routes/examRoutes');
 
 // Import Student Dashboard Routes
+const studentRoutes = require('./routes/studentRoutes');
 const academicPulseRoutes = require('./routes/academicPulseRoutes');
 const studentProfileRoutes = require('./routes/studentProfileRoutes');
 const studentNotesRoutes = require('./routes/studentNotesRoutes');
@@ -309,6 +310,7 @@ app.use('/api/student-profile', studentProfileRoutes);
 app.use('/api/student-notes', studentNotesRoutes);
 app.use('/api/student-grades', studentGradesRoutes);
 app.use('/api/student-progress', studentProgressRoutes);
+app.use('/api/fees', require('./routes/feeRoutes'));
 
 // Register User-Type-Specific Data Routes (Admin, Faculty, Student Data Folders)
 app.use('/api/admin-data', adminDataRoutes);
@@ -562,21 +564,78 @@ app.get('/api/materials', async (req, res, next) => {
 // app.get('/api/materials/:id', materialController.getMaterialById);
 
 // Simple local multer upload middleware (stores files under backend/uploads)
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('./config/cloudinary');
+
+const storageCloud = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    let subfolder = 'common';
+    if (req.headers['x-admin-token']) subfolder = 'admin_uploads';
+    else if (req.headers['x-faculty-token']) subfolder = 'faculty_uploads';
+    else if (req.headers['x-student-token']) subfolder = 'student_uploads';
+
+    // Sanitize filename for public_id
+    const originalName = file.originalname || 'file';
+    const cleanFileName = originalName.split('.').slice(0, -1).join('.').replace(/[^a-zA-Z0-9]/g, '_');
+
+    return {
+      folder: `friendly_notebook/${subfolder}`,
+      resource_type: 'auto',
+      public_id: `${Date.now()}-${cleanFileName}`
+    };
+  }
+});
+
+const uploadCloud = multer({ storage: storageCloud });
+
+// Keeping local storage for fallback or specific cases if needed, but renaming for clarity
 const storageLocal = multer.diskStorage({
   destination: (req, file, cb) => {
     try {
-      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-      cb(null, uploadsDir);
+      // Determine subfolder based on headers
+      let subfolder = 'common';
+      if (req.headers['x-admin-token'] || (req.headers.authorization && req.headers.authorization.startsWith('Bearer '))) {
+        // We can't fully decode/verify jwt here easily without async, but we can guess or default to 'admin' if admin token header is specific
+        // For simplicity, check specific headers first
+        if (req.headers['x-admin-token']) subfolder = 'admin_uploads';
+        else if (req.headers['x-faculty-token']) subfolder = 'faculty_uploads';
+        else if (req.headers['x-student-token']) subfolder = 'student_uploads';
+        else {
+          // Fallback for Bearer tokens if we can't tell easily
+          subfolder = 'misc_uploads';
+        }
+      }
+
+      // Check specific headers again to be sure (overrides generic logic)
+      if (req.headers['x-admin-token']) subfolder = 'admin_uploads';
+      if (req.headers['x-faculty-token']) subfolder = 'faculty_uploads';
+
+      const targetDir = path.join(uploadsDir, subfolder);
+
+      if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+      cb(null, targetDir);
     } catch (e) {
+      // Fallback to root uploads if error
+      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
       cb(e, uploadsDir);
     }
   },
-  filename: (req, file, cb) => {
-    const safe = file.originalname.replace(/[^a-zA-Z0-9.\-]/g, '_');
-    cb(null, `${Date.now()}-${safe}`);
-  }
+  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
 });
-const uploadLocal = multer({ storage: storageLocal, limits: { fileSize: 200 * 1024 * 1024 } });
+
+// Decide whether to use Cloudinary or local disk based on environment
+const useCloud = (process.env.USE_CLOUDINARY || 'true').toLowerCase() !== 'false'
+  && process.env.CLOUD_NAME && process.env.CLOUD_API_KEY && process.env.CLOUD_API_SECRET;
+
+let uploadLocal;
+if (useCloud) {
+  console.log('📤 Using Cloudinary for uploads (friendly_notebook/*)');
+  uploadLocal = uploadCloud;
+} else {
+  console.log('💾 Using local disk for uploads (backend/uploads/*)');
+  uploadLocal = multer({ storage: storageLocal });
+}
 
 // Helper to Handle File-Based Material Upload
 const handleFileBasedUpload = async (req, res) => {
@@ -592,10 +651,10 @@ const handleFileBasedUpload = async (req, res) => {
     if (req.file && req.file.path) {
       // req.file.path is absolute, we need relative to uploads dir for URL
       // Uploads are in backend/uploads/admin or backend/uploads/faculty
-      // We want URL to be /uploads/admin/filename
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      // We want URL to be /uploads/admin/filename or /uploads/filename
       const relPath = path.relative(uploadsDir, req.file.path);
-      fileUrl = `${baseUrl}/uploads/${relPath}`.replace(/\\/g, '/');
+      // Normalize to forward slashes for URL
+      fileUrl = `/uploads/${relPath}`.replace(/\\/g, '/');
       filename = req.file.filename;
       fileType = req.file.mimetype;
       fileSize = req.file.size;
@@ -649,6 +708,17 @@ const handleFileBasedUpload = async (req, res) => {
   }
 };
 
+app.post('/api/materials/:id/like', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1 && materialController.likeMaterial) {
+      return materialController.likeMaterial(req, res);
+    }
+    res.status(503).json({ message: 'Database not connected' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/materials', uploadLocal.single('file'), async (req, res) => {
   try {
     req.user = req.user || await authFromHeaders(req);
@@ -658,19 +728,14 @@ app.post('/api/materials', uploadLocal.single('file'), async (req, res) => {
 
     console.log('[POST /api/materials] Upload request from:', req.user.role, req.user.id);
 
-    // 1. Try MongoDB (Cloud Mesh) if connected
+    // Require MongoDB Cloud Mesh for material uploads (no file-based fallback)
     if (mongoose.connection.readyState === 1 && typeof materialController !== 'undefined' && materialController.uploadMaterial) {
-      try {
-        // We use the controller which will handle its own res.status().json()
-        return await materialController.uploadMaterial(req, res);
-      } catch (mongoUploadErr) {
-        console.warn('[POST /api/materials] MongoDB upload failed, falling back:', mongoUploadErr.message);
-        // Fall through to file-based
-      }
+      // Hand off to controller which will manage response
+      return await materialController.uploadMaterial(req, res);
     }
 
-    // 2. Fallback: File-based upload (Local Mesh)
-    return await handleFileBasedUpload(req, res);
+    console.error('[POST /api/materials] MongoDB not connected or upload controller missing. Uploads require MongoDB.');
+    return res.status(503).json({ message: 'Database not connected. Uploads require MongoDB.' });
   } catch (err) {
     console.error('Upload route error:', err);
     return res.status(500).json({ message: 'Upload failed', details: err.message });
@@ -685,23 +750,22 @@ app.put('/api/materials/:id', /* requireAuthMongo, */ uploadLocal.single('file')
       return res.status(401).json({ message: 'Authentication failed.' });
     }
 
-    // Try MongoDB first IF connected
+    // Require MongoDB for updates (no file-based fallback)
     if (mongoose.connection.readyState === 1) {
       try {
         const Material = require('./models/Material');
         const material = await Material.findById(req.params.id);
         if (material) {
-          // Found in MongoDB, use controller
           return materialController.updateMaterial(req, res);
         }
-        // Material not in MongoDB, fall through to file-based
+        return res.status(404).json({ message: 'Material not found in database' });
       } catch (mongoErr) {
-        console.warn('[PUT /api/materials] MongoDB lookup failed, trying file-based:', mongoErr.message);
+        console.error('[PUT /api/materials] MongoDB lookup failed:', mongoErr.message);
+        return res.status(503).json({ message: 'Database error during material lookup' });
       }
     }
 
-    // Fallback: File-based storage
-    return await handleFileBasedUpdate(req, res);
+    return res.status(503).json({ message: 'Database not connected. Updates require MongoDB.' });
   } catch (err) {
     console.error('PUT /api/materials error:', err);
     return res.status(500).json({ error: 'Update failed', details: err.message });
@@ -1042,40 +1106,42 @@ async function authFromHeaders(req) {
     // Support both custom headers and standard Bearer token
     const bearer = req.headers.authorization && req.headers.authorization.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null;
 
+    // 1. Try Admin Auth
     const adminToken = req.headers['x-admin-token'] || bearer;
     if (adminToken) {
-      if (mongoose.connection.readyState === 1 && Admin) {
+      if (mongoose.connection.readyState === 1) {
         try {
           const AdminModel = require('./models/Admin');
           const adminDoc = await AdminModel.findOne({ adminToken });
           if (adminDoc) return { id: adminDoc.adminId, _id: adminDoc._id, role: 'admin', name: adminDoc.name };
         } catch (e) { console.error('Admin MongoDB auth error:', e); }
       }
-      return null;
     }
 
+    // 2. Try Faculty Auth (if Admin failed)
     const facultyToken = req.headers['x-faculty-token'] || bearer;
     if (facultyToken) {
-      if (mongoose.connection.readyState === 1 && Faculty) {
+      if (mongoose.connection.readyState === 1) {
         try {
           const FacultyModel = require('./models/Faculty');
           const facultyDoc = await FacultyModel.findOne({ facultyToken });
           if (facultyDoc) return { id: facultyDoc.facultyId, _id: facultyDoc._id, role: 'faculty', name: facultyDoc.name };
         } catch (e) { console.error('Faculty MongoDB auth error:', e); }
       }
-      return null;
     }
 
+    // 3. Try Student Auth (if Admin/Faculty failed)
     const studentToken = req.headers['x-student-token'] || bearer;
     if (studentToken) {
-      if (mongoose.connection.readyState === 1 && Student) {
+      if (mongoose.connection.readyState === 1) {
         try {
-          const studentDoc = await Student.findOne({ studentToken });
+          const StudentModel = require('./models/Student');
+          const studentDoc = await StudentModel.findOne({ studentToken });
           if (studentDoc) return { id: studentDoc.sid, _id: studentDoc._id, role: 'student', name: studentDoc.studentName };
         } catch (e) { console.error('Student MongoDB auth error:', e); }
       }
-      return null;
     }
+
   } catch (e) {
     console.error('authFromHeaders error', e);
   }

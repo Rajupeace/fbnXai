@@ -5,8 +5,7 @@ import { apiGet, apiPost } from '../../utils/apiClient';
 
 /**
  * FACULTY ATTENDANCE MANAGER
- * High-fidelity roster control and attendance tracking.
- * Theme: Luxe Pearl / Nexus
+ * Attendance tracking and management interface.
  */
 const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyName }) => {
     const [selectedSection, setSelectedSection] = useState(sections && sections.length > 0 ? sections[0] : '');
@@ -102,10 +101,10 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                 facultyName: facultyName || '',
                 records
             });
-            alert("Attendance Synced to Nexus Cloud.");
+            alert("Attendance Saved Successfully.");
             fetchHistory();
         } catch (error) {
-            alert('Transmission Error: ' + error.message);
+            alert('Save Error: ' + error.message);
         } finally {
             setSaving(false);
         }
@@ -124,10 +123,10 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
 
             <div className="nexus-glass-pills f-spacer-xl">
                 <button className={`nexus-pill ${viewMode === 'take' ? 'active' : ''}`} onClick={() => setViewMode('take')}>
-                    <FaUserCheck /> LIVE ROSTER
+                    <FaUserCheck /> MARK ATTENDANCE
                 </button>
                 <button className={`nexus-pill ${viewMode === 'history' ? 'active' : ''}`} onClick={() => setViewMode('history')}>
-                    <FaHistory /> SESSION LOGS
+                    <FaHistory /> ATTENDANCE HISTORY
                 </button>
             </div>
 
@@ -157,25 +156,25 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                     <div className="f-summary-row animate-slide-up" style={{ animationDelay: '0.1s' }}>
                         <div className="f-summary-node present">
                             <h4>{stats.present}</h4>
-                            <span>PRESENT NODES</span>
+                            <span>PRESENT STUDENTS</span>
                         </div>
                         <div className="f-summary-node absent">
                             <h4>{stats.absent}</h4>
-                            <span>ABSENT NODES</span>
+                            <span>ABSENT STUDENTS</span>
                         </div>
                         <div className="f-summary-node rate">
                             <h4>{stats.percentage}%</h4>
-                            <span>MASTER RATE</span>
+                            <span>ATTENDANCE RATE</span>
                         </div>
                     </div>
 
                     {loading ? (
-                        <div className="no-content">Synchronizing Roster...</div>
+                        <div className="no-content">Loading Roster...</div>
                     ) : (
                         <div className="f-roster-wrap animate-slide-up" style={{ animationDelay: '0.2s' }}>
                             <div className="f-roster-head">
-                                <span>STUDENT IDENTITY</span>
-                                <span>OPERATIONAL STATUS</span>
+                                <span>STUDENT NAME / ID</span>
+                                <span>STATUS</span>
                             </div>
 
                             <div className="f-roster-list">
@@ -203,7 +202,7 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                                         </div>
                                     );
                                 })}
-                                {students.length === 0 && <div className="no-content">No units found in Section {selectedSection}.</div>}
+                                {students.length === 0 && <div className="no-content">No students found in Section {selectedSection}.</div>}
                             </div>
                         </div>
                     )}
@@ -211,20 +210,20 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                     <div className="f-submit-footer animate-slide-up">
                         <div className="f-flex-gap f-text-muted">
                             <FaCheckCircle className="text-success" style={{ fontSize: '1.2rem' }} />
-                            <span style={{ fontWeight: 850, fontSize: '0.85rem' }}>Data syncs to Nexus Central automatically upon submission.</span>
+                            <span style={{ fontWeight: 850, fontSize: '0.85rem' }}>Attendance data saves to the central database.</span>
                         </div>
                         <button
                             className="nexus-btn-primary"
                             onClick={handleSubmit}
                             disabled={saving || students.length === 0}
                         >
-                            {saving ? 'SYNCING...' : <><FaSave /> COMMIT ATTENDANCE</>}
+                            {saving ? 'SAVING...' : <><FaSave /> SAVE ATTENDANCE</>}
                         </button>
                     </div>
                 </>
             ) : (
                 <div className="history-view animate-fade-in">
-                    <h2 className="nexus-page-subtitle f-spacer-lg">HISTORICAL SESSION LOGS</h2>
+                    <h2 className="nexus-page-subtitle f-spacer-lg">ATTENDANCE HISTORY</h2>
                     <div className="f-history-list">
                         {history.map(record => {
                             const p = record.records.filter(r => r.status === 'Present').length;
@@ -234,16 +233,16 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                                 <div key={record._id || record.id} className="f-history-item">
                                     <div>
                                         <div style={{ fontWeight: 950, color: '#1e293b', fontSize: '1.1rem' }}>{new Date(record.date).toLocaleDateString()}</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 850, marginTop: '0.2rem' }}>SECTION {record.section} • {record.facultyName || 'COMMANDER'}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 850, marginTop: '0.2rem' }}>SECTION {record.section} • {record.facultyName || 'FACULTY'}</div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: 950, color: pct > 75 ? '#10b981' : pct > 50 ? '#f59e0b' : '#ef4444' }}>{pct}% EFFICIENCY</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 900, marginTop: '0.2rem' }}>({p} / {t} NODES)</div>
+                                        <div style={{ fontWeight: 950, color: pct > 75 ? '#10b981' : pct > 50 ? '#f59e0b' : '#ef4444' }}>{pct}% ATTENDANCE</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 900, marginTop: '0.2rem' }}>({p} / {t} STUDENTS)</div>
                                     </div>
                                 </div>
                             )
                         })}
-                        {history.length === 0 && <div className="no-content">No historical logs decrypted.</div>}
+                        {history.length === 0 && <div className="no-content">No attendance history found.</div>}
                     </div>
                 </div>
             )}

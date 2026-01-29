@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     FaRoad, FaCode, FaLaptopCode, FaJava, FaPython, FaServer, FaCheckCircle, FaSpinner,
     FaChevronRight, FaArrowLeft, FaTrophy, FaWindows, FaGoogle, FaShieldAlt, FaGem, FaCogs,
-    FaLock, FaAndroid, FaSearch, FaFilter, FaPalette, FaPhp, FaSwift, FaReact, FaVuejs, FaAngular, FaDocker, FaAws, FaDatabase, FaLeaf
+    FaLock, FaAndroid, FaSearch, FaPalette, FaPhp, FaSwift, FaReact, FaVuejs, FaAngular, FaDocker, FaAws, FaDatabase, FaLeaf
 } from 'react-icons/fa';
 import api from '../../../utils/apiClient';
 
@@ -16,7 +16,7 @@ import api from '../../../utils/apiClient';
  * - Level-based filtering
  * - Category Filtering & Search
  */
-const StudentRoadmaps = () => {
+const StudentRoadmaps = ({ studentData }) => {
     const [roadmaps, setRoadmaps] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedRoadmap, setSelectedRoadmap] = useState(null);
@@ -30,28 +30,35 @@ const StudentRoadmaps = () => {
     const [completedTopics, setCompletedTopics] = useState({});
 
     // Fetch Roadmaps & Progress
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                // 1. Fetch available roadmaps
-                const maps = await api.apiGet('/api/roadmaps');
-                if (Array.isArray(maps)) setRoadmaps(maps);
+    const fetchRoadmaps = async () => {
+        setLoading(true);
+        try {
+            // 1. Fetch available roadmaps
+            const maps = await api.apiGet('/api/roadmaps');
+            if (Array.isArray(maps)) setRoadmaps(maps);
 
-                // 2. Fetch logged-in user's progress
-                const studentId = localStorage.getItem('user_id'); // Assuming stored on login
-                if (studentId) {
-                    const studentData = await api.apiGet(`/api/students/${studentId}/overview`);
-                    if (studentData && studentData.roadmapProgress) {
-                        setCompletedTopics(studentData.roadmapProgress);
+            // 2. Fetch logged-in user's progress
+            const studentId = studentData?.sid || localStorage.getItem('user_id');
+            if (studentId) {
+                // If progress is already in studentData prop, use it. Otherwise fetch overview.
+                if (studentData?.roadmapProgress) {
+                    setCompletedTopics(studentData.roadmapProgress);
+                } else {
+                    const fullData = await api.apiGet(`/api/students/${studentId}/overview`);
+                    if (fullData && fullData.roadmapProgress) {
+                        setCompletedTopics(fullData.roadmapProgress);
                     }
                 }
-            } catch (err) {
-                console.error('Failed to fetch roadmaps or progress:', err);
-            } finally {
-                setLoading(false);
             }
-        };
-        loadData();
+        } catch (err) {
+            console.error('Failed to fetch roadmaps or progress:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRoadmaps();
     }, []);
 
     const toggleTopic = async (roadmapSlug, topicName) => {
@@ -69,7 +76,7 @@ const StudentRoadmaps = () => {
 
         // Sync with Backend
         try {
-            const studentId = localStorage.getItem('user_id');
+            const studentId = studentData?.sid || localStorage.getItem('user_id');
             if (studentId) {
                 await api.apiPost(`/api/students/${studentId}/roadmap-progress`, {
                     roadmapSlug,

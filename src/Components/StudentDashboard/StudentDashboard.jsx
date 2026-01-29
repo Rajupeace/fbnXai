@@ -3,7 +3,7 @@ import { apiGet } from '../../utils/apiClient';
 import sseClient from '../../utils/sseClient';
 import {
     FaGraduationCap, FaChartBar, FaTrophy, FaLightbulb,
-    FaLayerGroup, FaRobot, FaFire, FaClipboardList, FaBriefcase
+    FaLayerGroup, FaRobot, FaFire, FaClipboardList, FaBriefcase, FaCreditCard
 } from 'react-icons/fa';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 
@@ -23,7 +23,8 @@ import StudentRoadmaps from './Sections/StudentRoadmaps';
 import StudentAnnouncements from './Sections/StudentAnnouncements';
 import PasswordSettings from '../Settings/PasswordSettings';
 import { getYearData } from './branchData';
-import NexusCorePulse from './AcademicPulse';
+import AcademicPulse from './AcademicPulse';
+import CollegeFees from './Sections/CollegeFees';
 
 import './StudentDashboard.css';
 import SkillsRadar from './Sections/SkillsRadar';
@@ -58,11 +59,14 @@ export default function StudentDashboard({ studentData, onLogout }) {
     const [serverMaterials, setServerMaterials] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [messages, setMessages] = useState([]);
+    const [feeData, setFeeData] = useState(null);
+    const [nextClass, setNextClass] = useState(null);
 
     // Modals & UI Flags
     const [showAiModal, setShowAiModal] = useState(false);
     // Removed showMsgModal/TaskModal as unused
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
     // Initial load animation
     useEffect(() => {
@@ -116,6 +120,34 @@ export default function StudentDashboard({ studentData, onLogout }) {
             if (Array.isArray(msgData)) {
                 console.log(`   ✅ Messages fetched: ${msgData.length} items`);
                 setMessages(msgData);
+            }
+
+            const fd = await apiGet(`/api/fees/${userData.sid}`);
+            if (fd) {
+                console.log('   ✅ Fee data fetched');
+                setFeeData(fd);
+            }
+
+            // Fetch Schedule for "Next Class"
+            const queryParams = new URLSearchParams({
+                year: userData.year,
+                section: userData.section,
+                branch: userData.branch
+            });
+            const schData = await apiGet(`/api/schedule?${queryParams.toString()}`);
+            if (Array.isArray(schData) && schData.length > 0) {
+                const today = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
+                const futureClasses = schData.filter(s => s.day === today).sort((a, b) => a.time.localeCompare(b.time));
+                // Find next upcoming
+                const now = new Date();
+                const upcoming = futureClasses.find(c => {
+                    const startTime = c.time.split(' - ')[0];
+                    const [h, m] = startTime.split(':');
+                    const classDate = new Date();
+                    classDate.setHours(parseInt(h), parseInt(m), 0);
+                    return classDate > now;
+                });
+                setNextClass(upcoming || futureClasses[0]);
             }
 
             console.log('✅ StudentDashboard: All data loaded successfully');
@@ -254,6 +286,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
             }
             if (!sectionMatch) return;
 
+            // If material has semester explicitly, use it
             if (m.subject && m.semester) {
                 let sem = semesters.find(s => s.sem === Number(m.semester));
                 if (!sem) {
@@ -271,6 +304,38 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         modules: generateDefaultModules(`shadow-${m.subject}`)
                     });
                 }
+            } else if (m.subject) {
+                // Try to infer semester by matching material subject to existing subjects
+                const subjNorm = String(m.subject).trim().toUpperCase();
+                let placed = false;
+                for (const sem of semesters) {
+                    const match = (sem.subjects || []).find(s =>
+                        (s.name && s.name.toUpperCase() === subjNorm) ||
+                        (s.code && s.code.toUpperCase() === subjNorm)
+                    );
+                    if (match) {
+                        // already present in this semester
+                        placed = true;
+                        break;
+                    }
+                }
+
+                if (!placed) {
+                    // No existing subject matched; attempt to place into semester 1 by default
+                    let defaultSem = semesters.find(s => s.sem === 1) || semesters[0];
+                    if (!defaultSem) {
+                        defaultSem = { sem: 1, subjects: [] };
+                        semesters.push(defaultSem);
+                    }
+                    if (!defaultSem.subjects.find(s => s.name.toUpperCase() === subjNorm)) {
+                        defaultSem.subjects.push({
+                            id: `shadow-${m.subject}`,
+                            name: m.subject,
+                            code: 'EXT-RES',
+                            modules: generateDefaultModules(`shadow-${m.subject}`)
+                        });
+                    }
+                }
             }
         });
 
@@ -281,7 +346,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
         return (yearData.semesters || []).flatMap(s => s.subjects || []);
     }, [yearData]);
 
-    const NexusStat = ({ icon: Icon, label, value, color, delay, subtext, onClick }) => (
+    const StatCard = ({ icon: Icon, label, value, color, delay, subtext, onClick }) => (
         <div className="nexus-stat-v2" style={{ animationDelay: `${delay}s`, '--stat-color': color, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
             <div className="stat-glow"></div>
             <div className="stat-content">
@@ -324,21 +389,53 @@ export default function StudentDashboard({ studentData, onLogout }) {
             </header>
 
             <div className="pad-x-2-mb-4">
-                <NexusCorePulse data={overviewData} />
+                <AcademicPulse data={overviewData} />
             </div>
 
             <div className="nexus-stats-grid">
-                <NexusStat icon={FaGraduationCap} label="Total Courses" value={enrolledSubjects.length} color="#6366f1" delay={0.1} subtext="Active Syllabus" />
-                <NexusStat icon={FaChartBar} label="Semester Load" value={`${overviewData?.semesterProgress || 0}%`} color="#10b981" delay={0.2} subtext="Time Elapsed" />
-                <NexusStat icon={FaTrophy} label="Rank Score" value={overviewData?.student?.stats?.cgpa ? (overviewData.student.stats.cgpa * 10).toFixed(1) : '8.2'} color="#f59e0b" delay={0.3} subtext="Current CGPA" />
-                <NexusStat icon={FaFire} label="Study Streak" value={`${overviewData?.activity?.streak || 0} Days`} color="#f97316" delay={0.4} subtext="Daily Activity" />
-                <NexusStat icon={FaRobot} label="AI Insights" value={overviewData?.activity?.aiUsage || 0} color="#0ea5e9" delay={0.5} subtext="Sessions Active" />
-                <NexusStat icon={FaBriefcase} label="Placement" value="4 MNCs" color="#8b5cf6" delay={0.55} subtext="Interview Prep" onClick={() => setView('placement')} />
-                <NexusStat icon={FaClipboardList} label="Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" />
+                <StatCard icon={FaGraduationCap} label="Total Courses" value={enrolledSubjects.length} color="#6366f1" delay={0.1} subtext="Active Syllabus" />
+                <StatCard icon={FaChartBar} label="Semester Load" value={`${overviewData?.semesterProgress || 0}%`} color="#10b981" delay={0.2} subtext="Time Elapsed" />
+                <StatCard icon={FaTrophy} label="Rank Score" value={overviewData?.student?.stats?.cgpa ? (overviewData.student.stats.cgpa * 10).toFixed(1) : '8.2'} color="#f59e0b" delay={0.3} subtext="Current CGPA" />
+                <StatCard icon={FaFire} label="Study Streak" value={`${overviewData?.activity?.streak || 0} Days`} color="#f97316" delay={0.4} subtext="Daily Activity" />
+                <StatCard icon={FaRobot} label="AI Insights" value={overviewData?.activity?.aiUsage || 0} color="#0ea5e9" delay={0.5} subtext="Sessions Active" />
+                <StatCard icon={FaBriefcase} label="Placement" value="4 MNCs" color="#8b5cf6" delay={0.55} subtext="Interview Prep" onClick={() => setView('placement')} />
+                <StatCard icon={FaClipboardList} label="Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" />
+                <StatCard icon={FaCreditCard} label="Fee Due" value={`₹${(feeData?.dueAmount || 0).toLocaleString()}`} color="#ef4444" delay={0.65} subtext={feeData?.status || 'Pending'} onClick={() => setView('fees')} />
             </div>
 
             <main className="nexus-main-layout">
                 <aside className="nexus-sidebar-col">
+                    {/* Next Class Widget */}
+                    <div className="nexus-widget next-class-widget animate-slide-in">
+                        <div className="widget-header">
+                            <FaBolt className="icon glow-blue" />
+                            <span>NEXT UPCOMING</span>
+                        </div>
+                        {nextClass ? (
+                            <div className="next-class-content">
+                                <h3 className="class-subject">{nextClass.subject}</h3>
+                                <div className="class-meta">
+                                    <span><FaLayerGroup /> {nextClass.time}</span>
+                                    <span><FaLightbulb /> Room {nextClass.room}</span>
+                                </div>
+                                <div className="class-faculty">
+                                    <div className="faculty-avatar" style={{ background: 'linear-gradient(135deg, var(--nexus-primary), var(--nexus-secondary))' }}>
+                                        {nextClass.faculty.charAt(0)}
+                                    </div>
+                                    <div className="faculty-info">
+                                        <span className="f-name">{nextClass.faculty}</span>
+                                        <span className="f-role">Faculty Mentor</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="next-empty">
+                                <p>No more classes today!</p>
+                            </div>
+                        )}
+                        <button className="widget-action-btn" onClick={() => setView('schedule')}>View Full Schedule</button>
+                    </div>
+
                     <StudentProfileCard userData={userData} setView={setView} />
                     <SkillsRadar studentData={userData} />
 
@@ -363,9 +460,6 @@ export default function StudentDashboard({ studentData, onLogout }) {
                                 <span>AI TUTOR READY</span>
                             </div>
                         </div>
-                        <button className="panel-action-btn" onClick={() => setShowAiModal(true)}>
-
-                        </button>
                     </div>
                 </aside>
 
@@ -384,17 +478,23 @@ export default function StudentDashboard({ studentData, onLogout }) {
     const [focusMode] = useState(false);
 
     return (
-        <div className={`student-dashboard-layout ${isDashboardLoaded ? 'loaded' : ''} ${focusMode ? 'focus-active' : ''}`}>
+        <div className={`student-dashboard-layout ${isDashboardLoaded ? 'loaded' : ''} ${focusMode ? 'focus-active' : ''} ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
 
             {!focusMode && (
-                <StudentSidebar
-                    userData={userData}
-                    view={view}
-                    setView={setView}
-                    collapsed={sidebarCollapsed}
-                    setCollapsed={setSidebarCollapsed}
-                    onLogout={onLogout}
-                />
+                <>
+                    <button className="mobile-sidebar-toggle" onClick={() => setMobileSidebarOpen(true)} aria-label="Open menu">
+                        ☰
+                    </button>
+                    <StudentSidebar
+                        userData={userData}
+                        view={view}
+                        setView={setView}
+                        collapsed={sidebarCollapsed}
+                        setCollapsed={setSidebarCollapsed}
+                        onLogout={onLogout}
+                        onNavigate={() => setMobileSidebarOpen(false)}
+                    />
+                </>
             )}
 
             <div className="dashboard-content-area">
@@ -415,6 +515,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             userData={userData}
                             setView={setView}
                             branch={branch}
+                            onRefresh={fetchData}
                         />
                     </div>
                 )}
@@ -425,6 +526,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             semester={userData.semester || 'Current'}
                             studentData={userData}
                             enrolledSubjects={enrolledSubjects}
+                            serverMaterials={serverMaterials}
                         />
                     </div>
                 )}
@@ -467,7 +569,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
                 {view === 'roadmaps' && (
                     <div className="nexus-page-container">
-                        <StudentRoadmaps />
+                        <StudentRoadmaps studentData={userData} />
                     </div>
                 )}
 
@@ -500,6 +602,12 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     </div>
                 )}
 
+                {view === 'fees' && (
+                    <div className="nexus-page-container">
+                        <CollegeFees userData={userData} />
+                    </div>
+                )}
+
                 {view === 'ai-agent' && (
                     <div className="nexus-hub-viewport" style={{ padding: '0 2rem', height: 'calc(100vh - 100px)' }}>
                         <div className="nexus-mesh-bg"></div>
@@ -513,6 +621,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     </div>
                 )}
             </div>
+
+            {mobileSidebarOpen && <div className="mobile-sidebar-overlay" onClick={() => setMobileSidebarOpen(false)}></div>}
 
             <button className="ai-fab" onClick={() => setShowAiModal(true)}>
                 <FaRobot />

@@ -3,8 +3,8 @@ import { FaClock, FaListAlt, FaArrowLeft, FaRocket, FaShieldAlt, FaHistory, FaCh
 import { apiGet, apiPost } from '../../utils/apiClient';
 
 /**
- * NEXUS ASSESSMENT CENTER (Student Exams)
- * A premium interface for exams, quizzes, and academic challenges.
+ * EXAM DASHBOARD (Student Exams)
+ * A premium interface for exams, quizzes, and academic assessments.
  */
 const StudentExams = ({ studentData }) => {
     const [view, setView] = useState('list'); // 'list', 'taking', 'result', 'history'
@@ -25,7 +25,7 @@ const StudentExams = ({ studentData }) => {
             const data = await apiGet(`/api/exams/student?${qs.toString()}`);
             if (data) setExams(data);
         } catch (error) {
-            console.error("Nexus Exam Sync Failed:", error);
+            console.error("Exam Sync Failed:", error);
         } finally {
             setLoading(false);
         }
@@ -37,7 +37,7 @@ const StudentExams = ({ studentData }) => {
             const data = await apiGet(`/api/exams/results/student/${sid}`);
             if (data) setResults(data);
         } catch (error) {
-            console.error("Nexus History Sync Failed:", error);
+            console.error("History Sync Failed:", error);
         } finally {
             setLoading(false);
         }
@@ -68,7 +68,7 @@ const StudentExams = ({ studentData }) => {
             setExamResult(result);
             setView('result');
         } catch (error) {
-            console.error("Exam Submission Compromised:", error);
+            console.error("Exam Submission Failed:", error);
         }
     };
 
@@ -106,7 +106,7 @@ const StudentExams = ({ studentData }) => {
         return (
             <div className="loading-container">
                 <div className="nexus-loading-ring"></div>
-                <p className="loading-text">SYNCING STUDENT IDENTITY...</p>
+                <p className="loading-text">LOADING STUDENT DATA...</p>
             </div>
         );
     }
@@ -117,7 +117,7 @@ const StudentExams = ({ studentData }) => {
             <div className="nexus-exam-taking-env animate-fade-in">
                 <div className="exam-sticky-header">
                     <div className="header-left">
-                        <div className="exam-id-badge">ACTIVE CHALLENGE</div>
+                        <div className="exam-id-badge">ACTIVE EXAM</div>
                         <h2>{currentExam.title} <span className="subject-pipe">{currentExam.subject}</span></h2>
                     </div>
                     <div className="header-center">
@@ -126,14 +126,14 @@ const StudentExams = ({ studentData }) => {
                         </div>
                     </div>
                     <div className="header-right">
-                        <button onClick={submitExam} className="nexus-btn-finish">TRANSMIT ANSWERS <FaRocket /></button>
+                        <button onClick={submitExam} className="nexus-btn-finish">SUBMIT EXAM <FaRocket /></button>
                     </div>
                 </div>
 
                 <div className="exam-questions-viewport">
                     {currentExam.questions.map((q, i) => (
                         <div key={i} className="nexus-q-card">
-                            <div className="q-label">QUESTION {i + 1} <span className="q-marks">[{q.marks} MP]</span></div>
+                            <div className="q-label">QUESTION {i + 1} <span className="q-marks">[{q.marks} Marks]</span></div>
                             <h4 className="q-text">{q.questionText}</h4>
                             <div className="options-matrix">
                                 {q.options.map((opt, optIdx) => (
@@ -146,7 +146,7 @@ const StudentExams = ({ studentData }) => {
                             </div>
                         </div>
                     ))}
-                    <button onClick={submitExam} className="nexus-mega-submit">SUBMIT ALL TRANSMISSIONS</button>
+                    <button onClick={submitExam} className="nexus-mega-submit">SUBMIT EXAM</button>
                 </div>
             </div>
         );
@@ -161,23 +161,23 @@ const StudentExams = ({ studentData }) => {
                     <div className="nexus-stamp">
                         {percentage >= 75 ? '🎖️' : percentage >= 40 ? '✅' : '📉'}
                     </div>
-                    <h2 className="result-title">ASSESSMENT COMPLETE</h2>
-                    <p className="result-desc">Mission success. Data has been transmitted to Central Academic Control.</p>
+                    <h2 className="result-title">EXAM COMPLETE</h2>
+                    <p className="result-desc">Student assessment complete. Your results have been saved to the database.</p>
 
                     <div className="result-stats-grid">
                         <div className="res-stat-card">
                             <div className="val">{examResult.score} / {examResult.totalMarks}</div>
-                            <div className="lab">NEURAL SCORE</div>
+                            <div className="lab">SCORE</div>
                         </div>
                         <div className="res-stat-card">
                             <div className={`val highlight-big ${percentage >= 40 ? 'rating pass' : 'rating fail'}`}>{percentage}%</div>
-                            <div className="lab">ACCURACY RATING</div>
+                            <div className="lab">PERCENTAGE</div>
                         </div>
                     </div>
 
                     <div className="result-actions">
-                        <button onClick={() => setView('list')} className="nexus-btn-pri">HUB ENTRY</button>
-                        <button onClick={() => setView('history')} className="nexus-btn-sec">CHALLENGE RECORDS</button>
+                        <button onClick={() => setView('list')} className="nexus-btn-pri">BACK TO LIST</button>
+                        <button onClick={() => setView('history')} className="nexus-btn-sec">EXAM HISTORY</button>
                     </div>
                 </div>
             </div>
@@ -190,24 +190,24 @@ const StudentExams = ({ studentData }) => {
             <div className="nexus-assessment-history animate-fade-in">
                 <div className="history-header">
                     <button onClick={() => setView('list')} className="nexus-back-btn"><FaArrowLeft /></button>
-                    <h1 className="history-title">MISSION <span>HISTORY</span></h1>
+                    <h1 className="history-title">EXAM <span>HISTORY</span></h1>
                 </div>
 
                 {loading ? <div className="nexus-loading-ring"></div> : (
                     <div className="nexus-history-list">
-                        {results.length === 0 ? <p className="empty-msg">No flight records found.</p> : results.map((res) => (
+                        {results.length === 0 ? <p className="empty-msg">No exam records found.</p> : results.map((res) => (
                             <div key={res._id} className="nexus-history-card">
                                 <div className="card-left">
                                     <div className="subject-dot"></div>
                                     <div className="info">
-                                        <h4>{res.examId?.title || 'Unknown Mission'}</h4>
+                                        <h4>{res.examId?.title || 'Unknown Exam'}</h4>
                                         <span className="info-sub">{new Date(res.submittedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} • {res.examId?.subject}</span>
                                     </div>
                                 </div>
                                 <div className="card-right">
                                     <div className="score">{res.score} / {res.totalMarks}</div>
                                     <div className={`rating ${res.score / res.totalMarks >= 0.4 ? 'pass' : 'fail'}`}>
-                                        {Math.round((res.score / res.totalMarks) * 100)}% ACCURACY
+                                        {Math.round((res.score / res.totalMarks) * 100)}% SCORE
                                     </div>
                                 </div>
                             </div>
@@ -224,18 +224,18 @@ const StudentExams = ({ studentData }) => {
             <div className="nexus-exams-header">
                 <div>
                     <div className="nexus-journal-subtitle">
-                        <FaShieldAlt /> Proving Grounds <div className="pulse-dot"></div>
+                        <FaShieldAlt /> Academic Assessments <div className="pulse-dot"></div>
                     </div>
                     <h1 className="nexus-journal-title">
-                        ACTIVE <span>CHALLENGES</span>
+                        AVAILABLE <span>EXAMS</span>
                     </h1>
                 </div>
                 <div className="header-actions">
                     <button onClick={fetchExams} className="nexus-history-trigger">
-                        <FaClock /> RE-SYNC
+                        <FaClock /> REFRESH
                     </button>
                     <button onClick={() => setView('history')} className="nexus-history-trigger">
-                        <FaHistory /> MISSION LOGS
+                        <FaHistory /> EXAM HISTORY
                     </button>
                 </div>
             </div>
@@ -244,10 +244,10 @@ const StudentExams = ({ studentData }) => {
                 <div className="nexus-challenges-grid">
                     {exams.length === 0 ? (
                         <div className="nexus-empty-challenges">
-                            <div className="empty-ufo">🛰️</div>
-                            <h3>NO ACTIVE SIGNALS</h3>
-                            <p>No active assessment modules detected for your sector ({branch} - {year}). Stand by for incoming transmissions.</p>
-                            <button onClick={fetchExams} className="nexus-btn-pri-mini">RE-SCAN SECTOR</button>
+                            <div className="empty-ufo">📝</div>
+                            <h3>NO ACTIVE EXAMS</h3>
+                            <p>No active exams found for your branch ({branch}) and year ({year}). Please check back later.</p>
+                            <button onClick={fetchExams} className="nexus-btn-pri-mini">REFRESH LIST</button>
                         </div>
                     ) : (
                         <div className="nexus-notes-grid">
@@ -260,11 +260,11 @@ const StudentExams = ({ studentData }) => {
                                     </div>
                                     <h3 className="node-title">{exam.title}</h3>
                                     <div className="node-metrics">
-                                        <div className="node-metric-item"><FaListAlt /> {exam.questions.length} CHUNKS</div>
+                                        <div className="node-metric-item"><FaListAlt /> {exam.questions.length} QUESTIONS</div>
                                         <div className="node-metric-item"><FaClock /> {exam.durationMinutes} MINS</div>
                                     </div>
                                     <button onClick={() => startExam(exam)} className="node-launch-btn">
-                                        INITIATE SEQUENCE <FaChevronRight />
+                                        START EXAM <FaChevronRight />
                                     </button>
                                 </div>
                             ))}

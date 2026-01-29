@@ -3,8 +3,8 @@ import { FaFlask, FaClock, FaMapMarkerAlt, FaChalkboardTeacher, FaMicrochip, FaC
 import { apiGet } from '../../utils/apiClient';
 
 /**
- * NEXUS FORGE (Laboratory Schedule)
- * A high-fidelity interface for technical workshops and laboratory sessions.
+ * LAB SCHEDULE
+ * A schedule for technical workshops and laboratory sessions.
  */
 const StudentLabsSchedule = ({ studentData }) => {
     const [labSchedule, setLabSchedule] = useState([]);
@@ -17,7 +17,7 @@ const StudentLabsSchedule = ({ studentData }) => {
                 const response = await apiGet(`/api/labs/schedule?year=${studentData.year}&section=${studentData.section}&branch=${studentData.branch}`);
                 setLabSchedule(response || []);
             } catch (error) {
-                console.error('Forge Sync Failed:', error);
+                console.error('Lab Sync Failed:', error);
                 setLabSchedule([]);
             } finally {
                 setLoading(false);
@@ -31,7 +31,7 @@ const StudentLabsSchedule = ({ studentData }) => {
         return (
             <div className="nexus-schedule-loading">
                 <div className="nexus-loading-ring warning"></div>
-                <div className="loading-text warning">CALIBRATING LAB INSTRUMENTS...</div>
+                <div className="loading-text warning">LOADING LAB SCHEDULE...</div>
             </div>
         );
     }
@@ -45,12 +45,12 @@ const StudentLabsSchedule = ({ studentData }) => {
                         <FaMicrochip /> Applied Engineering
                     </div>
                     <h1 className="nexus-page-title">
-                        NEXUS <span className="text-forge-pri">FORGE</span>
+                        LAB <span className="text-forge-pri">SCHEDULE</span>
                     </h1>
                 </div>
                 <div className="header-forge-right">
-                    <div className="forge-count">{labSchedule.length} WORKSHOPS</div>
-                    <div className="forge-status">SYSTEMS READY</div>
+                    <div className="forge-count">{labSchedule.length} LABS</div>
+                    <div className="forge-status">STATUS: OK</div>
                 </div>
             </div>
 
@@ -58,9 +58,9 @@ const StudentLabsSchedule = ({ studentData }) => {
             <div className="forge-guidelines">
                 <div className="guideline-icon"><FaTools /></div>
                 <div>
-                    <h4 className="forge-op-title">OPERATIONAL DIRECTIVE</h4>
+                    <h4 className="forge-op-title">LAB GUIDELINES</h4>
                     <p className="forge-op-desc">
-                        Arrive precisely 10 cycles early. Neural links and hardware kits must be verified. All workstations are initialized with the latest firmware.
+                        Please arrive 10 minutes early. Ensure you have your lab manual and ID. Follow all safety protocols inside the laboratory.
                     </p>
                 </div>
             </div>
@@ -87,13 +87,13 @@ const StudentLabsSchedule = ({ studentData }) => {
 
                         <div className="lab-nodes">
                             <div className="node">
-                                <span className="n-label">COMMANDER</span>
+                                <span className="n-label">INSTRUCTOR</span>
                                 <div className="n-main">
                                     <FaChalkboardTeacher /> <span>{lab.faculty}</span>
                                 </div>
                             </div>
                             <div className="node">
-                                <span className="n-label">COORDINATES</span>
+                                <span className="n-label">LOCATION</span>
                                 <div className="n-main">
                                     <FaMapMarkerAlt /> <span>{lab.room}</span>
                                 </div>
@@ -101,21 +101,21 @@ const StudentLabsSchedule = ({ studentData }) => {
                         </div>
 
                         <div className="lab-tools-list">
-                            <div className="tools-title"><FaCubes /> RESOURCE KIT</div>
+                            <div className="tools-title"><FaCubes /> REQUIRED TOOLS</div>
                             <div className="tools-ribbon">
-                                {(lab.tools || ['IDE', 'Debugger', 'Neural SDK']).map((tool, ti) => (
+                                {(lab.tools || ['IDE', 'Debugger', 'Documentation']).map((tool, ti) => (
                                     <span key={ti} className="tool-pill">{tool}</span>
                                 ))}
                             </div>
                         </div>
 
-                        <button className="forge-launch-btn">ENTER WORKSTATION <FaArrowRight /></button>
+                        <button className="forge-launch-btn">VIEW DETAILS <FaArrowRight /></button>
                     </div>
                 )) : (
                     <div className="nexus-empty-forge">
                         <FaFlask className="forge-empty-icon" />
-                        <h3>FORGE DEACTIVATED</h3>
-                        <p className="forge-empty-msg">No workshops are currently scheduled for your sector. The forge is currently in maintenance mode.</p>
+                        <h3>NO LABS SCHEDULED</h3>
+                        <p className="forge-empty-msg">No labs are currently scheduled for your section. Please check back later.</p>
                     </div>
                 )}
             </div>

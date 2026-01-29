@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTrash, FaClipboardList, FaArrowLeft, FaShieldAlt } from 'react-icons/fa';
-import { apiPost, apiGet, apiDelete } from '../../utils/apiClient';
+import { FaPlus, FaTrash, FaClipboardList, FaArrowLeft, FaShieldAlt, FaEdit } from 'react-icons/fa';
+import { apiPost, apiGet, apiDelete, apiPut } from '../../utils/apiClient';
 
 /**
- * FACULTY ASSESSMENT COMMAND
- * Modular interface for creating and managing student assessments.
- * Theme: Luxe Pearl / Nexus
+ * FACULTY EXAM MANAGEMENT
+ * Interface for creating and managing student assessments.
  */
 const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
     const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showCreate, setShowCreate] = useState(false);
+    const [editId, setEditId] = useState(null);
 
     const [formData, setFormData] = useState({
         title: '', topic: '', week: 'Week 1',
@@ -59,7 +59,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
 
     const addQuestion = () => {
         if (!currentQuestion.questionText || currentQuestion.options.some(o => !o)) {
-            alert("Protocol Violation: Question fields incomplete.");
+            alert("Error: Question fields incomplete. Please fill all fields.");
             return;
         }
         setFormData(prev => ({
@@ -82,7 +82,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (formData.questions.length === 0) {
-            alert("System Alert: Minimum one question required.");
+            alert("Error: Minimum one question required.");
             return;
         }
 
@@ -92,9 +92,17 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                 totalMarks: formData.questions.reduce((acc, q) => acc + parseFloat(q.marks || 1), 0),
                 subject, year, facultyId
             };
-            await apiPost('/api/exams/create', payload);
-            alert("Assessment Profile Published to Student Mesh.");
+
+            if (editId) {
+                await apiPut(`/api/exams/${editId}`, payload);
+                alert("Exam Updated Successfully.");
+            } else {
+                await apiPost('/api/exams/create', payload);
+                alert("Exam Created and Published.");
+            }
+
             setShowCreate(false);
+            setEditId(null);
             setFormData({
                 title: '', topic: '', week: 'Week 1',
                 durationMinutes: 20, totalMarks: 10,
@@ -103,31 +111,46 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
             });
             fetchExams();
         } catch (err) {
-            alert("Deployment failed: " + err.message);
+            alert("Error: " + err.message);
         }
     };
 
+    const handleEditExam = (exam) => {
+        setFormData({
+            title: exam.title,
+            topic: exam.topic,
+            week: exam.week,
+            durationMinutes: exam.durationMinutes,
+            totalMarks: exam.totalMarks,
+            section: exam.section,
+            branch: exam.branch,
+            questions: exam.questions
+        });
+        setEditId(exam._id);
+        setShowCreate(true);
+    };
+
     const handleDeleteExam = async (id) => {
-        if (!window.confirm("Purge assessment profile from Nexus Cloud?")) return;
+        if (!window.confirm("Are you sure you want to delete this exam?")) return;
         try {
             await apiDelete(`/api/exams/${id}`);
             fetchExams();
         } catch (err) {
-            alert("Purge sequence failed.");
+            alert("Delete failed.");
         }
     };
 
     if (showCreate) {
         return (
             <div className="animate-fade-in">
-                <button onClick={() => setShowCreate(false)} className="f-cancel-btn f-spacer-lg">
-                    <FaArrowLeft /> RETURN TO REGISTRY
+                <button onClick={() => { setShowCreate(false); setEditId(null); }} className="f-cancel-btn f-spacer-lg">
+                    <FaArrowLeft /> BACK TO LIST
                 </button>
 
                 <div className="f-node-card animate-slide-up" style={{ maxWidth: '900px', margin: '0 auto' }}>
                     <div className="f-modal-header">
                         <FaShieldAlt style={{ fontSize: '2.4rem' }} />
-                        <h2>ASSESSMENT ARCHITECT</h2>
+                        <h2>{editId ? 'EDIT EXAM' : 'CREATE NEW EXAM'}</h2>
                     </div>
 
                     <div className="nexus-form-grid">
@@ -151,7 +174,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                             </select>
                         </div>
                         <div className="nexus-group">
-                            <label className="f-form-label">Branch Sector</label>
+                            <label className="f-form-label">Branch</label>
                             <input type="text" name="branch" value={formData.branch} onChange={handleInputChange} className="f-form-select" />
                         </div>
                         <div className="nexus-group">
@@ -169,7 +192,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
 
                     <div className="f-question-panel">
                         <div className="f-node-head">
-                            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 950 }}>QUESTION PAYLOADS ({formData.questions.length})</h4>
+                            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 950 }}>QUESTIONS ({formData.questions.length})</h4>
                             <span className="f-meta-badge type">TOTAL: {formData.questions.reduce((acc, q) => acc + parseFloat(q.marks || 1), 0)} MARKS</span>
                         </div>
 
@@ -182,7 +205,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                                     value={currentQuestion.questionText}
                                     onChange={handleQuestionChange}
                                     className="f-form-select"
-                                    placeholder="Enter Question Transcript..."
+                                    placeholder="Enter Question Text..."
                                     style={{ flex: 1, marginBottom: 0 }}
                                 />
                                 <div style={{ width: '120px' }}>
@@ -198,8 +221,6 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                                 </div>
                             </div>
 
-
-
                             <div className="nexus-form-grid" style={{ marginBottom: '2rem' }}>
                                 {currentQuestion.options.map((opt, idx) => (
                                     <input
@@ -208,7 +229,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                                         value={opt}
                                         onChange={(e) => handleOptionChange(idx, e.target.value)}
                                         className="f-form-select"
-                                        placeholder={`Param ${idx + 1}`}
+                                        placeholder={`Option ${idx + 1}`}
                                         style={currentQuestion.correctOptionIndex === idx ? { borderColor: 'var(--nexus-primary)', background: '#f5f7ff' } : {}}
                                     />
                                 ))}
@@ -216,7 +237,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div className="f-flex-gap">
-                                    <label className="f-form-label" style={{ margin: 0 }}>Correct Mapping:</label>
+                                    <label className="f-form-label" style={{ margin: 0 }}>Correct Option:</label>
                                     <select
                                         name="correctOptionIndex"
                                         value={currentQuestion.correctOptionIndex}
@@ -224,14 +245,14 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                                         className="f-form-select"
                                         style={{ width: '150px', marginBottom: 0 }}
                                     >
-                                        <option value={0}>Param 1</option>
-                                        <option value={1}>Param 2</option>
-                                        <option value={2}>Param 3</option>
-                                        <option value={3}>Param 4</option>
+                                        <option value={0}>Option 1</option>
+                                        <option value={1}>Option 2</option>
+                                        <option value={2}>Option 3</option>
+                                        <option value={3}>Option 4</option>
                                     </select>
                                 </div>
                                 <button onClick={addQuestion} className="f-cancel-btn" style={{ background: 'white' }}>
-                                    <FaPlus /> INJECT QUESTION
+                                    <FaPlus /> ADD QUESTION
                                 </button>
                             </div>
                         </div>
@@ -242,7 +263,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                                 <div key={i} className="f-question-node animate-fade-in">
                                     <div className="f-question-header">
                                         <div className="f-question-text">{i + 1}. {q.questionText}</div>
-                                        <div className="f-question-marks">{q.marks} CR</div>
+                                        <div className="f-question-marks">{q.marks} Marks</div>
                                     </div>
                                     <div className="f-option-preview">
                                         {q.options.map((opt, idx) => (
@@ -260,7 +281,7 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                     </div>
 
                     <button onClick={handleSubmit} className="nexus-btn-primary" style={{ width: '100%', marginTop: '3.5rem' }}>
-                        PUBLISH ASSESSMENT PROFILE
+                        {editId ? 'UPDATE EXAM' : 'CREATE EXAM'}
                     </button>
                 </div>
             </div >
@@ -271,29 +292,30 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
         <div className="animate-fade-in">
             <div className="f-view-header">
                 <div>
-                    <h2>ASSESSMENT <span>REGISTRY</span></h2>
-                    <p className="nexus-page-subtitle" style={{ marginTop: '0.5rem' }}>Manage tactical evaluation profiles</p>
+                    <h2>EXAM <span>MANAGER</span></h2>
+                    <p className="nexus-page-subtitle" style={{ marginTop: '0.5rem' }}>Manage exams and assessments</p>
                 </div>
-                <button onClick={() => setShowCreate(true)} className="nexus-btn-primary">
-                    <FaPlus /> INITIALIZE NEW EXAM
+                <button onClick={() => { setShowCreate(true); setEditId(null); setFormData({ title: '', topic: '', week: 'Week 1', durationMinutes: 20, totalMarks: 10, section: '', branch: branch || 'CSE', questions: [] }); }} className="nexus-btn-primary">
+                    <FaPlus /> CREATE NEW EXAM
                 </button>
             </div>
 
             {loading ? (
-                <div className="no-content">Synchronizing Registry...</div>
+                <div className="no-content">Loading Exams...</div>
             ) : exams.length === 0 ? (
                 <div className="f-node-card f-center-empty">
                     <FaClipboardList style={{ fontSize: '4rem', color: '#cbd5e1', marginBottom: '2rem' }} />
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 950, color: '#1e293b' }}>Empty Registry</h3>
-                    <p style={{ color: '#94a3b8', fontWeight: 850, marginTop: '1rem' }}>No assessment profiles detected for this sector.</p>
-                    <button onClick={() => setShowCreate(true)} className="f-cancel-btn" style={{ marginTop: '2rem' }}>INITIALIZE NOW</button>
+                    <h3 style={{ fontSize: '1.4rem', fontWeight: 950, color: '#1e293b' }}>No Exams Found</h3>
+                    <p style={{ color: '#94a3b8', fontWeight: 850, marginTop: '1rem' }}>No exams created yet.</p>
+                    <button onClick={() => setShowCreate(true)} className="f-cancel-btn" style={{ marginTop: '2rem' }}>CREATE NOW</button>
                 </div>
             ) : (
                 <div className="f-exam-grid">
                     {exams.map(exam => (
                         <div key={exam._id} className="f-exam-card animate-slide-up">
-                            <div style={{ position: 'absolute', top: '2rem', right: '2rem' }}>
-                                <button onClick={() => handleDeleteExam(exam._id)} className="f-node-btn delete" title="Purge Record"><FaTrash /></button>
+                            <div style={{ position: 'absolute', top: '2rem', right: '2rem', display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => handleEditExam(exam)} className="f-node-btn" title="Edit" style={{ color: '#3b82f6' }}><FaEdit /></button>
+                                <button onClick={() => handleDeleteExam(exam._id)} className="f-node-btn delete" title="Delete"><FaTrash /></button>
                             </div>
                             <div className="f-exam-topic">{exam.topic || 'General Knowledge'}</div>
                             <h3 style={{ fontSize: '1.3rem', fontWeight: 950, color: '#1e293b', margin: '0 0 0.5rem' }}>{exam.title}</h3>
@@ -301,19 +323,19 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
 
                             <div className="f-exam-stats">
                                 <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Payload Capacity:</span>
-                                    <span className="f-exam-stat-value">{exam.questions.length} Units</span>
+                                    <span className="f-exam-stat-label">Questions:</span>
+                                    <span className="f-exam-stat-value">{exam.questions.length}</span>
                                 </div>
                                 <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Operation Time:</span>
+                                    <span className="f-exam-stat-label">Duration:</span>
                                     <span className="f-exam-stat-value">{exam.durationMinutes} Minutes</span>
                                 </div>
                                 <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Max Capacity:</span>
-                                    <span className="f-exam-stat-value">{exam.totalMarks || exam.questions.length} CR</span>
+                                    <span className="f-exam-stat-label">Total Marks:</span>
+                                    <span className="f-exam-stat-value">{exam.totalMarks || exam.questions.length}</span>
                                 </div>
                                 <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Sector Link:</span>
+                                    <span className="f-exam-stat-label">Section:</span>
                                     <span className="f-exam-stat-value">{exam.section ? `SECTION ${exam.section}` : 'GLOBAL'}</span>
                                 </div>
                             </div>

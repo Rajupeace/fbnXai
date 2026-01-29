@@ -8,8 +8,27 @@ const { protect, faculty, admin } = require('../middleware/authMiddleware');
 
 // --- FACULTY ENDPOINTS ---
 
+const adminOrFaculty = (req, res, next) => {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'faculty')) {
+        next();
+    } else {
+        res.status(403).json({ message: 'Not authorized as admin or faculty' });
+    }
+};
+
+// Update Exam
+router.put('/:id', protect, adminOrFaculty, async (req, res) => {
+    try {
+        const updatedExam = await Exam.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updatedExam);
+    } catch (err) {
+        console.error("Error updating exam:", err);
+        res.status(500).json({ message: "Failed to update exam", details: err.message });
+    }
+});
+
 // Create a new Exam
-router.post('/create', protect, faculty, async (req, res) => {
+router.post('/create', protect, adminOrFaculty, async (req, res) => {
     try {
         const { title, subject, topic, week, branch, year, section, questions, durationMinutes, totalMarks, facultyId } = req.body;
 
@@ -24,7 +43,7 @@ router.post('/create', protect, faculty, async (req, res) => {
             questions,
             durationMinutes,
             totalMarks,
-            createdBy: req.user && req.user._id ? req.user._id : facultyId
+            createdBy: req.user && req.user._id ? req.user._id : (facultyId || req.user._id)
         });
 
         await newExam.save();
@@ -35,13 +54,12 @@ router.post('/create', protect, faculty, async (req, res) => {
     }
 });
 
-// Get Exams created by Faculty
+// Get Exams created by Faculty (Keep existing for backward compatibility)
 router.get('/faculty/:facultyId', protect, faculty, async (req, res) => {
     try {
         let { facultyId } = req.params;
         let queryId = facultyId;
 
-        // If ID is custom string (e.g., FAC001), resolve to ObjectId
         if (!mongoose.Types.ObjectId.isValid(facultyId)) {
             const Faculty = require('../models/Faculty');
             const facultyDoc = await Faculty.findOne({ facultyId: facultyId });
@@ -59,8 +77,19 @@ router.get('/faculty/:facultyId', protect, faculty, async (req, res) => {
     }
 });
 
+// Get All Exams (Admin Management)
+router.get('/all', protect, adminOrFaculty, async (req, res) => {
+    try {
+        const exams = await Exam.find().sort({ createdAt: -1 });
+        res.json(exams);
+    } catch (err) {
+        console.error("Error fetching all exams:", err);
+        res.status(500).json({ message: "Failed to fetch all exams", details: err.message });
+    }
+});
+
 // Delete Exam
-router.delete('/:id', protect, faculty, async (req, res) => {
+router.delete('/:id', protect, adminOrFaculty, async (req, res) => {
     try {
         await Exam.findByIdAndDelete(req.params.id);
         res.json({ message: 'Exam deleted' });

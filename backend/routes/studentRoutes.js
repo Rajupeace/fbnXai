@@ -209,33 +209,7 @@ router.get('/:studentId/courses/:courseId', async (req, res) => {
   }
 });
 
-// POST /api/students/:id/roadmap-progress
-// Updates the progress for a specific roadmap
-router.post('/:id/roadmap-progress', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { roadmapSlug, completedTopics } = req.body; // Expects array of strings
-    const Student = require('../models/Student');
-
-    // Mongoose Map update syntax: `roadmapProgress.${roadmapSlug}`
-    const update = {};
-    update[`roadmapProgress.${roadmapSlug}`] = completedTopics;
-
-    const student = await Student.findOneAndUpdate(
-      { sid: id },
-      { $set: update },
-      { new: true, upsert: true }
-    );
-
-    if (!student) return res.status(404).json({ error: 'Student not found' });
-
-    console.log(`✅ Saved roadmap progress for ${id}: ${roadmapSlug} -> ${completedTopics.length} topics`);
-    res.json({ success: true, progress: student.roadmapProgress });
-  } catch (err) {
-    console.error('Error saving roadmap progress:', err);
-    res.status(500).json({ error: 'Failed to save progress' });
-  }
-});
+// Roadmap progress handled at bottom of file for clarity and enhanced logic.
 
 // PUT /api/students/profile/:sid
 // Update student profile (including avatar/profilePic)
@@ -306,6 +280,41 @@ router.put('/change-password/:sid', async (req, res) => {
   } catch (error) {
     console.error('Error changing password:', error);
     res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
+// POST /api/students/:studentId/roadmap-progress
+router.post('/:studentId/roadmap-progress', async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { roadmapSlug, topicName, completedTopics } = req.body;
+    const Student = require('../models/Student');
+
+    const student = await Student.findOne({ sid: studentId });
+    if (!student) return res.status(404).json({ error: 'Student not found' });
+
+    if (!student.roadmapProgress) student.roadmapProgress = new Map();
+
+    if (completedTopics && Array.isArray(completedTopics)) {
+      // Bulk update/sync
+      student.roadmapProgress.set(roadmapSlug, completedTopics);
+    } else if (topicName) {
+      // Single toggle
+      const currentProgress = student.roadmapProgress.get(roadmapSlug) || [];
+      let newProgress;
+      if (currentProgress.includes(topicName)) {
+        newProgress = currentProgress.filter(t => t !== topicName);
+      } else {
+        newProgress = [...currentProgress, topicName];
+      }
+      student.roadmapProgress.set(roadmapSlug, newProgress);
+    }
+
+    await student.save();
+    res.json({ success: true, progress: student.roadmapProgress });
+  } catch (err) {
+    console.error('Roadmap progress error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 

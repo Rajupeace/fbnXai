@@ -3,7 +3,7 @@ import { apiGet } from '../../utils/apiClient';
 import { FaUserClock, FaChartLine, FaTrophy, FaCalendarAlt, FaStar, FaLevelUpAlt, FaFire } from 'react-icons/fa';
 
 /**
- * NEXUS ANALYTICS (Attendance & Performance)
+ * ACADEMIC ANALYTICS (Attendance & Performance)
  * A premium, data-driven visualization for academic tracking.
  */
 const StudentAttendanceView = ({ studentId }) => {
@@ -17,7 +17,7 @@ const StudentAttendanceView = ({ studentId }) => {
                 const data = await apiGet(`/api/students/${studentId}/overview`);
                 if (data) setOverview(data);
             } catch (error) {
-                console.error("Nexus Analytics Failed:", error);
+                console.error("Analytics Failed:", error);
             } finally {
                 setLoading(false);
             }
@@ -47,7 +47,7 @@ const StudentAttendanceView = ({ studentId }) => {
         return (
             <div className="nexus-schedule-loading">
                 <div className="nexus-loading-ring"></div>
-                <div className="loading-text">INITIALIZING NEXUS ANALYTICS...</div>
+                <div className="loading-text">LOADING ANALYTICS...</div>
             </div>
         );
     }
@@ -63,7 +63,7 @@ const StudentAttendanceView = ({ studentId }) => {
             <div className="nexus-page-header">
                 <div>
                     <div className="nexus-page-subtitle">
-                        <FaChartLine /> Performance Neural
+                        <FaChartLine /> Performance Overview
                     </div>
                     <h1 className="nexus-page-title">
                         ACADEMIC <span>INSIGHTS</span>
@@ -107,7 +107,7 @@ const StudentAttendanceView = ({ studentId }) => {
                         </div>
                         <div className="card-foot">
                             <div className="nexus-progress-bar perf"><div style={{ width: `${academics.overallPercentage}%` }}></div></div>
-                            <span className="status-tag pulse">ELITE</span>
+                            <span className="status-tag pulse">EXCELLENT</span>
                         </div>
                     </div>
                 </div>
@@ -121,7 +121,7 @@ const StudentAttendanceView = ({ studentId }) => {
                         </div>
                         <div className="card-body">
                             <div className="big-value">{overview?.activity?.streak || 0} DAYS</div>
-                                <div className="sub-value">{overview?.activity?.streak ? 'Uninterrupted Presence' : 'No recent activity'}</div>
+                            <div className="sub-value">{overview?.activity?.streak ? 'Uninterrupted Presence' : 'No recent activity'}</div>
                         </div>
                         <div className="card-foot">
                             <div className="streak-stars">
@@ -136,7 +136,7 @@ const StudentAttendanceView = ({ studentId }) => {
             {/* Subject Matrix */}
             <div className="analytics-matrix-header">
                 <h3 className="matrix-title">
-                    SUBJECT ANALYTICS MATRIX <div className="matrix-line"></div>
+                    SUBJECT PERFORMANCE <div className="matrix-line"></div>
                 </h3>
             </div>
 
@@ -147,7 +147,7 @@ const StudentAttendanceView = ({ studentId }) => {
                             <div className="subject-icon">{card.subject.substring(0, 2).toUpperCase()}</div>
                             <div className="subject-info">
                                 <h4>{card.subject}</h4>
-                                <span>POWER LEVEL: {card.score}</span>
+                                <span>OVERALL SCORE: {card.score}</span>
                             </div>
                             <div className="subject-score-badge">{card.attendance.percentage}%</div>
                         </div>
@@ -166,7 +166,7 @@ const StudentAttendanceView = ({ studentId }) => {
                         </div>
 
                         <button className="subject-drilldown">
-                            VIEW DETAILED NEURAL MAP <FaLevelUpAlt className="rotate-90" />
+                            VIEW DETAILS <FaLevelUpAlt className="rotate-90" />
                         </button>
                     </div>
                 ))}

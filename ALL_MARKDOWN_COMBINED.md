@@ -456,3 +456,39 @@ All Faculty sections have been code-audited and patched for:
 ### End of merged content
 
 ````
+# 📝 Exam Management System Update (Jan 28, 2026)
+
+## Overview
+A complete overhaul of the Exam Management system has been implemented and verified for both Admin and Faculty roles. This includes full CRUD (Create, Read, Update, Delete) capabilities, robust authorization, and enhanced UI/UX.
+
+## 🔑 Key Features
+
+### 1. Admin Dashboard
+- **Create Exams:** Admins can now create exams for any branch/year/section via the "Manage Protocols" -> "Design New Protocol" tab.
+- **Edit Exams:** Existing exams can be edited (Questions, Title, Duration, schedules, etc.) via the "Check and Update" tab. This utilizes the new `adminOrFaculty` middleware and `PUT` endpoints.
+- **Delete Exams:** One-click deletion of exams with confirmation.
+- **View All Exams:** Admins have a global view of all scheduled assessments across the institution.
+
+### 2. Faculty Dashboard
+- **Create Exams:** Faculty can create exams for their specific assigned subjects.
+- **Edit Capabilities:** Added a "Recalibrate" (Edit) button to existing exams, allowing Faculty to fix typos or update questions/options without needing to delete and recreate the exam.
+- **Material Management:** Faculty can now **Edit** (replace files, update details) and **Delete** their uploaded materials (Notes, Videos) directly from the "Registry" tab.
+
+### 3. Student Dashboard
+- **Exam Interface:** The "Proving Grounds" interface allows students to take exams with a real-time timer and secure submission.
+- **Material Access:** Confirmed that the "Model Papers / PYQs" section in the Academic Browser correctly displays uploads of type 'modelPapers'.
+
+## 🛠️ Technical Implementation Details
+- **Backend Routes (`examRoutes.js`):**
+  - **New Endpoint:** `PUT /:id` for updating exam details.
+  - **Middleware:** Introduced `adminOrFaculty` to grant dual access to management routes (`/create`, `/delete`, `/all`).
+  - **Authorization:** Unlocked previously restricted routes to allow Admin intervention.
+- **Frontend Components:**
+  - `AdminExams.jsx`: Completely rewritten to include tabbed navigation for Analytics, Management, and Creation.
+  - `FacultyExams.jsx`: Enhanced with `editId` state and `apiPut` logic for updating assessments.
+  - `MaterialManager.jsx`: Refactored to support `FormData` state, enabling file replacements and metadata updates via `PUT`.
+
+## ✅ Verification Status
+- **Material Lifecycle:** Upload -> View -> Edit -> Delete verified for both Admin and Faculty.
+- **Exam Lifecycle:** Create -> Take (Student) -> View Results -> Edit -> Delete verified.
+- **Role-Based Access:** Admin tokens and Faculty tokens are correctly distinguished and authorized for respective operations.
