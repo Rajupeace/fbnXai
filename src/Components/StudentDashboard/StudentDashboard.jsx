@@ -3,7 +3,7 @@ import { apiGet } from '../../utils/apiClient';
 import sseClient from '../../utils/sseClient';
 import {
     FaGraduationCap, FaChartBar, FaTrophy, FaLightbulb,
-    FaLayerGroup, FaRobot, FaFire, FaClipboardList, FaBriefcase, FaCreditCard
+    FaLayerGroup, FaRobot, FaFire, FaClipboardList, FaBriefcase, FaCreditCard, FaBolt
 } from 'react-icons/fa';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 
