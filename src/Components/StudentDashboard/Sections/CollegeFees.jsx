@@ -10,6 +10,7 @@ const CollegeFees = ({ userData }) => {
     const [amount, setAmount] = useState('');
     const [method, setMethod] = useState('UPI');
     const [notification, setNotification] = useState(null);
+    const [selectedTxn, setSelectedTxn] = useState(null);
 
     const fetchFees = useCallback(async () => {
         try {
@@ -165,7 +166,7 @@ const CollegeFees = ({ userData }) => {
                     <h3><FaHistory /> Payment History</h3>
                     <div className="transaction-list">
                         {feeData?.transactions?.length > 0 ? (
-                            feeData.transactions.map((txn, index) => (
+                            [...feeData.transactions].reverse().map((txn, index) => (
                                 <div className="transaction-item" key={index}>
                                     <div className="txn-info">
                                         <span className="txn-date">{new Date(txn.date).toLocaleDateString()}</span>
@@ -173,7 +174,11 @@ const CollegeFees = ({ userData }) => {
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <span className="txn-amount">₹{txn.amount.toLocaleString()}</span>
-                                        <FaReceipt className="text-indigo-400 cursor-pointer hover:text-indigo-600" title="Download Receipt" />
+                                        <FaReceipt
+                                            className="text-indigo-400 cursor-pointer hover:text-indigo-600"
+                                            title="View Receipt"
+                                            onClick={() => setSelectedTxn(txn)}
+                                        />
                                     </div>
                                 </div>
                             ))
@@ -183,6 +188,65 @@ const CollegeFees = ({ userData }) => {
                     </div>
                 </div>
             </div>
+
+            {selectedTxn && (
+                <div className="receipt-modal-overlay" onClick={() => setSelectedTxn(null)}>
+                    <div className="receipt-modal-content" onClick={e => e.stopPropagation()}>
+                        <div className="receipt-paper">
+                            <div className="receipt-header">
+                                <div className="clg-logo"><FaUniversity /></div>
+                                <h2>PAYMENT RECEIPT</h2>
+                                <p>VIGNAN UNIVERSITY ACADEMICS</p>
+                            </div>
+
+                            <div className="receipt-body">
+                                <div className="r-row">
+                                    <span className="r-label">Date:</span>
+                                    <span className="r-val">{new Date(selectedTxn.date).toLocaleDateString()}</span>
+                                </div>
+                                <div className="r-row">
+                                    <span className="r-label">Transaction ID:</span>
+                                    <span className="r-val">{selectedTxn.transactionId}</span>
+                                </div>
+                                <div className="r-row">
+                                    <span className="r-label">Student ID:</span>
+                                    <span className="r-val">{userData.sid.toUpperCase()}</span>
+                                </div>
+                                <div className="r-row">
+                                    <span className="r-label">Student Name:</span>
+                                    <span className="r-val">{userData.studentName}</span>
+                                </div>
+                                <div className="r-row">
+                                    <span className="r-label">Academic Year:</span>
+                                    <span className="r-val">{feeData.academicYear} / {feeData.semester}</span>
+                                </div>
+                                <hr className="r-divider" />
+                                <div className="r-row r-amount-row">
+                                    <span className="r-label">Amount Paid:</span>
+                                    <span className="r-amount">₹{selectedTxn.amount.toLocaleString()}</span>
+                                </div>
+                                <div className="r-row">
+                                    <span className="r-label">Payment Method:</span>
+                                    <span className="r-val">{selectedTxn.method}</span>
+                                </div>
+                                <div className="r-row r-status-row">
+                                    <span className="r-label">Status:</span>
+                                    <span className="r-status-success">SUCCESSFUL</span>
+                                </div>
+                            </div>
+
+                            <div className="receipt-footer">
+                                <p>This is a computer-generated receipt for digital records.</p>
+                                <div className="barcode">|||| ||| ||||| || |||| ||</div>
+                                <button className="print-btn" onClick={() => window.print()}>
+                                    <FaReceipt /> PRINT / SAVE AS PDF
+                                </button>
+                            </div>
+                        </div>
+                        <button className="close-receipt" onClick={() => setSelectedTxn(null)}>×</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

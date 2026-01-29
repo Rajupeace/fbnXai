@@ -7,14 +7,14 @@ const StudentDataSchema = new mongoose.Schema({
         required: true,
         unique: true
     },
-    
+
     // Student Profile
     name: String,
     email: String,
     rollNumber: String,
     branch: String,
     currentSemester: String,
-    
+
     // Dashboard Sections Data
     sections: {
         // Section 1: Overview/Dashboard
@@ -29,7 +29,7 @@ const StudentDataSchema = new mongoose.Schema({
             currentSGPA: { type: Number, default: 0 },
             lastUpdated: Date
         },
-        
+
         // Section 2: Courses
         courses: {
             totalCourses: { type: Number, default: 0 },
@@ -54,7 +54,7 @@ const StudentDataSchema = new mongoose.Schema({
             }],
             lastUpdated: Date
         },
-        
+
         // Section 3: Materials/Resources
         materials: {
             totalMaterials: { type: Number, default: 0 },
@@ -72,7 +72,7 @@ const StudentDataSchema = new mongoose.Schema({
             }],
             lastUpdated: Date
         },
-        
+
         // Section 4: Schedule
         schedule: {
             totalClasses: { type: Number, default: 0 },
@@ -98,7 +98,7 @@ const StudentDataSchema = new mongoose.Schema({
             }],
             lastUpdated: Date
         },
-        
+
         // Section 5: Exams
         exams: {
             totalExams: { type: Number, default: 0 },
@@ -121,7 +121,7 @@ const StudentDataSchema = new mongoose.Schema({
             }],
             lastUpdated: Date
         },
-        
+
         // Section 6: Faculty List & Assignments
         faculty: {
             totalFaculty: { type: Number, default: 0 },
@@ -136,7 +136,7 @@ const StudentDataSchema = new mongoose.Schema({
             }],
             lastUpdated: Date
         },
-        
+
         // Section 7: Chat/Messaging with AI Agent
         chat: {
             totalChats: { type: Number, default: 0 },
@@ -157,7 +157,7 @@ const StudentDataSchema = new mongoose.Schema({
             }],
             lastUpdated: Date
         },
-        
+
         // Section 8: Attendance Records
         attendance: {
             totalClasses: { type: Number, default: 0 },
@@ -175,7 +175,7 @@ const StudentDataSchema = new mongoose.Schema({
             lastUpdated: Date
         }
     },
-    
+
     // Learning Progress & Achievements
     progress: {
         overallProgress: { type: Number, default: 0 },
@@ -185,9 +185,18 @@ const StudentDataSchema = new mongoose.Schema({
         aiUsageCount: { type: Number, default: 0 },
         tasksCompleted: { type: Number, default: 0 },
         advancedProgress: { type: Number, default: 0 },
+        weeklyActivity: [
+            { day: { type: String, default: 'Mon' }, hours: { type: Number, default: 0 } },
+            { day: { type: String, default: 'Tue' }, hours: { type: Number, default: 0 } },
+            { day: { type: String, default: 'Wed' }, hours: { type: Number, default: 0 } },
+            { day: { type: String, default: 'Thu' }, hours: { type: Number, default: 0 } },
+            { day: { type: String, default: 'Fri' }, hours: { type: Number, default: 0 } },
+            { day: { type: String, default: 'Sat' }, hours: { type: Number, default: 0 } },
+            { day: { type: String, default: 'Sun' }, hours: { type: Number, default: 0 } }
+        ],
         lastUpdated: Date
     },
-    
+
     // Student Stats
     statistics: {
         totalAssignmentsSubmitted: { type: Number, default: 0 },
@@ -196,7 +205,7 @@ const StudentDataSchema = new mongoose.Schema({
         averageMarks: { type: Number, default: 0 },
         lastUpdated: Date
     },
-    
+
     // Activity Log
     activityLog: [{
         action: String,
@@ -204,7 +213,7 @@ const StudentDataSchema = new mongoose.Schema({
         courseId: mongoose.Schema.Types.ObjectId,
         timestamp: { type: Date, default: Date.now }
     }],
-    
+
     // Metadata
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

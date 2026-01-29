@@ -497,25 +497,37 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     <div className="weekly-progress-card animate-slide-in">
                         <div className="weekly-header">
                             <h3><FaChartBar style={{ color: 'var(--nexus-primary)' }} /> STUDY HOURS (WEEKLY)</h3>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8' }}>AVG: 6.4h/day</span>
+                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8' }}>
+                                AVG: {(overviewData?.activity?.weeklyActivity?.reduce((acc, curr) => acc + curr.hours, 0) / 7 || 0).toFixed(1)}h/day
+                            </span>
                         </div>
                         <div className="chart-container">
-                            {[
-                                { day: 'MON', val: 70 },
-                                { day: 'TUE', val: 45 },
-                                { day: 'WED', val: 90 },
-                                { day: 'THU', val: 65 },
-                                { day: 'FRI', val: 80 },
-                                { day: 'SAT', val: 30 },
-                                { day: 'SUN', val: 20 }
-                            ].map((d, i) => (
-                                <div key={i} className="bar-wrapper">
-                                    <div className="bar-bg">
-                                        <div className="bar-fill" style={{ height: `${d.val}%`, transitionDelay: `${i * 0.1}s` }}></div>
+                            {(overviewData?.activity?.weeklyActivity || [
+                                { day: 'Mon', hours: 0 },
+                                { day: 'Tue', hours: 0 },
+                                { day: 'Wed', hours: 0 },
+                                { day: 'Thu', hours: 0 },
+                                { day: 'Fri', hours: 0 },
+                                { day: 'Sat', hours: 0 },
+                                { day: 'Sun', hours: 0 }
+                            ]).map((d, i) => {
+                                const val = Math.min((d.hours / 12) * 100, 100);
+                                return (
+                                    <div key={i} className="bar-wrapper">
+                                        <div className="bar-bg">
+                                            <div
+                                                className="bar-fill"
+                                                style={{
+                                                    height: d.hours > 0 ? `${val}%` : '4px',
+                                                    transitionDelay: `${i * 0.1}s`,
+                                                    background: d.hours >= 8 ? 'linear-gradient(to top, #10b981, #34d399)' : 'linear-gradient(to top, var(--nexus-primary), var(--nexus-secondary))'
+                                                }}
+                                            ></div>
+                                        </div>
+                                        <span className="bar-day">{d.day.toUpperCase()}</span>
                                     </div>
-                                    <span className="bar-day">{d.day}</span>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </section>

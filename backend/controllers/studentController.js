@@ -132,7 +132,16 @@ exports.getStudentOverview = async (req, res) => {
     const activity = {
       streak: student.stats?.streak || 0,
       aiUsage: student.stats?.aiUsageCount || 0,
-      advancedLearning: student.stats?.advancedProgress || 0
+      advancedLearning: student.stats?.advancedProgress || 0,
+      weeklyActivity: student.stats?.weeklyActivity || [
+        { day: 'Mon', hours: 0 },
+        { day: 'Tue', hours: 0 },
+        { day: 'Wed', hours: 0 },
+        { day: 'Thu', hours: 0 },
+        { day: 'Fri', hours: 0 },
+        { day: 'Sat', hours: 0 },
+        { day: 'Sun', hours: 0 }
+      ]
     };
 
     // 4. Fetch My Faculty (Hybrid)

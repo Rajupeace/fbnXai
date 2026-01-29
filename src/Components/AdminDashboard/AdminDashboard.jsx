@@ -1778,7 +1778,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
                     {modalType === 'student-view' && editItem && (
                       <div className="view-details" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
-                        <div className="admin-profile-header">
+                        <div className="admin-profile-header" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '2rem', marginBottom: '2rem' }}>
                           <div className="admin-avatar-lg">
                             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${editItem.studentName}`} alt="Profile" style={{ width: '100%', height: '100%' }} />
                           </div>
@@ -1795,8 +1795,57 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                           </div>
                         </div>
 
-                        <div className="admin-modal-actions">
-                          <button onClick={closeModal} className="admin-btn admin-btn-primary">CLOSE</button>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', padding: '0 1rem' }}>
+                          <div className="f-node-card" style={{ padding: '1.5rem' }}>
+                            <h4 style={{ color: 'var(--admin-secondary)', fontWeight: 950, fontSize: '0.9rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--admin-border)', paddingBottom: '0.5rem' }}>ACADEMIC SNAPSHOT</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                              <div className="admin-summary-card" style={{ padding: '1rem' }}>
+                                <div className="value" style={{ fontSize: '1.5rem', color: 'var(--admin-primary)' }}>{editItem.stats?.totalClasses > 0 ? Math.round((editItem.stats?.totalPresent / editItem.stats?.totalClasses) * 100) : 0}%</div>
+                                <div className="label">ATTENDANCE</div>
+                              </div>
+                              <div className="admin-summary-card" style={{ padding: '1rem' }}>
+                                <div className="value" style={{ fontSize: '1.5rem', color: '#8b5cf6' }}>{editItem.stats?.aiUsageCount || 0}</div>
+                                <div className="label">AI INTERACTIONS</div>
+                              </div>
+                              <div className="admin-summary-card" style={{ padding: '1rem' }}>
+                                <div className="value" style={{ fontSize: '1.5rem', color: '#10b981' }}>{editItem.stats?.streak || 0}</div>
+                                <div className="label">STUDY STREAK</div>
+                              </div>
+                              <div className="admin-summary-card" style={{ padding: '1rem' }}>
+                                <div className="value" style={{ fontSize: '1.5rem', color: '#f59e0b' }}>{editItem.stats?.tasksCompleted || 0}</div>
+                                <div className="label">TASKS DONE</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="f-node-card" style={{ padding: '1.5rem' }}>
+                            <h4 style={{ color: 'var(--admin-secondary)', fontWeight: 950, fontSize: '0.9rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--admin-border)', paddingBottom: '0.5rem' }}>WEEKLY ACTIVITY (HRS)</h4>
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', height: '100px', padding: '0 5px' }}>
+                              {(editItem.stats?.weeklyActivity || [
+                                { day: 'Mon', hours: 0 }, { day: 'Tue', hours: 0 }, { day: 'Wed', hours: 0 },
+                                { day: 'Thu', hours: 0 }, { day: 'Fri', hours: 0 }, { day: 'Sat', hours: 0 }, { day: 'Sun', hours: 0 }
+                              ]).map((d, i) => (
+                                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                  <div style={{
+                                    width: '100%',
+                                    height: `${Math.min((d.hours / 12) * 100, 100)}%`,
+                                    minHeight: '2px',
+                                    background: 'var(--admin-primary)',
+                                    borderRadius: '4px 4px 0 0'
+                                  }}></div>
+                                  <span style={{ fontSize: '0.5rem', fontWeight: 950, color: 'var(--admin-text-muted)', marginTop: '5px' }}>{d.day.toUpperCase()}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ marginTop: '1.5rem', fontSize: '0.75rem', fontWeight: 850, color: 'var(--admin-text-muted)', textAlign: 'center' }}>
+                              AVERAGE: {(editItem.stats?.weeklyActivity?.reduce((acc, c) => acc + c.hours, 0) / 7 || 0).toFixed(1)} hrs/day
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="admin-modal-actions" style={{ marginTop: '3rem', borderTop: '1px solid var(--admin-border)', paddingTop: '2rem' }}>
+                          <button onClick={() => openModal('student', editItem)} className="admin-btn admin-btn-outline" style={{ marginRight: '1rem', border: 'none' }}>EDIT RECORDS</button>
+                          <button onClick={closeModal} className="admin-btn admin-btn-primary">CLOSE PROFILE</button>
                         </div>
                       </div>
                     )}

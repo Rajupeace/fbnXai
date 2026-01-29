@@ -53,7 +53,16 @@ const studentSchema = new mongoose.Schema({
     tasksCompleted: { type: Number, default: 0 },
     advancedProgress: { type: Number, default: 0 }, // % completed
     totalClasses: { type: Number, default: 0 },
-    totalPresent: { type: Number, default: 0 }
+    totalPresent: { type: Number, default: 0 },
+    weeklyActivity: [
+      { day: { type: String, default: 'Mon' }, hours: { type: Number, default: 0 } },
+      { day: { type: String, default: 'Tue' }, hours: { type: Number, default: 0 } },
+      { day: { type: String, default: 'Wed' }, hours: { type: Number, default: 0 } },
+      { day: { type: String, default: 'Thu' }, hours: { type: Number, default: 0 } },
+      { day: { type: String, default: 'Fri' }, hours: { type: Number, default: 0 } },
+      { day: { type: String, default: 'Sat' }, hours: { type: Number, default: 0 } },
+      { day: { type: String, default: 'Sun' }, hours: { type: Number, default: 0 } }
+    ]
   },
   // Progress Tracking
   roadmapProgress: {
