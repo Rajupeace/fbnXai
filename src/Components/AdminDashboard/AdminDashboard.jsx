@@ -10,7 +10,7 @@ import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
 import AdminExams from './AdminExams';
-import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup, FaCreditCard, FaHistory, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup, FaCreditCard, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import sseClient from '../../utils/sseClient';
 
@@ -21,10 +21,10 @@ import MaterialSection from './Sections/MaterialSection';
 import MessageSection from './Sections/MessageSection';
 import TodoSection from './Sections/TodoSection';
 import AcademicHub from './Sections/AcademicHub';
+import AdminMarks from './AdminMarks';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 
 
-// Helper for mocked API or local storage check
 // Helper for mocked API or local storage check
 const USE_API = true; // Always use API in unified app mode (defaults to localhost:5000)
 
@@ -1344,6 +1344,12 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     CREATE ANNOUNCEMENT
                   </button>
                 </div>
+              </div>
+            )}
+
+            {activeSection === 'marks' && (
+              <div className="nexus-hub-viewport" style={{ padding: '0 2rem' }}>
+                <AdminMarks />
               </div>
             )}
 

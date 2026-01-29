@@ -77,10 +77,10 @@ const StudentSection = ({ students, openModal, handleDeleteStudent }) => {
                                         <td>SEC {s.section || '---'}</td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="admin-action-btn view" title="View Profile" onClick={() => openModal('student-view', s)}><FaEye /></motion.button>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="admin-action-btn view" title="View Curriculum" onClick={() => openModal('student-curriculum', s)} style={{ color: '#8b5cf6', background: '#f5f3ff' }}><FaBook /></motion.button>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="admin-action-btn edit" title="Edit" onClick={() => openModal('student', s)}><FaEdit /></motion.button>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="admin-action-btn delete" title="Delete" onClick={() => handleDeleteStudent(s.sid)}><FaTrash /></motion.button>
+                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: 'var(--admin-primary)' }} title="View Profile" onClick={() => openModal('student-view', s)}><FaEye /></motion.button>
+                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: '#f5f3ff', color: '#8b5cf6' }} title="View Curriculum" onClick={() => openModal('student-curriculum', s)}><FaBook /></motion.button>
+                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: 'var(--admin-secondary)' }} title="Edit" onClick={() => openModal('student', s)}><FaEdit /></motion.button>
+                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete" onClick={() => handleDeleteStudent(s.sid)}><FaTrash /></motion.button>
                                             </div>
                                         </td>
                                     </motion.tr>

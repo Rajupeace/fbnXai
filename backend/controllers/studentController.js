@@ -128,11 +128,22 @@ exports.getStudentOverview = async (req, res) => {
       console.error('⚠️  Exam computation skipped:', examErr.message);
     }
 
+    // Calculate Dynamic Career Readiness Score if base is 0
+    let careerScore = student.stats?.careerReadyScore || 0;
+    if (careerScore === 0) {
+      const attWeight = (attendanceSummary.overall || 0) * 0.3;
+      const academicWeight = (academicsSummary.overallPercentage || 0) * 0.4;
+      const roadmapKeys = Object.keys(student.roadmapProgress || {});
+      const roadmapWeight = Math.min(roadmapKeys.length * 10, 30); // Max 30% for having roadmaps
+      careerScore = Math.round(attWeight + academicWeight + roadmapWeight);
+    }
+
     // Activity: derive from student.stats when available, default to zeroes
     const activity = {
       streak: student.stats?.streak || 0,
       aiUsage: student.stats?.aiUsageCount || 0,
       advancedLearning: student.stats?.advancedProgress || 0,
+      careerReadyScore: careerScore,
       weeklyActivity: student.stats?.weeklyActivity || [
         { day: 'Mon', hours: 0 },
         { day: 'Tue', hours: 0 },

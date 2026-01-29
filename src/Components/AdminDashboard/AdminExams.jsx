@@ -251,7 +251,12 @@ const AdminExams = () => {
                         <label className="admin-detail-label">SECTION</label>
                         <select className="admin-search-input" style={{ width: '100%' }} value={examForm.section} onChange={e => setExamForm({ ...examForm, section: e.target.value })}>
                             <option value="">All Sections</option>
-                            <option value="A">A</option> <option value="B">B</option> <option value="C">C</option> <option value="D">D</option>
+                            {(() => {
+                                const alphaSections = Array.from({ length: 16 }, (_, i) => String.fromCharCode(65 + i)); // A-P
+                                const numSections = Array.from({ length: 20 }, (_, i) => String(i + 1)); // 1-20
+                                const SECTION_OPTIONS = [...alphaSections, ...numSections];
+                                return SECTION_OPTIONS.map(s => <option key={s} value={s}>{s}</option>);
+                            })()}
                         </select>
                     </div>
                     <div>

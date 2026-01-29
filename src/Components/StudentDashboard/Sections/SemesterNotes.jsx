@@ -31,7 +31,12 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
             setSaveStatus('Synced');
         } catch (e) {
             console.error('Failed to fetch notes:', e);
-            setSaveStatus('Offline');
+            if (e.status === 401 || e.status === 403) {
+                setSaveStatus('Unauthorized');
+                window.alert('Please login to access your notes');
+            } else {
+                setSaveStatus('Offline');
+            }
         } finally {
             setLoading(false);
         }
@@ -74,7 +79,12 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
                 }
             } catch (e) {
                 console.error('Failed to save note:', e);
-                setSaveStatus('Error');
+                if (e.status === 401 || e.status === 403) {
+                    setSaveStatus('Unauthorized');
+                    window.alert('Please login to save notes');
+                } else {
+                    setSaveStatus('Error');
+                }
             }
         }
     };
@@ -87,6 +97,10 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
                 setSaveStatus('Deleted');
             } catch (e) {
                 console.error('Failed to delete note:', e);
+                if (e.status === 401 || e.status === 403) {
+                    window.alert('Not authorized to delete this note. Please login.');
+                    setSaveStatus('Unauthorized');
+                }
             }
         }
     };
@@ -107,7 +121,12 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
             }
         } catch (e) {
             console.error('Failed to update note:', e);
-            setSaveStatus('Error');
+            if (e.status === 401 || e.status === 403) {
+                window.alert('Not authorized to update this note. Please login.');
+                setSaveStatus('Unauthorized');
+            } else {
+                setSaveStatus('Error');
+            }
         }
     };
 

@@ -160,7 +160,7 @@ const AdminScheduleManager = () => {
             <div className="admin-card" style={{ marginBottom: '2.5rem' }}>
                 <div className="admin-filter-bar">
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">COHORT YEAR</label>
+                        <label className="admin-detail-label">ACADEMIC YEAR</label>
                         <select
                             className="admin-filter-select"
                             value={filters.year}
@@ -171,7 +171,7 @@ const AdminScheduleManager = () => {
                         </select>
                     </div>
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">TARGET SECTION</label>
+                        <label className="admin-detail-label">SECTION</label>
                         <select
                             className="admin-filter-select"
                             value={filters.section}
@@ -193,7 +193,7 @@ const AdminScheduleManager = () => {
                         </select>
                     </div>
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">DAY</label>
+                        <label className="admin-detail-label">DAY OF WEEK</label>
                         <select
                             className="admin-filter-select"
                             value={filters.day}

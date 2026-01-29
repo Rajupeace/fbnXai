@@ -13,6 +13,7 @@ import StudentProfileCard from './Sections/StudentProfileCard';
 import AcademicBrowser from './Sections/AcademicBrowser';
 import SemesterNotes from './Sections/SemesterNotes';
 import SubjectAttendanceMarks from './Sections/SubjectAttendanceMarks';
+import StudentResults from './Sections/StudentResults';
 import AdvancedLearning from './Sections/AdvancedLearning';
 import StudentAttendanceView from './StudentAttendanceView';
 import StudentExams from './StudentExams';
@@ -21,7 +22,7 @@ import StudentSchedule from './StudentSchedule';
 import PlacementPrep from './Sections/PlacementPrep';
 import StudentRoadmaps from './Sections/StudentRoadmaps';
 import StudentAnnouncements from './Sections/StudentAnnouncements';
-import PasswordSettings from '../Settings/PasswordSettings';
+import StudentSettings from './Sections/StudentSettings';
 import { getYearData } from './branchData';
 import AcademicPulse from './AcademicPulse';
 import CollegeFees from './Sections/CollegeFees';
@@ -31,6 +32,7 @@ import SkillsRadar from './Sections/SkillsRadar';
 import GlobalNotifications from '../GlobalNotifications/GlobalNotifications';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 import StudentTasks from './Sections/StudentTasks';
+import CareerReadiness from './Sections/CareerReadiness';
 // StudyTools intentionally removed (unused) to satisfy linting
 
 /**
@@ -78,11 +80,11 @@ export default function StudentDashboard({ studentData, onLogout }) {
     // --- Data Fetching ---
     const fetchData = useCallback(async () => {
         try {
-            console.log('📊 StudentDashboard: Fetching data from database...');
+            // console.debug('📊 StudentDashboard: Fetching data from database...');
 
             const ovData = await apiGet(`/api/students/${userData.sid}/overview`);
             if (ovData) {
-                console.log('   ✅ Overview data fetched');
+                // console.debug('   ✅ Overview data fetched');
                 setOverviewData(ovData);
                 // Always sync name and core fields from server when available to avoid stale/demo fallbacks
                 if (ovData.student) {
@@ -101,31 +103,31 @@ export default function StudentDashboard({ studentData, onLogout }) {
 
             const courseData = await apiGet(`/api/students/${userData.sid}/courses`);
             if (Array.isArray(courseData)) {
-                console.log(`   ✅ Courses fetched: ${courseData.length} items`);
+                // console.debug(`   ✅ Courses fetched: ${courseData.length} items`);
                 setExtraCourses(courseData);
             }
 
             const materialsData = await apiGet('/api/materials');
             if (Array.isArray(materialsData)) {
-                console.log(`   ✅ Materials fetched: ${materialsData.length} items`);
+                // console.debug(`   ✅ Materials fetched: ${materialsData.length} items`);
                 setServerMaterials(materialsData);
             }
 
             const tasksData = await apiGet(`/api/todos?role=student&userId=${userData.sid}`);
             if (Array.isArray(tasksData)) {
-                console.log(`   ✅ Tasks fetched: ${tasksData.length} items`);
+                // console.debug(`   ✅ Tasks fetched: ${tasksData.length} items`);
                 setTasks(tasksData);
             }
 
             const msgData = await apiGet('/api/messages');
             if (Array.isArray(msgData)) {
-                console.log(`   ✅ Messages fetched: ${msgData.length} items`);
+                // console.debug(`   ✅ Messages fetched: ${msgData.length} items`);
                 setMessages(msgData);
             }
 
             const fd = await apiGet(`/api/fees/${userData.sid}`);
             if (fd) {
-                console.log('   ✅ Fee data fetched');
+                // console.debug('   ✅ Fee data fetched');
                 setFeeData(fd);
             }
 
@@ -151,19 +153,19 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 setNextClass(upcoming || futureClasses[0]);
             }
 
-            console.log('✅ StudentDashboard: All data loaded successfully');
+            // console.debug('✅ StudentDashboard: All data loaded successfully');
         } catch (e) {
             console.error("❌ StudentDashboard: Sync Failed:", e);
         }
     }, [userData.sid]);
 
     useEffect(() => {
-        console.log('🚀 StudentDashboard: Initial data load started');
+        // console.debug('🚀 StudentDashboard: Initial data load started');
         fetchData();
 
         // Optimized polling: 5 seconds (more efficient than 2s)
         const interval = setInterval(() => {
-            console.log('🔄 StudentDashboard: Polling data from database...');
+            // console.debug('🔄 StudentDashboard: Polling data from database...');
             fetchData();
         }, 5000);
 
@@ -186,7 +188,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
         }, 5000);
 
         return () => {
-            console.log('🛑 StudentDashboard: Cleaning up intervals');
+            // console.debug('🛑 StudentDashboard: Cleaning up intervals');
             clearInterval(interval);
             clearInterval(msgInterval);
         };
@@ -487,7 +489,14 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 </aside>
 
                 <section className="nexus-content-col">
-                    <div className="nexus-browser-wrap">
+                    <CareerReadiness
+                        score={overviewData?.activity?.careerReadyScore || 0}
+                        academics={overviewData?.academics || {}}
+                        attendance={overviewData?.attendance || {}}
+                        roadmapCount={Object.keys(overviewData?.roadmapProgress || {}).length}
+                    />
+
+                    <div className="nexus-browser-wrap" style={{ marginTop: '2rem' }}>
                         <div className="browser-glass-header">
                             <FaLayerGroup /> <span>Your Academic Progress</span>
                         </div>
@@ -644,31 +653,17 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 )}
 
                 {view === 'settings' && (
-                    <div className="nexus-hub-viewport">
-                        <div className="nexus-mesh-bg"></div>
-                        <header className="hub-header">
-                            <h2 className="nexus-page-title">Profile <span>Settings</span></h2>
-                            <p className="nexus-page-subtitle sub-text-slate">Manage your account settings</p>
-                        </header>
-
-                        <div className="nexus-browser-wrap min-h-auto">
-                            <PasswordSettings
-                                userData={userData}
-                                onBack={() => setView('overview')}
-                                onProfileUpdate={setUserData}
-                            />
-                        </div>
+                    <div className="nexus-page-container">
+                        <StudentSettings
+                            userData={userData}
+                            onProfileUpdate={setUserData}
+                        />
                     </div>
                 )}
 
                 {view === 'marks' && (
                     <div className="nexus-hub-viewport">
-                        <div className="nexus-mesh-bg"></div>
-                        <header className="hub-header">
-                            <h2 className="nexus-page-title">Grades & <span>Attendance</span></h2>
-                            <p className="nexus-page-subtitle sub-text-slate">View your detailed progress</p>
-                        </header>
-                        <SubjectAttendanceMarks overviewData={overviewData} enrolledSubjects={enrolledSubjects} />
+                        <StudentResults studentData={studentData} />
                     </div>
                 )}
 

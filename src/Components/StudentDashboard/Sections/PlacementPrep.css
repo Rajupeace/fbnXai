@@ -1,0 +1,270 @@
+.placement-container {
+    padding: 2rem;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.placement-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 28px;
+    padding: 4rem 3rem;
+    margin-bottom: 3rem;
+    position: relative;
+    overflow: hidden;
+    color: white;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+}
+
+.hero-content {
+    position: relative;
+    z-index: 5;
+    max-width: 700px;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 950;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    letter-spacing: -2px;
+}
+
+.hero-title span {
+    color: #818cf8;
+    background: linear-gradient(to right, #818cf8, #c084fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+.company-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2.5rem;
+}
+
+.premium-company-card {
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid #f1f5f9;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+}
+
+.premium-company-card:hover {
+    transform: translateY(-12px);
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.1);
+}
+
+.card-banner {
+    height: 100px;
+    position: relative;
+}
+
+.logo-wrapper {
+    position: absolute;
+    bottom: -30px;
+    left: 24px;
+    width: 70px;
+    height: 70px;
+    background: white;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+}
+
+.card-main-content {
+    padding: 3.5rem 2rem 2rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.company-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.company-name-row h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0;
+}
+
+.package-pill {
+    font-size: 0.9rem;
+    font-weight: 900;
+    color: #10b981;
+    background: #f0fdf4;
+    padding: 0.3rem 0.8rem;
+    border-radius: 8px;
+}
+
+.role-info-box {
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.role-icon {
+    font-size: 1.25rem;
+}
+
+.role-details label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.role-details span {
+    font-size: 0.9rem;
+    font-weight: 750;
+    color: #334155;
+}
+
+.domain-tags-row {
+    margin-top: auto;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tag-lite {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.4rem 0.9rem;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 100px;
+    color: #64748b;
+}
+
+/* Detail View Styles */
+.prep-header-premium {
+    background: white;
+    padding: 2rem;
+    border-radius: 24px;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.back-circle-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.3s;
+    color: #64748b;
+}
+
+.back-circle-btn:hover {
+    background: #1e293b;
+    color: white;
+    transform: scale(1.1);
+}
+
+.prep-main-layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
+    height: calc(100vh - 250px);
+}
+
+.prep-sidebar-glass {
+    background: white;
+    padding: 2rem;
+    border-radius: 24px;
+    border: 1px solid #f1f5f9;
+    overflow-y: auto;
+}
+
+.prep-content-area {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 24px;
+    border: 1px solid #f1f5f9;
+    overflow-y: auto;
+}
+
+.domain-nav-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.2rem;
+    border-radius: 16px;
+    border: 1px solid transparent;
+    background: none;
+    cursor: pointer;
+    transition: 0.3s;
+    text-align: left;
+}
+
+.domain-nav-item.active {
+    background: #f5f3ff;
+    border-color: #ddd6fe;
+}
+
+.domain-nav-item .nav-icon {
+    font-size: 1.2rem;
+    color: #94a3b8;
+}
+
+.domain-nav-item.active .nav-icon {
+    color: #6366f1;
+}
+
+.domain-nav-item .nav-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.domain-nav-item.active .nav-label {
+    color: #4338ca;
+    font-weight: 800;
+}

@@ -96,7 +96,7 @@ function App() {
         }
     }, [isInitialized]);
 
-    console.log('App State:', { isInitialized, isAuthenticated, studentData }); // Debug log
+
 
     // Prevent routing until we have checked for an existing session and splash is done
     if (!isInitialized || showSplash) {

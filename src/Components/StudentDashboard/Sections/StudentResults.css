@@ -1,0 +1,337 @@
+.results-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+    gap: 2rem;
+}
+
+.results-header h2 {
+    font-size: 2.5rem;
+    font-weight: 950;
+    color: var(--nexus-text-primary);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.results-header h2 span {
+    background: linear-gradient(135deg, var(--nexus-primary), var(--nexus-secondary));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.overall-performance-card {
+    display: flex;
+    gap: 2rem;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.7));
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    border: 2px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.grade-circle-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 6px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    flex-shrink: 0;
+}
+
+.grade-circle-large .grade-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--nexus-text-primary);
+    line-height: 1;
+}
+
+.grade-circle-large .grade-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--nexus-text-secondary);
+    margin-top: 0.25rem;
+}
+
+.overall-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--nexus-primary);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--nexus-text-secondary);
+    margin-top: 0.25rem;
+}
+
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.subject-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.subject-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+}
+
+.subject-card-header {
+    padding: 1.5rem;
+    border-top: 4px solid;
+    background: linear-gradient(135deg, rgba(248, 250, 252, 1), rgba(255, 255, 255, 1));
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.subject-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(99, 102, 241, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--nexus-primary);
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.subject-info {
+    flex: 1;
+}
+
+.subject-info h3 {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--nexus-text-primary);
+    margin: 0 0 0.5rem;
+}
+
+.subject-grade-badge {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    border-radius: 8px;
+    color: white;
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+
+.subject-card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.marks-section {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--nexus-text-primary);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.section-title svg {
+    color: #3b82f6;
+}
+
+.section-title.module1 svg {
+    color: #8b5cf6;
+}
+
+.section-title.module2 svg {
+    color: #ec4899;
+}
+
+.marks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.75rem;
+}
+
+.cla-grid {
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.mark-item {
+    background: white;
+    padding: 0.75rem 0.5rem;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+}
+
+.mark-item:hover {
+    border-color: var(--nexus-primary);
+    transform: translateY(-2px);
+}
+
+.mark-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--nexus-text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.mark-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--nexus-primary);
+}
+
+.no-data {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.subject-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+    border-radius: 10px;
+    font-weight: 800;
+}
+
+.total-marks {
+    font-size: 1.3rem;
+    color: var(--nexus-primary);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 6rem 2rem;
+    color: #94a3b8;
+}
+
+.empty-state svg {
+    opacity: 0.4;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem;
+    color: var(--nexus-text-secondary);
+}
+
+.empty-state p {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 1rem;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid #e2e8f0;
+    border-top-color: var(--nexus-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .subjects-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .results-header {
+        flex-direction: column;
+    }
+
+    .overall-performance-card {
+        width: 100%;
+    }
+
+    .cla-grid {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    }
+}

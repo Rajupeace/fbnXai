@@ -370,6 +370,11 @@
   color: var(--admin-warning);
 }
 
+.admin-badge.accent {
+  background: #fdf2f8;
+  color: var(--admin-accent);
+}
+
 /* Command Buttons */
 .admin-btn {
   padding: 0.75rem 1.5rem;

@@ -52,6 +52,7 @@
     "test-upload": "node scripts/test_upload.js",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
+    "lint": "eslint src",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

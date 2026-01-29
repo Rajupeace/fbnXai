@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FaDownload, FaArrowLeft, FaChevronRight, FaRegFolder, FaRegFileAlt, FaVideo, FaLightbulb, FaFileAlt, FaCube, FaSync } from 'react-icons/fa';
+import { FaDownload, FaArrowLeft, FaChevronRight, FaRegFolder, FaRegFileAlt, FaVideo, FaLightbulb, FaFileAlt, FaCube, FaSync, FaFolderOpen } from 'react-icons/fa';
 import './AcademicBrowser.css';
 
 /**
@@ -35,7 +35,9 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
 
     const renderEmpty = (msg) => (
         <div className="nexus-empty-state">
-            <div className="empty-state-icon">📂</div>
+            <div className="empty-state-icon">
+                <FaFolderOpen style={{ fontSize: '3rem', opacity: 0.2, color: 'var(--nexus-text-muted)' }} />
+            </div>
             <h3 className="empty-state-title">No Content Found</h3>
             <p className="empty-state-msg">{msg}</p>
         </div>

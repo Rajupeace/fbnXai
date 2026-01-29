@@ -77,7 +77,7 @@ const AdminAttendancePanel = () => {
             <div className="admin-card" style={{ marginBottom: '2.5rem' }}>
                 <div className="admin-filter-bar">
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">COHORT YEAR</label>
+                        <label className="admin-detail-label">ACADEMIC YEAR</label>
                         <select
                             className="admin-filter-select"
                             value={filters.year}
@@ -89,7 +89,7 @@ const AdminAttendancePanel = () => {
                     </div>
 
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">SECTOR BRANCH</label>
+                        <label className="admin-detail-label">BRANCH</label>
                         <select
                             className="admin-filter-select"
                             value={filters.branch}
@@ -118,7 +118,7 @@ const AdminAttendancePanel = () => {
                     </div>
 
                     <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">TIMELINE DATE</label>
+                        <label className="admin-detail-label">DATE</label>
                         <input
                             type="date"
                             className="admin-filter-select"
@@ -129,7 +129,7 @@ const AdminAttendancePanel = () => {
                     </div>
 
                     <button onClick={fetchAttendance} className="admin-btn admin-btn-primary" style={{ height: '42px', marginTop: '1.2rem' }}>
-                        <FaSearch size={14} /> SCAN RECORDS
+                        <FaSearch size={14} /> LOAD DATA
                     </button>
                     <button onClick={async () => {
                         // Fetch per-student attendance for current filters
@@ -140,7 +140,7 @@ const AdminAttendancePanel = () => {
                             console.error('Failed to fetch class attendance', e);
                         }
                     }} className="admin-btn admin-btn-outline" style={{ height: '42px', marginTop: '1.2rem', marginLeft: '0.6rem' }}>
-                        <FaUsers size={14} /> CLASS ROSTER ATTENDANCE
+                        <FaUsers size={14} /> CLASS REPORT
                     </button>
                 </div>
             </div>
@@ -150,22 +150,22 @@ const AdminAttendancePanel = () => {
                 <div className="admin-summary-card">
                     <div className="summary-icon-box" style={{ background: '#f0fdf4', color: '#15803d' }}><FaUserCheck /></div>
                     <div className="value">{stats.present}</div>
-                    <div className="label">CADETS PRESENT</div>
+                    <div className="label">PRESENT</div>
                 </div>
                 <div className="admin-summary-card">
                     <div className="summary-icon-box" style={{ background: '#fef2f2', color: '#b91c1c' }}><FaUserTimes /></div>
                     <div className="value">{stats.total - stats.present}</div>
-                    <div className="label">CADETS ABSENT</div>
+                    <div className="label">ABSENT</div>
                 </div>
                 <div className="admin-summary-card">
                     <div className="summary-icon-box" style={{ background: '#eff6ff', color: '#1e40af' }}><FaChartPie /></div>
                     <div className="value">{getPercentage()}%</div>
-                    <div className="label">PRESENCE QUOTA</div>
+                    <div className="label">ATTENDANCE RATE</div>
                 </div>
                 <div className="admin-summary-card">
                     <div className="summary-icon-box" style={{ background: '#f8fafc', color: '#64748b' }}><FaUsers /></div>
                     <div className="value">{stats.total}</div>
-                    <div className="label">TOTAL SCAN LOAD</div>
+                    <div className="label">TOTAL STUDENTS</div>
                 </div>
             </div>
 
@@ -175,12 +175,12 @@ const AdminAttendancePanel = () => {
                     <table className="admin-grid-table">
                         <thead>
                             <tr>
-                                <th>TIMELINE LOG</th>
-                                <th>SUBJECT ORIGIN</th>
-                                <th>SECTOR INFO</th>
-                                <th>MONITORING STAFF</th>
-                                <th>PRESENCE RATIO</th>
-                                <th>OPERATIONS</th>
+                                <th>DATE</th>
+                                <th>SUBJECT</th>
+                                <th>CLASS INFO</th>
+                                <th>FACULTY</th>
+                                <th>STATUS</th>
+                                <th>ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -219,7 +219,7 @@ const AdminAttendancePanel = () => {
                                         </td>
                                         <td>
                                             <button className="admin-btn admin-btn-outline" style={{ padding: '0.4rem 1rem', fontSize: '0.65rem' }}>
-                                                ANALYZE LOG
+                                                VIEW DETAILS
                                             </button>
                                         </td>
                                     </tr>
@@ -229,7 +229,7 @@ const AdminAttendancePanel = () => {
                                 <tr>
                                     <td colSpan="6" style={{ textAlign: 'center', padding: '6rem' }}>
                                         <div className="f-empty-text">
-                                            {loading ? 'SYNCHRONIZING TELEMETRY...' : 'NO PERSONNEL LOGS DETECTED FOR CURRENT SECTOR.'}
+                                            {loading ? 'LOADING DATA...' : 'NO RECORDS FOUND FOR THIS SELECTION.'}
                                         </div>
                                     </td>
                                 </tr>

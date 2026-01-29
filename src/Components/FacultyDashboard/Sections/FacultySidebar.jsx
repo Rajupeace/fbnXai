@@ -2,7 +2,7 @@ import React from 'react';
 import {
     FaGraduationCap, FaEnvelope, FaSignOutAlt,
     FaLayerGroup, FaBolt, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt, FaUserGraduate,
-    FaRobot
+    FaRobot, FaClipboardList, FaPencilAlt
 } from 'react-icons/fa';
 import '../../StudentDashboard/StudentDashboard.css';
 
@@ -34,6 +34,8 @@ const FacultySidebar = ({
     const navItems = [
         { id: 'overview', label: 'Dashboard', icon: <FaChartLine /> },
         { id: 'materials', label: 'Materials', icon: <FaLayerGroup /> },
+        { id: 'assignments', label: 'Assignments', icon: <FaClipboardList /> },
+        { id: 'marks', label: 'Marks', icon: <FaPencilAlt /> },
         { id: 'attendance', label: 'Attendance', icon: <FaUserCheck /> },
         { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
         { id: 'schedule', label: 'Schedule', icon: <FaBolt /> },

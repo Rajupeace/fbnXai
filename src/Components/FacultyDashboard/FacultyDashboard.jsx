@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaUserGraduate, FaRobot
+  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaRobot
 } from 'react-icons/fa';
 // Global Styles
 import sseClient from '../../utils/sseClient';
@@ -11,6 +11,8 @@ import FacultySettings from './FacultySettings';
 import FacultyAttendanceManager from './FacultyAttendanceManager';
 import FacultyScheduleView from './FacultyScheduleView';
 import FacultyExams from './FacultyExams';
+import FacultyAssignments from './FacultyAssignments';
+import FacultyMarks from './FacultyMarks';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 
@@ -18,6 +20,8 @@ import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 import FacultySidebar from './Sections/FacultySidebar';
 import FacultyHome from './Sections/FacultyHome';
 import FacultyCurriculumArch from './Sections/FacultyCurriculumArch';
+import FacultyMessages from './Sections/FacultyMessages';
+import FacultyStudents from './Sections/FacultyStudents';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 
 const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => {
@@ -37,11 +41,11 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   const refreshAll = async () => {
     setSyncing(true);
     try {
-      console.log('📊 FacultyDashboard: Fetching data from database...');
+      // console.debug('📊 FacultyDashboard: Fetching data from database...');
 
       const mats = await apiGet('/api/materials');
       if (mats) {
-        console.log(`   ✅ Materials fetched: ${mats.length} items`);
+        // console.debug(`   ✅ Materials fetched: ${mats.length} items`);
         setMaterialsList(mats);
       }
 
@@ -52,17 +56,17 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           m.target === 'faculty' ||
           m.facultyId === facultyData.facultyId
         );
-        console.log(`   ✅ Messages fetched: ${filteredMsgs.length} items`);
+        // console.debug(`   ✅ Messages fetched: ${filteredMsgs.length} items`);
         setMessages(filteredMsgs.slice(0, 10));
       }
 
       const studentsData = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
       if (Array.isArray(studentsData)) {
-        console.log(`   ✅ Students fetched: ${studentsData.length} items`);
+        // console.debug(`   ✅ Students fetched: ${studentsData.length} items`);
         setStudentsList(studentsData);
       }
 
-      console.log('✅ FacultyDashboard: All data loaded successfully');
+      // console.debug('✅ FacultyDashboard: All data loaded successfully');
       setTimeout(() => setSyncing(false), 800);
     } catch (e) {
       console.error("❌ FacultyDashboard: Sync Failed", e);
@@ -71,13 +75,13 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   };
 
   useEffect(() => {
-    console.log('🚀 FacultyDashboard: Initial data load started');
+    // console.debug('🚀 FacultyDashboard: Initial data load started');
     refreshAll();
     const timer = setTimeout(() => setInitialLoad(false), 1500);
 
     // Optimized polling: 5 seconds (more efficient than 3s)
     const interval = setInterval(() => {
-      console.log('🔄 FacultyDashboard: Polling data from database...');
+      // console.debug('🔄 FacultyDashboard: Polling data from database...');
       refreshAll();
     }, 5000);
 
@@ -98,7 +102,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
     }, 5000);
 
     return () => {
-      console.log('🛑 FacultyDashboard: Cleaning up intervals');
+      // console.debug('🛑 FacultyDashboard: Cleaning up intervals');
       clearTimeout(timer);
       clearInterval(interval);
       clearInterval(msgInterval);
@@ -288,6 +292,18 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           ) : <div className="no-content">No classes assigned.</div>;
         })()}
 
+        {view === 'assignments' && (
+          <div className="nexus-hub-viewport">
+            <FacultyAssignments facultyId={facultyData.facultyId} />
+          </div>
+        )}
+
+        {view === 'marks' && (
+          <div className="nexus-hub-viewport">
+            <FacultyMarks facultyData={facultyData} />
+          </div>
+        )}
+
         {view === 'attendance' && (() => {
           const ctx = ensureContext();
           return ctx ? (
@@ -423,77 +439,13 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
         {view === 'messages' && (
           <div className="nexus-hub-viewport">
-            <div className="nexus-mesh-bg"></div>
-            <header className="f-view-header">
-              <div>
-                <h2>ANNOUNCEMENTS</h2>
-                <p className="nexus-subtitle">Messages from Admin</p>
-              </div>
-            </header>
-            <div className="f-node-card" style={{ marginTop: '2rem' }}>
-              {messages.length > 0 ? (
-                <div style={{ display: 'grid', gap: '1rem', padding: '1.5rem' }}>
-                  {messages.map((msg, i) => (
-                    <div key={msg.id || i} style={{ padding: '1rem', borderLeft: '4px solid #6366f1', borderRadius: '8px', background: 'rgba(99,102,241,0.05)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-                        <span style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>{msg.message || msg.text}</span>
-                        <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{new Date(msg.createdAt || msg.date).toLocaleString()}</span>
-                      </div>
-                      {msg.target && <span style={{ fontSize: '0.7rem', opacity: 0.6, padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', display: 'inline-block' }}>Target: {msg.target.toUpperCase()}</span>}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '2rem', opacity: 0.6 }}>
-                  <p>No announcements found.</p>
-                </div>
-              )}
-            </div>
+            <FacultyMessages messages={messages} />
           </div>
         )}
 
         {view === 'students' && (
           <div className="nexus-hub-viewport">
-            <div className="nexus-mesh-bg"></div>
-            <header className="f-view-header">
-              <div>
-                <h2>STUDENT <span>ROSTER</span></h2>
-                <p className="nexus-subtitle">All students in your classes</p>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                <span style={{ fontWeight: 950, fontSize: '1.1rem', color: 'var(--admin-secondary)' }}>{studentsList.length} Total Students</span>
-              </div>
-            </header>
-            <div className="f-node-card" style={{ marginTop: '2rem' }}>
-              {studentsList.length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', padding: '1.5rem' }}>
-                  {studentsList.map((student, i) => (
-                    <div key={student.sid || student.id || i} className="f-node-card" style={{ padding: '1.5rem', borderTop: '3px solid #3b82f6' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                        <div className="f-node-type-icon" style={{ background: 'rgba(59,130,246,0.2)', color: '#3b82f6', width: '48px', height: '48px' }}>
-                          <FaUserGraduate size={20} />
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 950, fontSize: '1rem', color: '#1e293b' }}>{student.studentName || student.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 850 }}>ID: {student.sid || student.id}</div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: '0.85rem', color: '#475569', lineHeight: '1.8' }}>
-                        <div><strong>Year:</strong> {student.year || 'N/A'}</div>
-                        <div><strong>Section:</strong> {student.section || 'N/A'}</div>
-                        <div><strong>Branch:</strong> {student.branch || 'N/A'}</div>
-                        <div><strong>Email:</strong> {student.email || 'N/A'}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '3rem', opacity: 0.6 }}>
-                  <FaUserGraduate size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
-                  <p style={{ fontSize: '1.1rem' }}>No students assigned to your classes</p>
-                </div>
-              )}
-            </div>
+            <FacultyStudents studentsList={studentsList} />
           </div>
         )}
       </div>

@@ -46,6 +46,7 @@ const AdminHeader = ({
         {
             label: 'Management',
             items: [
+                { id: 'marks', label: 'Marks & Grades', icon: <FaFileAlt /> },
                 { id: 'attendance', label: 'Attendance', icon: <FaClipboardList /> },
                 { id: 'schedule', label: 'Schedule', icon: <FaCalendarAlt /> },
                 { id: 'exams', label: 'Exams', icon: <FaFileAlt /> },
@@ -69,7 +70,11 @@ const AdminHeader = ({
             className={`admin-sidebar ${collapsed ? 'collapsed' : ''}`}
             initial={false}
             animate={{ width: collapsed ? 90 : 280 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={{
+                type: 'tween',
+                duration: 0.2,
+                ease: 'easeInOut'
+            }}
         >
             <div className="admin-sidebar-header">
                 <motion.div

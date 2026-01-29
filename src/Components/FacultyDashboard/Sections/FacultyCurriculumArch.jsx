@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { FaSave, FaEdit } from 'react-icons/fa';
+import { FaSave, FaEdit, FaLayerGroup, FaClock, FaCheckCircle, FaBookOpen, FaTimes } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../FacultyDashboard.css';
 
 /**
  * FACULTY CURRICULUM MANAGEMENT SECTION
+ * Professional "Nexus" Style Update
  * Faculty can manage curriculum sections A-T and topics 1-20
  */
 const FacultyCurriculumArch = () => {
@@ -16,12 +18,12 @@ const FacultyCurriculumArch = () => {
     sections.forEach(section => {
       initial[section] = {
         name: `Section ${section}`,
-        description: '',
+        description: 'Comprehensive curriculum module focusing on core competencies and advanced topics.',
         subsections: Array.from({ length: 20 }, (_, i) => ({
           id: i + 1,
           title: `Topic ${i + 1}`,
           content: '',
-          credits: 0,
+          credits: 3,
           duration: '4 weeks'
         }))
       };
@@ -46,374 +48,206 @@ const FacultyCurriculumArch = () => {
 
   const handleSave = () => {
     localStorage.setItem('curriculumArch', JSON.stringify(curriculumData));
-    alert('✅ Curriculum updates saved!');
+    // Optional: Add visual feedback toast here
     setEditMode(false);
   };
 
   const sections = Object.keys(curriculumData).sort();
 
   return (
-    <div className="faculty-curriculum-arch">
-      <div className="curriculum-header">
-        <h2>📚 Curriculum Architecture Management</h2>
-        <div className="curriculum-header-actions">
+    <div className="animate-fade-in">
+      {/* Header Section */}
+      <header className="f-view-header">
+        <div>
+          <h2>CURRICULUM <span>ARCHITECTURE</span></h2>
+          <p className="nexus-subtitle">Manage syllabus, modules, and credit distribution</p>
+        </div>
+        <div className="f-node-actions">
           {editMode ? (
             <>
-              <button className="btn btn-success" onClick={handleSave}>
-                <FaSave /> Save Changes
-              </button>
-              <button className="btn btn-cancel" onClick={() => setEditMode(false)}>
-                Cancel
-              </button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="f-logout-btn"
+                style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fee2e2' }}
+                onClick={() => setEditMode(false)}
+              >
+                <FaTimes /> CANCEL
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="f-logout-btn"
+                style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}
+                onClick={handleSave}
+              >
+                <FaCheckCircle /> SAVE CHANGES
+              </motion.button>
             </>
           ) : (
-            <button className="btn btn-edit" onClick={() => setEditMode(true)}>
-              <FaEdit /> Edit Curriculum
-            </button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="f-logout-btn"
+              style={{ background: 'white', color: 'var(--nexus-primary)', border: '1px solid var(--nexus-primary)' }}
+              onClick={() => setEditMode(true)}
+            >
+              <FaEdit /> EDIT CURRICULUM
+            </motion.button>
           )}
         </div>
-      </div>
+      </header>
 
-      {/* Section Navigation */}
-      <div className="curriculum-nav">
-        <h3>Sections (A - T)</h3>
-        <div className="section-grid">
-          {sections.map(section => (
-            <button
-              key={section}
-              className={`section-btn ${activeSection === section ? 'active' : ''}`}
-              onClick={() => setActiveSection(section)}
-            >
-              {section}
-            </button>
-          ))}
+      {/* Main Layout Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '2rem' }}>
+
+        {/* Navigation Sidebar */}
+        <div className="f-node-card bounce-in" style={{ padding: '1.5rem', height: 'fit-content', maxHeight: 'calc(100vh - 200px)', overflowY: 'auto' }}>
+          <div className="f-node-head" style={{ marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid #f1f5f9' }}>
+            <h4 className="f-node-title" style={{ fontSize: '1rem' }}><FaLayerGroup /> SECTIONS</h4>
+            <span className="f-meta-badge unit">{sections.length} TOTAL</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.8rem' }}>
+            {sections.map(section => (
+              <motion.button
+                key={section}
+                whileHover={{ scale: 1.1, backgroundColor: 'var(--nexus-primary)', color: 'white' }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setActiveSection(section)}
+                className={`
+                  f-student-index 
+                  ${activeSection === section ? 'active-section' : ''}
+                `}
+                style={{
+                  width: '100%',
+                  aspectRatio: '1',
+                  borderRadius: '12px',
+                  border: activeSection === section ? 'none' : '1px solid #e2e8f0',
+                  background: activeSection === section ? 'var(--nexus-primary)' : 'white',
+                  color: activeSection === section ? 'white' : '#64748b',
+                  fontSize: '1rem',
+                  fontWeight: 900,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {section}
+              </motion.button>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Section Content */}
-      <div className="curriculum-content">
-        <div className="section-info">
-          <h3>{curriculumData[activeSection]?.name}</h3>
-          <p>{curriculumData[activeSection]?.description}</p>
-        </div>
+        {/* Content Area */}
+        <div className="animate-slide-up">
+          <div className="f-node-card" style={{ padding: '2.5rem', minHeight: '600px' }}>
 
-        {/* Topics Table */}
-        <div className="topics-container">
-          <h4>Topics (1-20) for Section {activeSection}</h4>
-          <div className="table-wrapper">
-            <table className="topics-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Topic Title</th>
-                  <th>Content</th>
-                  <th>Credits</th>
-                  <th>Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {curriculumData[activeSection]?.subsections.map((topic) => (
-                  <tr key={topic.id} className={editMode ? 'editable' : ''}>
-                    <td className="topic-number">{topic.id}</td>
-                    <td>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={topic.title}
-                          onChange={(e) => updateSubsection(activeSection, topic.id, 'title', e.target.value)}
-                          className="edit-input"
-                        />
-                      ) : (
-                        <span>{topic.title}</span>
-                      )}
-                    </td>
-                    <td>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={topic.content}
-                          onChange={(e) => updateSubsection(activeSection, topic.id, 'content', e.target.value)}
-                          className="edit-input"
-                          placeholder="Content description"
-                        />
-                      ) : (
-                        <span>{topic.content || '-'}</span>
-                      )}
-                    </td>
-                    <td>
-                      {editMode ? (
-                        <input
-                          type="number"
-                          value={topic.credits}
-                          onChange={(e) => updateSubsection(activeSection, topic.id, 'credits', parseFloat(e.target.value))}
-                          className="edit-input credit-input"
-                          min="0"
-                          max="10"
-                        />
-                      ) : (
-                        <span>{topic.credits}</span>
-                      )}
-                    </td>
-                    <td>
-                      {editMode ? (
-                        <input
-                          type="text"
-                          value={topic.duration}
-                          onChange={(e) => updateSubsection(activeSection, topic.id, 'duration', e.target.value)}
-                          className="edit-input"
-                        />
-                      ) : (
-                        <span>{topic.duration}</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* Section Info Header */}
+            <div style={{ marginBottom: '2.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ fontSize: '2rem', fontWeight: 950, color: 'var(--text-main)', margin: '0 0 0.5rem 0', letterSpacing: '-1px' }}>
+                    {curriculumData[activeSection]?.name}
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: '1.6', maxWidth: '800px', fontWeight: 500 }}>
+                    {curriculumData[activeSection]?.description}
+                  </p>
+                </div>
+                <div className="f-node-type-icon" style={{ fontSize: '2rem', width: '64px', height: '64px' }}>
+                  {activeSection}
+                </div>
+              </div>
+            </div>
+
+            {/* Topics Grid/Table */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <FaBookOpen style={{ color: 'var(--nexus-primary)' }} />
+                <h4 style={{ margin: 0, fontWeight: 900, fontSize: '1.1rem', color: '#1e293b' }}>
+                  TOPICS & MODULES
+                </h4>
+              </div>
+
+              <div className="f-roster-wrap">
+                <table className="f-roster-list" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead className="f-roster-head">
+                    <tr>
+                      <th style={{ textAlign: 'left', padding: '1rem 1.5rem' }}>ID</th>
+                      <th style={{ textAlign: 'left', padding: '1rem 1.5rem' }}>TOPIC TITLE</th>
+                      <th style={{ textAlign: 'left', padding: '1rem 1.5rem' }}>CONTENT SUMMARY</th>
+                      <th style={{ textAlign: 'center', padding: '1rem 1.5rem' }}>CREDITS</th>
+                      <th style={{ textAlign: 'right', padding: '1rem 1.5rem' }}>DURATION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {curriculumData[activeSection]?.subsections.map((topic, index) => (
+                      <motion.tr
+                        key={topic.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.02 }}
+                        style={{ borderBottom: '1px solid #f1f5f9' }}
+                      >
+                        <td style={{ padding: '1.25rem 1.5rem' }}>
+                          <span className="f-student-index" style={{ width: '28px', height: '28px', fontSize: '0.75rem' }}>{topic.id}</span>
+                        </td>
+                        <td style={{ padding: '1.25rem 1.5rem', fontWeight: 800, color: '#1e293b' }}>
+                          {editMode ? (
+                            <input
+                              className="f-form-select" // Reusing input style
+                              style={{ padding: '0.6rem', marginBottom: 0, fontSize: '0.9rem' }}
+                              value={topic.title}
+                              onChange={(e) => updateSubsection(activeSection, topic.id, 'title', e.target.value)}
+                            />
+                          ) : topic.title}
+                        </td>
+                        <td style={{ padding: '1.25rem 1.5rem', color: '#64748b', fontSize: '0.9rem', maxWidth: '300px' }}>
+                          {editMode ? (
+                            <input
+                              className="f-form-select"
+                              style={{ padding: '0.6rem', marginBottom: 0, fontSize: '0.9rem' }}
+                              value={topic.content}
+                              placeholder="Enter description..."
+                              onChange={(e) => updateSubsection(activeSection, topic.id, 'content', e.target.value)}
+                            />
+                          ) : (topic.content || <span style={{ opacity: 0.4, fontStyle: 'italic' }}>No content defined</span>)}
+                        </td>
+                        <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
+                          {editMode ? (
+                            <input
+                              type="number"
+                              className="f-form-select"
+                              style={{ padding: '0.6rem', marginBottom: 0, textAlign: 'center', width: '80px', margin: '0 auto' }}
+                              value={topic.credits}
+                              onChange={(e) => updateSubsection(activeSection, topic.id, 'credits', e.target.value)}
+                            />
+                          ) : (
+                            <span className="f-meta-badge unit">{topic.credits} CR</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right', fontWeight: 700, color: '#475569' }}>
+                          {editMode ? (
+                            <input
+                              className="f-form-select"
+                              style={{ padding: '0.6rem', marginBottom: 0, textAlign: 'right' }}
+                              value={topic.duration}
+                              onChange={(e) => updateSubsection(activeSection, topic.id, 'duration', e.target.value)}
+                            />
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                              <FaClock style={{ color: '#94a3b8' }} size={12} /> {topic.duration}
+                            </div>
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+            </div>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .faculty-curriculum-arch {
-          padding: 2rem;
-          background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
-          border-radius: 12px;
-          margin: 1rem 0;
-        }
-
-        .curriculum-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 2px solid #e0e7ff;
-        }
-
-        .curriculum-header h2 {
-          margin: 0;
-          color: #1e3a8a;
-          font-size: 1.5rem;
-        }
-
-        .curriculum-header-actions {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .btn {
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.2s;
-        }
-
-        .btn-edit {
-          background: #3b82f6;
-          color: white;
-        }
-
-        .btn-edit:hover {
-          background: #2563eb;
-        }
-
-        .btn-success {
-          background: #10b981;
-          color: white;
-        }
-
-        .btn-success:hover {
-          background: #059669;
-        }
-
-        .btn-cancel {
-          background: #ef4444;
-          color: white;
-        }
-
-        .btn-cancel:hover {
-          background: #dc2626;
-        }
-
-        .curriculum-nav {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 12px;
-          border: 1px solid #e0e7ff;
-          margin-bottom: 2rem;
-        }
-
-        .curriculum-nav h3 {
-          margin: 0 0 1rem 0;
-          color: #1e3a8a;
-          font-size: 1rem;
-          font-weight: 600;
-        }
-
-        .section-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-          gap: 0.75rem;
-        }
-
-        .section-btn {
-          padding: 0.75rem;
-          border: 2px solid #e0e7ff;
-          background: white;
-          color: #1e3a8a;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.2s;
-          font-size: 0.9rem;
-        }
-
-        .section-btn:hover {
-          border-color: #3b82f6;
-          color: #3b82f6;
-          background: #f0f9ff;
-        }
-
-        .section-btn.active {
-          background: #3b82f6;
-          color: white;
-          border-color: #3b82f6;
-        }
-
-        .curriculum-content {
-          background: white;
-          padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e0e7ff;
-        }
-
-        .section-info {
-          margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e0e7ff;
-        }
-
-        .section-info h3 {
-          margin: 0;
-          color: #1e3a8a;
-          font-size: 1.2rem;
-        }
-
-        .section-info p {
-          margin: 0.5rem 0 0 0;
-          color: #64748b;
-          font-size: 0.95rem;
-        }
-
-        .topics-container {
-          margin-top: 2rem;
-        }
-
-        .topics-container h4 {
-          margin: 0 0 1rem 0;
-          color: #1e3a8a;
-          font-size: 1rem;
-          font-weight: 600;
-        }
-
-        .table-wrapper {
-          overflow-x: auto;
-          border: 1px solid #e0e7ff;
-          border-radius: 8px;
-        }
-
-        .topics-table {
-          width: 100%;
-          border-collapse: collapse;
-          background: white;
-        }
-
-        .topics-table thead tr {
-          background: #f0f9ff;
-          border-bottom: 2px solid #e0e7ff;
-        }
-
-        .topics-table th {
-          padding: 1rem;
-          text-align: left;
-          font-weight: 600;
-          color: #1e3a8a;
-          font-size: 0.9rem;
-        }
-
-        .topics-table td {
-          padding: 0.75rem 1rem;
-          border-bottom: 1px solid #e0e7ff;
-          color: #334155;
-        }
-
-        .topic-number {
-          font-weight: 600;
-          color: #3b82f6;
-          text-align: center;
-          width: 50px;
-        }
-
-        .topics-table tr.editable {
-          background: #f0f9ff;
-        }
-
-        .edit-input {
-          width: 100%;
-          padding: 0.5rem;
-          border: 1px solid #e0e7ff;
-          border-radius: 4px;
-          font-family: inherit;
-          font-size: 0.9rem;
-          color: #1e3a8a;
-        }
-
-        .edit-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-
-        .credit-input {
-          text-align: center;
-          max-width: 80px;
-        }
-
-        @media (max-width: 768px) {
-          .curriculum-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
-          }
-
-          .curriculum-header-actions {
-            width: 100%;
-          }
-
-          .curriculum-header-actions button {
-            flex: 1;
-          }
-
-          .section-grid {
-            grid-template-columns: repeat(auto-fill, minmax(45px, 1fr));
-          }
-
-          .topics-table {
-            font-size: 0.85rem;
-          }
-
-          .topics-table th,
-          .topics-table td {
-            padding: 0.5rem;
-          }
-        }
-      `}</style>
     </div>
   );
 };

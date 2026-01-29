@@ -292,8 +292,8 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
         <div className="animate-fade-in">
             <div className="f-view-header">
                 <div>
-                    <h2>EXAM <span>MANAGER</span></h2>
-                    <p className="nexus-page-subtitle" style={{ marginTop: '0.5rem' }}>Manage exams and assessments</p>
+                    <h2>EXAM <span>PORTAL</span></h2>
+                    <p className="nexus-page-subtitle" style={{ marginTop: '0.5rem' }}>Create and manage comprehensive assessments</p>
                 </div>
                 <button onClick={() => { setShowCreate(true); setEditId(null); setFormData({ title: '', topic: '', week: 'Week 1', durationMinutes: 20, totalMarks: 10, section: '', branch: branch || 'CSE', questions: [] }); }} className="nexus-btn-primary">
                     <FaPlus /> CREATE NEW EXAM
@@ -306,8 +306,10 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                 <div className="f-node-card f-center-empty">
                     <FaClipboardList style={{ fontSize: '4rem', color: '#cbd5e1', marginBottom: '2rem' }} />
                     <h3 style={{ fontSize: '1.4rem', fontWeight: 950, color: '#1e293b' }}>No Exams Found</h3>
-                    <p style={{ color: '#94a3b8', fontWeight: 850, marginTop: '1rem' }}>No exams created yet.</p>
-                    <button onClick={() => setShowCreate(true)} className="f-cancel-btn" style={{ marginTop: '2rem' }}>CREATE NOW</button>
+                    <p style={{ color: '#94a3b8', fontWeight: 850, marginTop: '1rem' }}>Get started by creating your first assessment.</p>
+                    <button onClick={() => setShowCreate(true)} className="nexus-btn-primary" style={{ marginTop: '2rem' }}>
+                        <FaPlus /> CREATE EXAM
+                    </button>
                 </div>
             ) : (
                 <div className="f-exam-grid">

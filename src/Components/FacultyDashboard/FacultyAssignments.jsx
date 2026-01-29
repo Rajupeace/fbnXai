@@ -1,10 +1,11 @@
 // src/Components/FacultyDashboard/FacultyAssignments.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { FaPlus, FaSave, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaSave, FaTrash, FaClipboardList, FaBullhorn } from 'react-icons/fa';
 import { apiGet, apiPost, apiDelete } from '../../utils/apiClient';
+import './FacultyDashboard.css';
 
-const FacultyAssignments = ({ facultyId, facultyToken }) => {
+const FacultyAssignments = ({ facultyId }) => {
     const [assignments, setAssignments] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [formData, setFormData] = useState({
@@ -26,7 +27,8 @@ const FacultyAssignments = ({ facultyId, facultyToken }) => {
 
     useEffect(() => {
         fetchAssignments();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [facultyId]);
 
     const handleChange = e => {
         const { name, value } = e.target;
@@ -56,44 +58,85 @@ const FacultyAssignments = ({ facultyId, facultyToken }) => {
         }
     };
 
+    const inputClass = "f-input-field"; // Assuming this class exists or will be styled
+
     return (
-        <div className="assignments-section animate-fade-in" style={{ marginTop: '2rem' }}>
-            <h3 style={{ fontSize: '1.2rem', color: '#334155', marginBottom: '1rem' }}>Teaching Assignments</h3>
-            <button
-                className="btn-primary"
-                onClick={() => setShowForm(!showForm)}
-                style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-                <FaPlus /> {showForm ? 'Cancel' : 'Add Assignment'}
-            </button>
+        <div className="animate-fade-in">
+            <header className="f-view-header">
+                <div>
+                    <h2>ASSIGNMENT <span>CONTROL</span></h2>
+                    <p className="nexus-subtitle">Manage coursework and tasks for your students</p>
+                </div>
+                <button
+                    className="f-node-btn primary"
+                    onClick={() => setShowForm(!showForm)}
+                    style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }}
+                >
+                    <FaPlus /> {showForm ? 'Cancel' : 'New Assignment'}
+                </button>
+            </header>
 
             {showForm && (
-                <form className="assignment-form" onSubmit={handleSubmit} style={{ marginBottom: '2rem', background: '#fff', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                        <input name="year" placeholder="Year (e.g., 3)" value={formData.year} onChange={handleChange} required style={inputStyle} />
-                        <input name="section" placeholder="Section (e.g., 11)" value={formData.section} onChange={handleChange} required style={inputStyle} />
-                        <input name="subject" placeholder="Subject (e.g., cn)" value={formData.subject} onChange={handleChange} required style={inputStyle} />
-                        <input name="title" placeholder="Title" value={formData.title} onChange={handleChange} required style={inputStyle} />
-                    </div>
-                    <textarea name="description" placeholder="Description" value={formData.description} onChange={handleChange} rows={3} style={{ ...inputStyle, marginTop: '1rem' }} />
-                    <button type="submit" className="btn-primary" style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <FaSave /> Save Assignment
-                    </button>
-                </form>
+                <div className="f-node-card animate-slide-up" style={{ marginTop: '1.5rem', padding: '2rem' }}>
+                    <form onSubmit={handleSubmit}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div className="f-form-group">
+                                <label className="f-label">Year</label>
+                                <input name="year" className="f-input" placeholder="e.g. 3" value={formData.year} onChange={handleChange} required />
+                            </div>
+                            <div className="f-form-group">
+                                <label className="f-label">Section</label>
+                                <input name="section" className="f-input" placeholder="e.g. A" value={formData.section} onChange={handleChange} required />
+                            </div>
+                            <div className="f-form-group">
+                                <label className="f-label">Subject</label>
+                                <input name="subject" className="f-input" placeholder="e.g. Neural Networks" value={formData.subject} onChange={handleChange} required />
+                            </div>
+                            <div className="f-form-group">
+                                <label className="f-label">Title</label>
+                                <input name="title" className="f-input" placeholder="Assignment Title" value={formData.title} onChange={handleChange} required />
+                            </div>
+                        </div>
+                        <div className="f-form-group" style={{ marginBottom: '1.5rem' }}>
+                            <label className="f-label">Description / Instructions</label>
+                            <textarea name="description" className="f-input" placeholder="Detailed instructions..." value={formData.description} onChange={handleChange} rows={4} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button type="submit" className="f-node-btn primary">
+                                <FaSave /> Publish Assignment
+                            </button>
+                        </div>
+                    </form>
+                </div>
             )}
 
-            <div className="assignments-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+            <div className="f-grid-v2" style={{ marginTop: '2rem' }}>
                 {assignments.length === 0 ? (
-                    <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No assignments yet.</p>
+                    <div className="f-node-card f-center-empty" style={{ gridColumn: '1 / -1' }}>
+                        <FaClipboardList style={{ fontSize: '3rem', opacity: 0.2, marginBottom: '1rem' }} />
+                        <p className="f-text-muted">No active assignments found.</p>
+                    </div>
                 ) : (
                     assignments.map(a => (
-                        <div key={a.id || a._id} className="assignment-card" style={{ background: '#fff', borderRadius: '12px', padding: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', position: 'relative' }}>
-                            <h4 style={{ margin: '0 0 0.5rem', color: '#1e293b' }}>{a.title || a.subject}</h4>
-                            <p style={{ margin: '0 0 0.5rem', color: '#64748b' }}><strong>Year:</strong> {a.year} • <strong>Section:</strong> {a.section}</p>
-                            {a.description && <p style={{ margin: 0, color: '#475569' }}>{a.description}</p>}
-                            <button onClick={() => handleDelete(a.id || a._id)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Delete">
-                                <FaTrash />
-                            </button>
+                        <div key={a.id || a._id} className="f-node-card f-hover-effect">
+                            <div className="f-node-head">
+                                <h4 className="f-card-title">{a.title}</h4>
+                                <div className="f-node-actions">
+                                    <button onClick={() => handleDelete(a.id || a._id)} className="f-node-btn delete-icon" title="Delete">
+                                        <FaTrash />
+                                    </button>
+                                </div>
+                            </div>
+                            <div style={{ padding: '0 1rem 1rem' }}>
+                                <div className="f-schedule-meta-row" style={{ marginBottom: '1rem' }}>
+                                    <span className="f-meta-badge">YEAR {a.year}</span>
+                                    <span className="f-meta-badge">SEC {a.section}</span>
+                                    <span className="f-meta-badge type">{a.subject}</span>
+                                </div>
+                                <p className="f-text-muted" style={{ fontSize: '0.9rem', lineHeight: '1.6' }}>
+                                    {a.description || 'No description provided.'}
+                                </p>
+                            </div>
                         </div>
                     ))
                 )}
@@ -102,17 +145,8 @@ const FacultyAssignments = ({ facultyId, facultyToken }) => {
     );
 };
 
-const inputStyle = {
-    width: '100%',
-    padding: '0.5rem',
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    fontSize: '0.9rem'
-};
-
 FacultyAssignments.propTypes = {
-    facultyId: PropTypes.string.isRequired,
-    facultyToken: PropTypes.string.isRequired
+    facultyId: PropTypes.string.isRequired
 };
 
 export default FacultyAssignments;

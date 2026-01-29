@@ -322,6 +322,7 @@ app.use('/api/student-notes', studentNotesRoutes);
 app.use('/api/student-grades', studentGradesRoutes);
 app.use('/api/student-progress', studentProgressRoutes);
 app.use('/api/fees', require('./routes/feeRoutes'));
+app.use('/api', require('./routes/marksRoutes'));
 
 // Register User-Type-Specific Data Routes (Admin, Faculty, Student Data Folders)
 app.use('/api/admin-data', adminDataRoutes);

@@ -100,7 +100,7 @@ const FacultyTeachingStats = ({ facultyId }) => {
                     <div className="f-icon-box">
                         <FaChalkboardTeacher />
                     </div>
-                    My Teaching Statistics
+                    TEACHING ANALYTICS
                 </h3>
                 <div className="f-tag-badge">
                     LIVE DATA • AUTO-REFRESH

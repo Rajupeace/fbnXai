@@ -43,13 +43,13 @@ const SubjectAttendanceCard = ({
 
             <div className="card-body">
                 <div className="stat-item">
-                    <label>Attendance:</label>
+                    <label>Attendance Records</label>
                     <div className="stat-value">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                            <span className="percentage">{attendancePercentage}%</span>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginBottom: '4px' }}>
+                            <span className="percentage">{attendancePercentage}</span>
                             {(totalClasses > 0 || attendedClasses > 0) && (
-                                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
-                                    {attendedClasses}/{totalClasses} Classes
+                                <span className="classes-count" style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8' }}>
+                                    {attendedClasses} / {totalClasses} Classes
                                 </span>
                             )}
                         </div>
@@ -65,19 +65,19 @@ const SubjectAttendanceCard = ({
                 </div>
 
                 <div className="stat-item">
-                    <label>Marks:</label>
-                    <div className="stat-value">
-                        <span className="percentage">{marksPercentage}%</span>
+                    <label>Performance Intel</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="percentage" style={{ fontSize: '1.5rem' }}>{marksPercentage}</span>
                         <span className="marks-text">
-                            {marksObtained}/{marksTotal}
+                            {marksObtained} / {marksTotal} PTS
                         </span>
                     </div>
                 </div>
 
                 {credits && (
                     <div className="stat-item">
-                        <label>Credits:</label>
-                        <span className="credits-value">{credits}</span>
+                        <label>Academic Weight</label>
+                        <span className="credits-value" style={{ fontWeight: 900, fontSize: '1.1rem', color: '#1e293b' }}>{credits} CREDITS</span>
                     </div>
                 )}
             </div>

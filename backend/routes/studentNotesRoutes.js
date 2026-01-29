@@ -28,14 +28,14 @@ router.get('/', async (req, res) => {
     }
 });
 
-// CREATE a note (requires authenticated student or admin)
-router.post('/', protect, async (req, res) => {
+// CREATE a note (allows unauthenticated creation when `sid` or `studentId` provided)
+router.post('/', async (req, res) => {
     try {
         const { sid, studentId, courseId, title, content, semester, academicYear, category } = req.body;
 
         let resolvedStudentId = studentId;
 
-        // If authenticated as a student, prefer token user id
+        // If authenticated as a student (optional), prefer token user id
         if (req.user && req.user.role === 'student') {
             resolvedStudentId = req.user._id;
         }

@@ -27,7 +27,12 @@ function getAuthHeaders() {
 export async function apiGet(path) {
     const res = await fetch(`${API_URL.replace(/\/$/, '')}${path}`, { headers: { ...getAuthHeaders() } });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.details || data.error || `GET ${path} failed: ${res.status}`);
+    if (!res.ok) {
+        const err = new Error(data.details || data.error || `GET ${path} failed: ${res.status}`);
+        err.status = res.status;
+        err.details = data;
+        throw err;
+    }
     return data;
 }
 
@@ -38,7 +43,12 @@ export async function apiPost(path, body) {
         body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.details || data.error || `POST ${path} failed: ${res.status}`);
+    if (!res.ok) {
+        const err = new Error(data.details || data.error || `POST ${path} failed: ${res.status}`);
+        err.status = res.status;
+        err.details = data;
+        throw err;
+    }
     return data;
 }
 
@@ -49,7 +59,12 @@ export async function apiPut(path, body) {
         body: JSON.stringify(body),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.details || data.error || `PUT ${path} failed: ${res.status}`);
+    if (!res.ok) {
+        const err = new Error(data.details || data.error || `PUT ${path} failed: ${res.status}`);
+        err.status = res.status;
+        err.details = data;
+        throw err;
+    }
     return data;
 }
 
@@ -59,7 +74,12 @@ export async function apiDelete(path) {
         headers: { ...getAuthHeaders() }
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.details || data.error || `DELETE ${path} failed: ${res.status}`);
+    if (!res.ok) {
+        const err = new Error(data.details || data.error || `DELETE ${path} failed: ${res.status}`);
+        err.status = res.status;
+        err.details = data;
+        throw err;
+    }
     return data;
 }
 
@@ -71,7 +91,12 @@ export async function apiUpload(path, formData, method = 'POST') {
         headers: headers,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || data.error || `Upload failed: ${res.status}`);
+    if (!res.ok) {
+        const err = new Error(data.message || data.error || `Upload failed: ${res.status}`);
+        err.status = res.status;
+        err.details = data;
+        throw err;
+    }
     return data;
 }
 

@@ -78,16 +78,16 @@ const FacultyAnalytics = ({ facultyId, materialsList = [], studentsList = [] }) 
     };
 
     const analyticsCards = [
-        { label: 'STUDENT MESH', value: stats.students, icon: <FaUserAstronaut />, stroke: '#6366f1', bg: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', type: 'students' },
-        { label: 'DATA NODES', value: stats.materials, icon: <FaDatabase />, stroke: '#a855f7', bg: 'linear-gradient(135deg, #a855f7 0%, #c084fc 100%)', type: 'materials' },
-        { label: 'SYNC EVENTS', value: stats.downloads, icon: <FaSatellite />, stroke: '#10b981', bg: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', type: 'downloads' },
-        { label: 'MESH AFFINITY', value: stats.engagement, icon: <FaBolt />, stroke: '#f59e0b', bg: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', type: 'engagement' }
+        { label: 'TOTAL STUDENTS', value: stats.students, icon: <FaUserAstronaut />, stroke: '#6366f1', bg: 'linear-gradient(135deg, #6366f1 0%, #818cf8 100%)', type: 'students' },
+        { label: 'TOTAL MATERIALS', value: stats.materials, icon: <FaDatabase />, stroke: '#a855f7', bg: 'linear-gradient(135deg, #a855f7 0%, #c084fc 100%)', type: 'materials' },
+        { label: 'TOTAL DOWNLOADS', value: stats.downloads, icon: <FaSatellite />, stroke: '#10b981', bg: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)', type: 'downloads' },
+        { label: 'ENGAGEMENT SCORE', value: stats.engagement, icon: <FaBolt />, stroke: '#f59e0b', bg: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', type: 'engagement' }
     ];
 
     if (loading) return (
         <div className="f-loader-wrap">
             <FaCircleNotch className="spin-fast" style={{ fontSize: '4rem', opacity: 0.6 }} />
-            <p className="f-text-muted" style={{ marginTop: '1.5rem', fontWeight: 900, letterSpacing: '2px', fontSize: '0.85rem' }}>SYNCHRONIZING ANALYTICS MESH...</p>
+            <p className="f-text-muted" style={{ marginTop: '1.5rem', fontWeight: 900, letterSpacing: '2px', fontSize: '0.85rem' }}>SYNCHRONIZING ANALYTICS...</p>
         </div>
     );
 
@@ -123,10 +123,10 @@ const FacultyAnalytics = ({ facultyId, materialsList = [], studentsList = [] }) 
             </div>
 
             {detailModal.open && (
-                <div className="admin-modal-overlay" onClick={() => setDetailModal({ open: false })}>
+                <div className="nexus-modal-overlay" onClick={() => setDetailModal({ open: false })}>
                     <div className="f-node-card animate-fade-in" style={{ width: '500px', maxHeight: '80vh', overflowY: 'auto', padding: '3rem' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-main)' }}>{detailModal.type === 'students' ? 'Enrollment Registry' : 'Node Sync Logs'}</h2>
+                            <h2 style={{ margin: 0, fontSize: '1.5rem', color: 'var(--text-main)' }}>{detailModal.type === 'students' ? 'Enrollment Registry' : 'Resource Activity'}</h2>
                             <button onClick={() => setDetailModal({ open: false })} className="f-node-btn delete"><FaTimes /></button>
                         </div>
 
@@ -139,7 +139,7 @@ const FacultyAnalytics = ({ facultyId, materialsList = [], studentsList = [] }) 
                                     <div style={{ flex: 1 }}>
                                         <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>{item.studentName || item.title}</div>
                                         <div className="f-text-muted" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-                                            {detailModal.type === 'students' ? `SID: ${item.sid} • YEAR ${item.year} • SEC ${item.section}` : `Individual Syncs: ${item.downloads || 0}`}
+                                            {detailModal.type === 'students' ? `SID: ${item.sid} • YEAR ${item.year} • SEC ${item.section}` : `Downloads: ${item.downloads || 0}`}
                                         </div>
                                     </div>
                                 </div>
