@@ -83,12 +83,7 @@ const RocketSplash = ({ onFinish }) => {
                         }}
                     />
                 ))}
-                <div className="planetary-system">
-                    <div className="planet planet-1"></div>
-                    <div className="planet planet-2"></div>
-                    <div className="planet planet-3"></div>
-                    <div className="ring-system"></div>
-                </div>
+
             </div>
 
             {/* Advanced particle field */}
@@ -180,24 +175,7 @@ const RocketSplash = ({ onFinish }) => {
                     </div>
 
                     {/* Knowledge particles */}
-                    <div className={`knowledge-system ${notebookPhase >= 1 ? 'active' : ''}`}>
-                        <div className="main-knowledge">
-                            <div className="particle particle-core"></div>
-                            <div className="particle particle-inner"></div>
-                            <div className="particle particle-outer"></div>
-                            <div className="particle particle-glow"></div>
-                        </div>
-                        <div className="knowledge-particles">
-                            {Array.from({ length: 20 }, (_, i) => (
-                                <div key={i} className="knowledge-particle" style={{ animationDelay: `${i * 0.1}s` }}></div>
-                            ))}
-                        </div>
-                        <div className="wisdom-trail">
-                            {Array.from({ length: 15 }, (_, i) => (
-                                <div key={i} className="smoke-puff" style={{ animationDelay: `${i * 0.2}s` }}></div>
-                            ))}
-                        </div>
-                    </div>
+
                 </div>
 
                 {/* Learning effects */}
@@ -209,27 +187,10 @@ const RocketSplash = ({ onFinish }) => {
                 </div>
 
                 {/* Educational elements */}
-                <div className={`educational-elements ${notebookPhase >= 3 ? 'visible' : ''}`}>
-                    <div className="knowledge-ring orbit-1"></div>
-                    <div className="knowledge-ring orbit-2"></div>
-                    <div className="learning-icon">
-                        <FaLightbulb className="lightbulb-icon" />
-                    </div>
-                    <div className="study-particles">
-                        {Array.from({ length: 8 }, (_, i) => (
-                            <div key={i} className="study-particle" style={{ animationDelay: `${i * 0.5}s` }}></div>
-                        ))}
-                    </div>
-                </div>
+
 
                 {/* Portal effect */}
-                <div className={`portal-system ${notebookPhase >= 4 ? 'active' : ''}`}>
-                    <div className="portal-ring ring-1"></div>
-                    <div className="portal-ring ring-2"></div>
-                    <div className="portal-ring ring-3"></div>
-                    <div className="portal-core"></div>
-                    <div className="portal-energy"></div>
-                </div>
+
             </div>
 
             {/* Educational HUD */}
