@@ -95,7 +95,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         branch: ovData.student.branch || prev.branch,
                         year: ovData.student.year || prev.year,
                         section: ovData.student.section || prev.section,
-                        profilePic: ovData.student.profilePic || prev.profilePic,
+                        profilePic: ovData.student.profilePic || ovData.student.profileImage || prev.profilePic,
+                        avatar: ovData.student.avatar || prev.avatar,
                         stats: ovData.student.stats || prev.stats
                     }));
                 }

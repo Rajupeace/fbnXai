@@ -137,9 +137,10 @@ const StudentSettings = ({ userData, onProfileUpdate }) => {
                     <div className="settings-user-preview" style={{ textAlign: 'center', marginBottom: '2rem' }}>
                         <div style={{ width: '100px', height: '100px', margin: '0 auto 1rem', borderRadius: '50%', overflow: 'hidden', border: '4px solid #f1f5f9' }}>
                             <img
-                                src={profile.profilePic || `https://api.dicebear.com/7.x/bottts/svg?seed=${profile.studentName}`}
+                                src={profile.profilePic || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.studentName || 'Student'}`}
                                 alt="Profile"
                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.studentName || 'Student'}`; }}
                             />
                         </div>
                         <h3 style={{ margin: '0 0 0.25rem', color: '#1e293b' }}>{profile.studentName}</h3>

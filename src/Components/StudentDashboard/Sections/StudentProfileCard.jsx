@@ -11,9 +11,13 @@ const StudentProfileCard = ({ userData, setShowProfilePhotoModal, setView }) => 
             <div className="profile-avatar-container" onClick={() => setView('settings')}>
                 <div className="profile-avatar">
                     {userData.profilePic ? (
-                        <img src={userData.profilePic} alt="Profile" />
+                        <img
+                            src={userData.profilePic.startsWith('data:') || userData.profilePic.startsWith('http') ? userData.profilePic : `http://localhost:5000${userData.profilePic.startsWith('/') ? '' : '/'}${userData.profilePic}`}
+                            alt="Profile"
+                            onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.studentName || 'Student'}`; }}
+                        />
                     ) : userData.avatar ? (
-                        <img src={userData.avatar.includes('http') ? userData.avatar : `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${userData.avatar}`} alt="Avatar" />
+                        <img src={userData.avatar.includes('http') ? userData.avatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.avatar}`} alt="Avatar" />
                     ) : (
                         <div className="profile-avatar-fallback">
                             <FaUserCircle />
