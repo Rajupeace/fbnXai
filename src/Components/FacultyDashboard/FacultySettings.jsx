@@ -1,27 +1,48 @@
-import React, { useState } from 'react';
-import { FaLock, FaUser, FaEnvelope, FaIdCard, FaBuilding, FaShieldAlt } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaLock, FaUser, FaEnvelope, FaIdCard, FaBuilding, FaShieldAlt, FaSave, FaCheck } from 'react-icons/fa';
+import { apiPut } from '../../utils/apiClient';
 import './FacultyDashboard.css';
 
 /**
- * FACULTY SETTINGS MESH
- * High-security interface for identity management and protocol configuration.
- * Theme: Luxe Pearl / Nexus
+ * FACULTY SETTINGS
+ * Manage profile details and security settings.
  */
 const FacultySettings = ({ facultyData }) => {
     const [activeTab, setActiveTab] = useState('profile');
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState({ text: '', type: '' });
+
     const [profile, setProfile] = useState({
-        name: facultyData.name || '',
-        email: facultyData.email || '',
-        facultyId: facultyData.facultyId || '',
-        department: facultyData.department || 'CSE',
-        designation: facultyData.designation || 'Faculty'
+        name: '',
+        email: '',
+        facultyId: '',
+        department: 'CSE',
+        designation: 'Faculty',
+        phone: ''
     });
 
     const [passwords, setPasswords] = useState({
-        current: '',
         new: '',
         confirm: ''
     });
+
+    useEffect(() => {
+        if (facultyData) {
+            setProfile({
+                name: facultyData.name || '',
+                email: facultyData.email || '',
+                facultyId: facultyData.facultyId || '',
+                department: facultyData.department || 'CSE',
+                designation: facultyData.designation || 'Faculty',
+                phone: facultyData.phone || ''
+            });
+        }
+    }, [facultyData]);
+
+    const showMessage = (text, type = 'success') => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+    };
 
     const handleProfileChange = (e) => {
         setProfile({ ...profile, [e.target.name]: e.target.value });
@@ -33,38 +54,65 @@ const FacultySettings = ({ facultyData }) => {
 
     const saveProfile = async (e) => {
         e.preventDefault();
-        alert("Nexus Feedback: Identity profile synchronized.");
+        setLoading(true);
+        try {
+            // Update profile using facultyId
+            const response = await apiPut(`/api/faculty/${profile.facultyId}`, profile);
+            if (response) {
+                showMessage("Profile updated successfully! Refresh to see changes.");
+            }
+        } catch (error) {
+            console.error('Update failed:', error);
+            showMessage("Failed to update profile.", "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const changePassword = async (e) => {
         e.preventDefault();
         if (passwords.new !== passwords.confirm) {
-            alert("Security Alert: Credential mismatch.");
+            showMessage("New passwords do not match.", "error");
             return;
         }
-        alert("Nexus Feedback: Security credentials rotated successfully.");
-        setPasswords({ current: '', new: '', confirm: '' });
+        if (passwords.new.length < 6) {
+            showMessage("Password must be at least 6 characters.", "error");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await apiPut(`/api/faculty/${profile.facultyId}`, { password: passwords.new });
+            showMessage("Password changed successfully!", "success");
+            setPasswords({ new: '', confirm: '' });
+        } catch (error) {
+            showMessage("Failed to update password.", "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
         <div className="animate-fade-in">
             <header className="f-settings-header animate-slide-up">
                 <div>
-                    <h2 className="f-settings-title">ACCOUNT <span>PROTOCOLS</span></h2>
-                    <p className="f-settings-subtitle">Configure faculty identity and security mesh parameters</p>
+                    <h2 className="f-settings-title">ACCOUNT <span>SETTINGS</span></h2>
+                    <p className="f-settings-subtitle">Manage your faculty profile and credentials</p>
                 </div>
-                <div className="f-sync-badge">
-                    ENCRYPTION: AES-256 • ACTIVE
-                </div>
+                {message.text && (
+                    <div className={`f-sync-badge ${message.type === 'error' ? 'error' : ''}`} style={{ background: message.type === 'error' ? '#fee2e2' : '#dcfce7', color: message.type === 'error' ? '#dc2626' : '#166534', border: 'none' }}>
+                        {message.text}
+                    </div>
+                )}
             </header>
 
             <div className="f-settings-node animate-slide-up f-settings-node-card">
                 <div className="nexus-glass-pills f-settings-pills-wrap">
                     <button className={`nexus-pill ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
-                        <FaUser /> FACULTY IDENTITY
+                        <FaUser /> PROFILE DETAILS
                     </button>
                     <button className={`nexus-pill ${activeTab === 'password' ? 'active' : ''}`} onClick={() => setActiveTab('password')}>
-                        <FaShieldAlt /> SECURITY MESH
+                        <FaShieldAlt /> SECURITY
                     </button>
                 </div>
 
@@ -74,43 +122,43 @@ const FacultySettings = ({ facultyData }) => {
                             <div className="nexus-form-grid f-profile-grid">
                                 <div className="f-input-node">
                                     <label><FaUser /> FULL NAME</label>
-                                    <input className="f-input-field" name="name" value={profile.name} onChange={handleProfileChange} />
+                                    <input className="f-input-field" name="name" value={profile.name} onChange={handleProfileChange} disabled={loading} />
                                 </div>
                                 <div className="f-input-node">
                                     <label><FaIdCard /> FACULTY IDENTIFIER</label>
                                     <input className="f-input-field" name="facultyId" value={profile.facultyId} disabled />
                                 </div>
                                 <div className="f-input-node">
-                                    <label><FaEnvelope /> SYSTEM EMAIL</label>
-                                    <input className="f-input-field" name="email" value={profile.email} onChange={handleProfileChange} />
+                                    <label><FaEnvelope /> EMAIL ADDRESS</label>
+                                    <input className="f-input-field" name="email" value={profile.email} onChange={handleProfileChange} disabled={loading} />
                                 </div>
                                 <div className="f-input-node">
-                                    <label><FaBuilding /> DEPARTMENT SECTOR</label>
-                                    <input className="f-input-field" name="department" value={profile.department} disabled />
+                                    <label><FaBuilding /> DEPARTMENT</label>
+                                    <input className="f-input-field" name="department" value={profile.department} onChange={handleProfileChange} disabled={loading} />
+                                </div>
+                                <div className="f-input-node">
+                                    <label><FaShieldAlt /> DESIGNATION</label>
+                                    <input className="f-input-field" name="designation" value={profile.designation} onChange={handleProfileChange} disabled={loading} />
                                 </div>
                             </div>
                             <div className="f-settings-form-actions">
-                                <button type="submit" className="nexus-btn-primary f-profile-submit-btn">
-                                    COMMIT PROFILE UPDATES
+                                <button type="submit" className="nexus-btn-primary f-profile-submit-btn" disabled={loading}>
+                                    {loading ? 'SAVING...' : <><FaSave /> SAVE CHANGES</>}
                                 </button>
                             </div>
                         </form>
                     ) : (
                         <form onSubmit={changePassword} className="f-security-wrap animate-fade-in">
                             <div className="f-input-node">
-                                <label><FaLock /> CURRENT KEY</label>
-                                <input type="password" name="current" className="f-input-field" value={passwords.current} onChange={handlePassChange} placeholder="••••••••" />
+                                <label><FaLock /> NEW PASSWORD</label>
+                                <input type="password" name="new" className="f-input-field" value={passwords.new} onChange={handlePassChange} placeholder="Enter new password" disabled={loading} />
                             </div>
                             <div className="f-input-node">
-                                <label><FaShieldAlt /> NEW SECURITY KEY</label>
-                                <input type="password" name="new" className="f-input-field" value={passwords.new} onChange={handlePassChange} placeholder="Enter robust credential" />
+                                <label><FaCheck /> CONFIRM PASSWORD</label>
+                                <input type="password" name="confirm" className="f-input-field" value={passwords.confirm} onChange={handlePassChange} placeholder="Confirm new password" disabled={loading} />
                             </div>
-                            <div className="f-input-node">
-                                <label><FaShieldAlt /> CONFIRM NEW KEY</label>
-                                <input type="password" name="confirm" className="f-input-field" value={passwords.confirm} onChange={handlePassChange} placeholder="Confirm robust credential" />
-                            </div>
-                            <button type="submit" className="nexus-btn-primary f-settings-btn-full">
-                                ROTATE SECURITY CREDENTIALS
+                            <button type="submit" className="nexus-btn-primary f-settings-btn-full" disabled={loading}>
+                                {loading ? 'UPDATING...' : 'UPDATE PASSWORD'}
                             </button>
                         </form>
                     )}
