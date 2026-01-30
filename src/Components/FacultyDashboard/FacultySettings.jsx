@@ -206,7 +206,10 @@ const FacultySettings = ({ facultyData, onProfileUpdate }) => {
                                     <div className="f-input-node">
                                         <label>Section</label>
                                         <select className="f-input-field" value={newAssign.section} onChange={e => setNewAssign({ ...newAssign, section: e.target.value })}>
-                                            {['A', 'B', 'C', 'D', 'E', 'F'].map(s => <option key={s} value={s}>{s}</option>)}
+                                            {[...Array(20)].map((_, i) => (
+                                                <option key={i + 1} value={String(i + 1)}>Section {i + 1}</option>
+                                            ))}
+                                            {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(s => <option key={s} value={s}>Section {s}</option>)}
                                         </select>
                                     </div>
                                     <div className="f-input-node">
