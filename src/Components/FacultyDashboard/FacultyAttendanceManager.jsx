@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './FacultyDashboard.css';
-import { FaCalendarAlt, FaCheckCircle, FaSave, FaUserCheck, FaHistory } from 'react-icons/fa';
+import { FaCalendarAlt, FaCheckCircle, FaSave, FaUserCheck, FaHistory, FaFilter, FaUsers, FaExclamationTriangle } from 'react-icons/fa';
 import { apiGet, apiPost } from '../../utils/apiClient';
 
 /**
  * FACULTY ATTENDANCE MANAGER
- * Attendance tracking and management interface.
+ * Attendance tracking and management interface with section-based filtering.
  */
-const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyName }) => {
-    const [selectedSection, setSelectedSection] = useState(sections && sections.length > 0 ? sections[0] : '');
+const FacultyAttendanceManager = ({ facultyData }) => {
+    const [availableSections, setAvailableSections] = useState([]);
+    const [selectedSection, setSelectedSection] = useState({ year: '', section: '' });
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [students, setStudents] = useState([]);
     const [attendance, setAttendance] = useState({});
@@ -18,36 +19,97 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
     const [viewMode, setViewMode] = useState('take');
 
     useEffect(() => {
-        if (selectedSection) {
+        initializeSections();
+    }, [facultyData, initializeSections]);
+
+    useEffect(() => {
+        if (selectedSection.year && selectedSection.section) {
             fetchStudentsAndAttendance();
             fetchHistory();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [subject, selectedSection, year, date, facultyId, facultyName]);
+    }, [selectedSection, date, fetchStudentsAndAttendance, fetchHistory]);
 
-    useEffect(() => {
-        if (sections && sections.length > 0 && !sections.includes(selectedSection)) {
+    const initializeSections = useCallback(() => {
+        console.log('=== INITIALIZING ATTENDANCE SECTIONS ===');
+        const sections = extractSectionsFromData(facultyData);
+        console.log('Extracted sections for attendance:', sections);
+        setAvailableSections(sections);
+
+        if (sections.length > 0) {
             setSelectedSection(sections[0]);
         }
-    }, [sections, selectedSection]);
+    }, [facultyData]);
 
-    const fetchStudentsAndAttendance = async () => {
+    const extractSectionsFromData = (data) => {
+        if (!data) return [];
+
+        console.log('Extracting sections from:', Object.keys(data));
+
+        // Method 1: Check assignments array (YOUR DATABASE HAS THIS!)
+        if (data.assignments && Array.isArray(data.assignments) && data.assignments.length > 0) {
+            const sectionsMap = new Map();
+            data.assignments.forEach(assignment => {
+                const year = parseInt(assignment.year || assignment.Year || assignment.classYear);
+                const section = String(assignment.section || assignment.Section || assignment.classSection).toUpperCase();
+
+                if (year && section && section !== 'UNDEFINED') {
+                    const key = `${year}-${section}`;
+                    if (!sectionsMap.has(key)) {
+                        sectionsMap.set(key, { year, section });
+                    }
+                }
+            });
+            const sections = Array.from(sectionsMap.values());
+            if (sections.length > 0) {
+                console.log('✅ Sections from assignments:', sections);
+                return sections;
+            }
+        }
+
+        // Method 2: Check sections array
+        if (data.sections && Array.isArray(data.sections) && data.sections.length > 0) {
+            return data.sections.map(s => ({
+                year: String(s.year || s.Year),
+                section: String(s.section || s.Section).toUpperCase()
+            }));
+        }
+
+        // Method 3: Check direct fields
+        if (data.year && data.section) {
+            return [{
+                year: String(data.year),
+                section: String(data.section).toUpperCase()
+            }];
+        }
+
+        console.error('❌ NO SECTIONS FOUND for attendance');
+        return [];
+    };
+
+    const fetchStudentsAndAttendance = useCallback(async () => {
         setLoading(true);
         try {
-            const allStudents = await apiGet(`/api/faculty-stats/${facultyId}/students`);
+            const allStudents = await apiGet(`/api/faculty/${facultyData.facultyId}/students`);
+            console.log('Fetched students for attendance:', allStudents);
+
+            // Filter by selected section
             const filteredStudents = allStudents.filter(s => {
-                const sYear = String(s.year || '').trim();
-                const qYear = String(year || '').trim();
-                const sSec = String(s.section || '').trim().toUpperCase();
-                const qSec = String(selectedSection || '').trim().toUpperCase();
-                return sYear === qYear && sSec === qSec;
+                const studentYear = String(s.year || s.Year);
+                const studentSection = String(s.section || s.Section).toUpperCase();
+                return studentYear === selectedSection.year && studentSection === selectedSection.section;
             });
 
             filteredStudents.sort((a, b) => String(a.sid).localeCompare(String(b.sid)));
             setStudents(filteredStudents);
 
-            const targetBranch = filteredStudents[0]?.branch || 'CSE';
-            const existing = await apiGet(`/api/attendance/all?year=${year}&section=${selectedSection}&subject=${subject}&date=${date}&branch=${targetBranch}`);
+            console.log(`Filtered ${filteredStudents.length} students for attendance in Year ${selectedSection.year} Section ${selectedSection.section}`);
+
+            // Fetch existing attendance
+            const subject = facultyData?.subject || '';
+            const branch = filteredStudents[0]?.branch || 'CSE';
+            const existing = await apiGet(
+                `/api/attendance/all?year=${selectedSection.year}&section=${selectedSection.section}&subject=${subject}&date=${date}&branch=${branch}`
+            );
 
             if (existing && existing.length > 0) {
                 const record = existing[0];
@@ -64,15 +126,22 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
         } finally {
             setLoading(false);
         }
-    };
+    }, [facultyData, selectedSection, date]);
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         try {
-            const res = await apiGet(`/api/attendance/all?year=${year}&section=${selectedSection}&subject=${subject}`);
+            const subject = facultyData?.subject || '';
+            const res = await apiGet(
+                `/api/attendance/all?year=${selectedSection.year}&section=${selectedSection.section}&subject=${subject}`
+            );
             setHistory(res || []);
         } catch (err) {
             console.error("History fetch fail:", err);
         }
+    }, [facultyData, selectedSection]);
+
+    const handleSectionChange = (newSection) => {
+        setSelectedSection(newSection);
     };
 
     const handleStatusChange = (studentId, status) => {
@@ -95,10 +164,13 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
 
         try {
             await apiPost('/api/attendance', {
-                date, subject, year, section: selectedSection,
+                date,
+                subject: facultyData?.subject || '',
+                year: selectedSection.year,
+                section: selectedSection.section,
                 branch: students[0]?.branch || 'CSE',
-                facultyId,
-                facultyName: facultyName || '',
+                facultyId: facultyData?.facultyId,
+                facultyName: facultyData?.name || '',
                 records
             });
             alert("Attendance Saved Successfully.");
@@ -118,6 +190,22 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
         return { present, absent, percentage: Math.round((present / total) * 100) };
     }, [students, attendance]);
 
+    // Show error if no sections
+    if (availableSections.length === 0) {
+        return (
+            <div className="attendance-manager">
+                <div className="empty-state" style={{ padding: '3rem', textAlign: 'center' }}>
+                    <FaExclamationTriangle size={64} style={{ color: '#f59e0b' }} />
+                    <h3>No Sections Assigned</h3>
+                    <p>Your faculty account doesn't have sections assigned for attendance.</p>
+                    <p style={{ marginTop: '1rem', color: '#64748b' }}>
+                        Please check the Marks section for debugging information or contact admin.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="attendance-manager animate-fade-in">
 
@@ -132,13 +220,31 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
 
             {viewMode === 'take' ? (
                 <>
+                    {/* Section Filter */}
+                    <div className="section-filter-bar" style={{ marginBottom: '1.5rem' }}>
+                        <div className="filter-label">
+                            <FaFilter /> <strong>Select Section:</strong>
+                        </div>
+                        <div className="section-buttons">
+                            {availableSections.map((sec, index) => (
+                                <button
+                                    key={index}
+                                    className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section ? 'active' : ''}`}
+                                    onClick={() => handleSectionChange(sec)}
+                                >
+                                    <FaUsers /> Year {sec.year} - Section {sec.section}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="f-attendance-controls animate-slide-up">
                         <div className="f-control-group">
                             <div className="f-pill-control">
-                                <label>SECTION</label>
-                                <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)}>
-                                    {sections.map(sec => <option key={sec} value={sec}>{sec}</option>)}
-                                </select>
+                                <label>CURRENT SECTION</label>
+                                <div style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)', borderRadius: '8px', fontWeight: '700', color: '#667eea' }}>
+                                    Year {selectedSection.year} - Section {selectedSection.section}
+                                </div>
                             </div>
 
                             <div className="f-pill-control">
@@ -202,7 +308,7 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                                         </div>
                                     );
                                 })}
-                                {students.length === 0 && <div className="no-content">No students found in Section {selectedSection}.</div>}
+                                {students.length === 0 && <div className="no-content">No students found in Year {selectedSection.year} Section {selectedSection.section}.</div>}
                             </div>
                         </div>
                     )}
@@ -210,7 +316,7 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                     <div className="f-submit-footer animate-slide-up">
                         <div className="f-flex-gap f-text-muted">
                             <FaCheckCircle className="text-success" style={{ fontSize: '1.2rem' }} />
-                            <span style={{ fontWeight: 850, fontSize: '0.85rem' }}>Attendance data saves to the central database.</span>
+                            <span style={{ fontWeight: 850, fontSize: '0.85rem' }}>Attendance for Year {selectedSection.year} Section {selectedSection.section} on {new Date(date).toLocaleDateString()}.</span>
                         </div>
                         <button
                             className="nexus-btn-primary"
@@ -223,7 +329,7 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                 </>
             ) : (
                 <div className="history-view animate-fade-in">
-                    <h2 className="nexus-page-subtitle f-spacer-lg">ATTENDANCE HISTORY</h2>
+                    <h2 className="nexus-page-subtitle f-spacer-lg">ATTENDANCE HISTORY - Year {selectedSection.year} Section {selectedSection.section}</h2>
                     <div className="f-history-list">
                         {history.map(record => {
                             const p = record.records.filter(r => r.status === 'Present').length;
@@ -242,7 +348,7 @@ const FacultyAttendanceManager = ({ subject, sections, year, facultyId, facultyN
                                 </div>
                             )
                         })}
-                        {history.length === 0 && <div className="no-content">No attendance history found.</div>}
+                        {history.length === 0 && <div className="no-content">No attendance history found for this section.</div>}
                     </div>
                 </div>
             )}

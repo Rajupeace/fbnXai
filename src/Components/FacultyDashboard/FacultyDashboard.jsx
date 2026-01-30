@@ -330,12 +330,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 </select>
               </header>
               <FacultyAttendanceManager
-                subject={ctx.subject}
-                year={ctx.year}
-                sections={ctx.sections}
-                facultyId={facultyData.facultyId}
-                facultyName={facultyData.name}
-                branch={facultyData.department}
+                facultyData={facultyData}
               />
             </div>
           ) : <div className="no-content">No classes assigned.</div>;

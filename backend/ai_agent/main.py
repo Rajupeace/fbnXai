@@ -5,6 +5,7 @@ import asyncio
 import random
 import functools
 import glob
+import re
 print = functools.partial(print, flush=True)
 
 from fastapi import FastAPI, HTTPException, Depends
@@ -400,6 +401,67 @@ def load_friendly_notebook_notes():
 VIGNAN_KNOWLEDGE_BASE = load_knowledge_base() + "\n" + load_friendly_notebook_notes()
 
 
+def is_leetcode_request(message: str) -> bool:
+    if not message:
+        return False
+    low = message.lower()
+    triggers = [
+        'leetcode', 'solve problem', 'two sum', 'reverse linked list',
+        'binary tree', 'longest substring', 'median of two', 'intersection of two',
+        'valid parentheses', 'merge k', 'search in rotated', 'dynamic programming'
+    ]
+    if any(t in low for t in triggers):
+        return True
+    if re.search(r'\bsolve\b', low) and re.search(r'\b(problem|question|leetcode)\b', low):
+        return True
+    return False
+
+
+async def generate_leetcode_solution(user_message: str, role: str, user_name: str = "User") -> str:
+    """Generate an original, educative solution for easy/medium algorithm problems.
+
+    Constraints: avoid copying proprietary/premium content verbatim. If a request clearly asks
+    for "hard" or premium content, provide a high-level approach instead.
+    """
+    try:
+        if not llm:
+            return "Code generator unavailable: no LLM configured."
+
+        if re.search(r'\bhard\b', user_message.lower()):
+            return "This looks like a hard problem. I can provide a high-level approach and hints instead of a full solution—would you like that?"
+
+        # Detect requested language
+        lang_match = re.search(r'in\s+(python|java|c\+\+|cpp|javascript|typescript|ts|c#|csharp|go|rust)', user_message, re.IGNORECASE)
+        language = 'Python'
+        if lang_match:
+            l = lang_match.group(1).lower()
+            if l in ('cpp', 'c++'): language = 'C++'
+            elif l in ('ts', 'typescript'): language = 'TypeScript'
+            elif l in ('c#', 'csharp'): language = 'C#'
+            else: language = l.capitalize()
+
+        system_prompt = SystemMessage(content=(
+            "You are a programming tutor. Provide an original, educational solution to the user's algorithm request.\n"
+            "Do NOT copy proprietary or paywalled content verbatim.\n"
+            "Respond with: 1) Short problem summary, 2) Algorithm approach and intuition, 3) Time and space complexity, 4) Runnable code in the requested language using fenced code blocks.\n"
+            "Keep the explanation concise and focused for learners."
+        ))
+
+        user_prompt = HumanMessage(content=(
+            f"User Request: {user_message}\n\nProvide the 4 parts requested and include only runnable code in {language}."
+        ))
+
+        resp = await llm.ainvoke([system_prompt, user_prompt])
+        text = getattr(resp, 'content', '')
+        if not text:
+            return "Generator returned empty response. Try again." 
+        return text
+
+    except Exception as e:
+        print(f"[!] LeetCode generator error: {e}")
+        return "Sorry — the code generator failed. Try again later or ask for a different language." 
+
+
 def get_role_prompt(role: str, user_name: str = "User") -> str:
     """
     Generate a system prompt tailored to the user's role with enhanced knowledge base.
@@ -610,6 +672,22 @@ async def chat(request: ChatRequest):
 
         current_user_message = HumanMessage(content=user_message)
         messages.append(current_user_message)
+
+        # If this appears to be an algorithm / LeetCode-style request, use the specialized generator
+        try:
+            if is_leetcode_request(user_message):
+                print("   [LLM] Detected LeetCode-style request — using generator...")
+                gen = await generate_leetcode_solution(user_message, request.role, user_name)
+                # Save into history cache
+                try:
+                    if request.user_id not in chat_history_cache: chat_history_cache[request.user_id] = []
+                    chat_history_cache[request.user_id].extend([current_user_message, AIMessage(content=gen)])
+                    if len(chat_history_cache[request.user_id]) > 6:
+                        chat_history_cache[request.user_id] = chat_history_cache[request.user_id][-6:]
+                except: pass
+                return ChatResponse(response=gen)
+        except Exception as e:
+            print(f"   [!] LeetCode generator exception: {e}")
 
         print("   [LLM] Invoking LLM...")
         

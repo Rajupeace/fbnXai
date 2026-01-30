@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaPlus, FaEye, FaEdit, FaTrash, FaChalkboardTeacher, FaUsers, FaBook } from 'react-icons/fa';
+import { FaPlus, FaEye, FaEdit, FaTrash, FaChalkboardTeacher, FaUsers, FaBook, FaFileUpload } from 'react-icons/fa';
 
 /**
 /**
@@ -39,9 +39,12 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                     <h1>FACULTY <span>DIRECTORY</span></h1>
                     <p>Total Faculty: {filteredFaculty.length}</p>
                 </div>
-                <div className="admin-action-bar" style={{ margin: 0 }}>
+                <div className="admin-action-bar" style={{ margin: 0, display: 'flex', gap: '0.75rem' }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('faculty')}>
                         <FaPlus /> ADD NEW FACULTY
+                    </button>
+                    <button className="admin-btn admin-btn-outline" onClick={() => openModal('bulk-faculty')}>
+                        <FaFileUpload /> BULK UPLOAD
                     </button>
                 </div>
             </header>

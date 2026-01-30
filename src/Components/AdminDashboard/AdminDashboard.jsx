@@ -10,7 +10,7 @@ import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import AdminAttendancePanel from './AdminAttendancePanel';
 import AdminScheduleManager from './AdminScheduleManager';
 import AdminExams from './AdminExams';
-import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup, FaCreditCard, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup, FaCreditCard } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import sseClient from '../../utils/sseClient';
 
@@ -39,6 +39,13 @@ const ADVANCED_TOPICS = [
   'Internet of Things',
   'Robotics',
   'Quantum Computing'
+];
+
+const SECTION_OPTIONS = [
+  // Letters A-P
+  ...'ABCDEFGHIJKLMNOP'.split(''),
+  // Numbers 1-20
+  ...Array.from({ length: 20 }, (_, i) => String(i + 1))
 ];
 
 export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStudentData }) {
@@ -322,6 +329,22 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     }
   };
 
+  // Bulk Faculty Upload
+  const handleBulkUploadFaculty = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+
+    try {
+      const res = await api.apiUpload('/api/faculty/bulk', formData);
+      alert(res.message || 'Bulk faculty upload completed');
+      loadData(); // Refresh list
+      closeModal();
+    } catch (err) {
+      console.error(err);
+      alert('Bulk faculty upload failed: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   // Faculty
   const handleSaveFaculty = async (e) => {
     e.preventDefault();
@@ -346,14 +369,15 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       semester: a.semester || ''
     }));
 
-    console.log('📝 Saving Faculty:', {
-      isEdit: !!editItem,
-      facultyId: data.facultyId,
-      name: data.name,
-      assignments: data.assignments,
-      totalAssignments: data.assignments.length,
-      hasPassword: !!data.password
-    });
+    console.log('📝 FRONTEND: Preparing to save faculty');
+    console.log('Form data received from form:');
+    console.log('  name:', data.name);
+    console.log('  facultyId:', data.facultyId);
+    console.log('  password:', data.password ? '(provided)' : '(missing)');
+    console.log('  department:', data.department);
+    console.log('  designation:', data.designation);
+    console.log('  assignments count:', data.assignments.length);
+    console.log('Complete data object being sent to API:', data);
 
     try {
       let newFaculty = [...faculty];
@@ -420,7 +444,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       }
     } catch (err) {
       console.error('Faculty Save Error:', err);
-      alert('Failed to save faculty. ' + (err.message || ''));
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || 'Unknown error';
+      alert('Failed to save faculty. ' + errorMsg);
     }
   };
 
@@ -536,6 +561,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
       }
       setCourses(newCourses);
       closeModal();
+      // Ensure other dashboards reload fresh from server to reflect canonical DB state
+      if (USE_API) await loadData();
     } catch (err) {
       console.error('Course Save Error:', err);
       const errorMsg = err.message || 'Unknown error';
@@ -641,7 +668,8 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
     try {
       if (USE_API) {
         await api.apiDelete(`/api/courses/${targetId}`);
-        // Success - UI already updated
+        // Refresh canonical data to keep dashboards in sync
+        await loadData();
       } else {
         const newCourses = previousCourses.filter(c => c.id !== targetId && c._id !== targetId);
         localStorage.setItem('courses', JSON.stringify(newCourses));
@@ -1782,6 +1810,33 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                       </form>
                     )}
 
+
+                    {modalType === 'bulk-faculty' && (
+                      <form onSubmit={handleBulkUploadFaculty}>
+                        <div className="f-node-card" style={{ padding: '2rem', textAlign: 'center' }}>
+                          <div style={{ fontSize: '3rem', color: 'var(--admin-primary)', marginBottom: '1.5rem' }}><FaFileUpload /></div>
+                          <label style={{ display: 'block', fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem' }}>FACULTY BULK UPLOAD - CSV</label>
+                          <input type="file" name="file" accept=".csv" required style={{ width: '100%', padding: '2rem', border: '2px dashed var(--admin-border)', borderRadius: '16px', background: '#f8fafc' }} />
+                          <div style={{ marginTop: '1.5rem', textAlign: 'left', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: '0 0 0.5rem 0' }}>
+                              REQUIRED HEADERS: <code>name, facultyId, email, department, designation</code>
+                            </p>
+                            <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: 0 }}>
+                              OPTIONAL: <code>phone, password, assignments</code>
+                            </p>
+                            <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.5rem', marginBottom: 0 }}>
+                              Assignments format: "Year 3 Section A Subject AI; Year 3 Section B Subject ML"
+                            </p>
+                          </div>
+                        </div>
+                        <div className="modal-actions" style={{ marginTop: '2rem' }}>
+                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
+                          <button className="admin-btn admin-btn-primary">UPLOAD FACULTY</button>
+                        </div>
+                      </form>
+                    )}
+
+
                     {modalType === 'student-view' && editItem && (
                       <div className="view-details" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
                         <div className="admin-profile-header" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '2rem', marginBottom: '2rem' }}>
@@ -1920,6 +1975,10 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             <input className="admin-search-input" name="facultyId" defaultValue={editItem?.facultyId} required placeholder="e.g. F-501" />
                           </div>
                           <div className="form-group">
+                            <label>EMAIL *</label>
+                            <input className="admin-search-input" name="email" defaultValue={editItem?.email || (editItem?.facultyId ? `${editItem.facultyId}@example.com` : '')} required placeholder="email@domain.com" />
+                          </div>
+                          <div className="form-group">
                             <label>DEPARTMENT</label>
                             <input className="admin-search-input" name="department" defaultValue={editItem?.department || 'CSE'} placeholder="e.g. CSE" />
                           </div>
@@ -1928,8 +1987,14 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             <input className="admin-search-input" name="designation" defaultValue={editItem?.designation} placeholder="e.g. Professor" />
                           </div>
                           <div className="form-group">
-                            <label>PASSWORD</label>
-                            <input className="admin-search-input" name="password" type="password" placeholder="Retain if empty" />
+                            <label>PASSWORD {!editItem && '*'}</label>
+                            <input
+                              className="admin-search-input"
+                              name="password"
+                              type="password"
+                              required={!editItem}
+                              placeholder={editItem ? "Leave blank to keep current password" : "Enter password"}
+                            />
                           </div>
 
                           {/* Assignment Manager */}

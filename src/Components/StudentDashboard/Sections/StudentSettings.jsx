@@ -284,6 +284,21 @@ const StudentSettings = ({ userData, onProfileUpdate }) => {
                                         </select>
                                     </div>
 
+                                    <div className="form-group">
+                                        <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem' }}><FaLayerGroup /> Section</label>
+                                        <select
+                                            name="section"
+                                            value={profile.section}
+                                            onChange={handleProfileChange}
+                                            style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem', background: '#f8fafc' }}
+                                        >
+                                            <option value="A">Section A</option>
+                                            <option value="B">Section B</option>
+                                            <option value="C">Section C</option>
+                                            <option value="D">Section D</option>
+                                        </select>
+                                    </div>
+
                                     <div className="form-group" style={{ gridColumn: '1 / -1', marginTop: '1rem' }}>
                                         <button
                                             type="submit"

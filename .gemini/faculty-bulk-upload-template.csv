@@ -1,0 +1,6 @@
+facultyId,name,email,password,department,designation,phone,assignments
+FAC001,Dr. John Smith,john@university.edu,pass123,CSE,Professor,9876543210,"Year 3 Section A Subject Artificial Intelligence; Year 3 Section B Subject Machine Learning"
+FAC002,Dr. Jane Doe,jane@university.edu,pass456,ECE,Associate Professor,9876543211,"Year 2 Section A Subject Digital Electronics"
+FAC003,Prof. Robert Brown,robert@university.edu,pass789,EEE,Assistant Professor,9876543212,"Year 1 Section A Subject Basic Electrical; Year 1 Section B Subject Basic Electrical"
+FAC004,Dr. Alice Johnson,alice@university.edu,pass101,CSE,Lecturer,9876543213,"Year 3 Section C Subject Data Structures"
+FAC005,Prof. Michael Davis,michael@university.edu,pass102,Mechanical,Professor,9876543214,"Year 4 Section A Subject Thermodynamics"

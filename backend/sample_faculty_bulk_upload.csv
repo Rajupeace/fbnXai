@@ -1,0 +1,6 @@
+name,facultyId,email,department,designation,phone,password,assignments
+Dr. John Smith,FAC001,john.smith@university.edu,CSE,Professor,9876543210,password123,"Year 3 Section A Subject Neural Networks; Year 3 Section B Subject Machine Learning"
+Dr. Sarah Johnson,FAC002,sarah.j@university.edu,ECE,Associate Professor,9876543211,password123,"Year 2 Section A Subject Digital Electronics"
+Prof. Michael Brown,FAC003,michael.b@university.edu,CSE,Assistant Professor,9876543212,password123,"Year 3 Section A Subject Deep Learning; Year 3 Section A Subject Computer Vision"
+Dr. Emily Davis,FAC004,emily.d@university.edu,IT,Professor,9876543213,password123,"Year 1 Section A Subject Programming Fundamentals"
+Prof. Robert Wilson,FAC005,robert.w@university.edu,CSE,Lecturer,9876543214,password123,"Year 4 Section B Subject Advanced Algorithms"

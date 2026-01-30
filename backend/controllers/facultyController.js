@@ -53,13 +53,19 @@ exports.createFaculty = async (req, res) => {
   try {
     const { facultyId, name, email, password, department, designation, assignments = [] } = req.body;
     // Support legacy/typo field `hpd` that some clients send for department
-    const dept = (department && department.trim()) || (req.body.hpd && req.body.hpd.trim()) || undefined;
+    const dept = (department && department.trim()) || (req.body.hpd && req.body.hpd.trim()) || 'General';
+    const desig = (designation && designation.trim()) || 'Lecturer';
 
-    // Validate required fields
-    if (!facultyId || !name || !password || !department || !designation) {
+    // Validate required fields - only facultyId, name, and password are truly required
+    if (!facultyId || !name || !password) {
+      const missingFields = [];
+      if (!facultyId) missingFields.push('Faculty ID');
+      if (!name) missingFields.push('Name');
+      if (!password) missingFields.push('Password');
+
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields: Faculty ID, Name, Password, Department, and Designation'
+        message: `Please provide all required fields: ${missingFields.join(', ')}`
       });
     }
 
@@ -97,10 +103,10 @@ exports.createFaculty = async (req, res) => {
     const faculty = new Faculty({
       facultyId: facultyId.trim(),
       name: name.trim(),
-      email: email?.toLowerCase()?.trim(),
+      email: email?.toLowerCase()?.trim() || `${facultyId.trim().toLowerCase()}@example.com`,
       password, // In production, make sure to hash the password before saving
-      department: dept || (department ? department.trim() : undefined) || 'General',
-      designation: designation.trim(),
+      department: dept,
+      designation: desig,
       assignments: validatedAssignments
     });
 

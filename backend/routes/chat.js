@@ -89,6 +89,57 @@ function getKnowledgeBase(role) {
     }
 }
 
+// Detect LeetCode-style requests and extract requested language/level
+function isLeetCodeRequest(message) {
+    if (!message) return false;
+    const lower = message.toLowerCase();
+    return lower.includes('leetcode') || lower.match(/solve\s+problem/i) || lower.match(/two sum|reverse linked list|binary tree|longest substring|median of two/i);
+}
+
+async function generateLeetCodeSolution(userMessage, role, context) {
+    if (!process.env.OPENAI_API_KEY && !process.env.GOOGLE_API_KEY) {
+        return "LeetCode helper unavailable — no LLM API configured. Please set OPENAI_API_KEY or GOOGLE_API_KEY.";
+    }
+
+    // Try to detect requested language from the message
+    const langMatch = (userMessage || '').match(/in\s+(python|java|c\+\+|cpp|javascript|ts|typescript|c#|csharp|go|rust)/i);
+    let language = langMatch ? langMatch[1].toLowerCase() : 'python';
+    if (language === 'cpp') language = 'C++';
+    if (language === 'ts') language = 'TypeScript';
+    if (language === 'csharp') language = 'C#';
+
+    const systemPrompt = `You are a programming tutor that provides original, non-infringing solutions to common algorithm problems (like LeetCode).\nConstraints:\n- Do NOT copy proprietary problem statements or solutions verbatim.\n- Produce a brief problem summary, an algorithm explanation, time/space complexity, and a runnable solution in the requested language.\n- If the user requests a "hard" problem or asks for premium content, offer to provide a high-level approach instead of full copyrighted content.\n- Target audience: students learning algorithms; be concise and educative.`;
+
+    const userPrompt = `User Request:\n${userMessage}\n\nRespond with: (1) Short summary (2) Algorithm approach (3) Complexity (4) Code in ${language}. Use fenced code blocks and keep the code runnable.`;
+
+    try {
+        if (process.env.OPENAI_API_KEY) {
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+            const completion = await openai.chat.completions.create({
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt }
+                ],
+                model: 'gpt-4o-mini',
+                temperature: 0.2,
+                max_tokens: 1200
+            });
+            return completion.choices[0].message.content;
+        } else if (process.env.GOOGLE_API_KEY) {
+            const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5' });
+            const promptWithContext = `${systemPrompt}\n\n${userPrompt}`;
+            const result = await model.generateContent(promptWithContext);
+            return result.response.text();
+        }
+    } catch (err) {
+        console.error('[VuAiAgent] LeetCode generator error:', err?.message || err);
+        return "Sorry — the code generator failed. Try again later or ask for a different language.";
+    }
+
+    return "LeetCode helper is currently unavailable.";
+}
+
 // Retrieve stored chat history
 router.get('/history', async (req, res) => {
     try {
@@ -120,6 +171,16 @@ router.post('/', async (req, res) => {
 
         const knowledgeBase = getKnowledgeBase(role);
         let reply = '';
+
+        // If this looks like a LeetCode / algorithm problem request, route to the generator first
+        try {
+            if (isLeetCodeRequest(userMessage)) {
+                console.log('[VuAiAgent] Detected LeetCode-style request. Generating solution via LLM generator.');
+                reply = await generateLeetCodeSolution(userMessage, role, context);
+            }
+        } catch (lcErr) {
+            console.warn('[VuAiAgent] LeetCode generator failed:', lcErr?.message || lcErr);
+        }
 
         // 1. DYNAMIC INTEGRATION: Try Python VuAI Agent (LangChain + Local Knowledge)
 

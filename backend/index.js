@@ -1618,13 +1618,35 @@ app.get('/api/faculty', requireAdmin, async (req, res) => {
 });
 app.post('/api/faculty', requireAdmin, async (req, res) => {
   try {
+    console.log('📝 Received faculty creation request');
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
     const { name, facultyId, email, password, assignments, department, designation } = req.body;
     // Accept legacy/typo `hpd` as department alias
     const dept = (department && String(department).trim()) || (req.body.hpd && String(req.body.hpd).trim());
+
+    console.log('Extracted fields:', {
+      facultyId: facultyId ? '✅ ' + facultyId : '❌ missing',
+      name: name ? '✅ ' + name : '❌ missing',
+      password: password ? '✅ (hidden)' : '❌ missing',
+      email: email || '(optional)',
+      department: dept || department || '(will use default)',
+      designation: designation || '(will use default)'
+    });
+
     if (!facultyId || !name || !password) {
+      const missing = [];
+      if (!facultyId) missing.push('facultyId');
+      if (!name) missing.push('name');
+      if (!password) missing.push('password');
+
+      console.error('❌ Missing required fields:', missing);
+
       return res.status(400).json({
-        error: 'Missing required fields: facultyId, name, password',
-        received: { facultyId: !!facultyId, name: !!name, password: !!password }
+        error: `Missing required fields: ${missing.join(', ')}`,
+        received: { facultyId: !!facultyId, name: !!name, password: !!password },
+        hint: 'Please provide facultyId, name, and password'
       });
     }
 
@@ -2893,7 +2915,19 @@ app.put('/api/courses/:id', requireAdmin, async (req, res) => {
       if (branch) updateData.department = branch;
       if (description) updateData.description = description;
 
-      const updated = await Course.findByIdAndUpdate(id, updateData, { new: true });
+      const mongoose = require('mongoose');
+      let updated = null;
+      try {
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          updated = await Course.findByIdAndUpdate(id, updateData, { new: true });
+        } else {
+          // Try updating by courseCode as fallback for legacy IDs sent from frontend
+          updated = await Course.findOneAndUpdate({ courseCode: id }, updateData, { new: true });
+        }
+      } catch (castErr) {
+        console.warn('[Courses] ID cast/update error, attempting fallback by code:', castErr.message);
+        updated = await Course.findOneAndUpdate({ courseCode: id }, updateData, { new: true });
+      }
       if (!updated) return res.status(404).json({ error: 'Course not found' });
 
       return res.json({
@@ -3005,15 +3039,42 @@ app.put('/api/subjects/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
     // 1. Mongo
     if (mongoose.connection.readyState === 1) {
-      const updated = await Course.findByIdAndUpdate(id, {
-        courseName: req.body.name,
-        courseCode: req.body.code,
-        year: req.body.year,
-        semester: req.body.semester,
-        department: req.body.branch,
-        description: req.body.description,
-        credits: Number(req.body.credits) || 3
-      }, { new: true });
+      const mongoose = require('mongoose');
+      let updated = null;
+      try {
+        if (mongoose.Types.ObjectId.isValid(id)) {
+          updated = await Course.findByIdAndUpdate(id, {
+            courseName: req.body.name,
+            courseCode: req.body.code,
+            year: req.body.year,
+            semester: req.body.semester,
+            department: req.body.branch,
+            description: req.body.description,
+            credits: Number(req.body.credits) || 3
+          }, { new: true });
+        } else {
+          updated = await Course.findOneAndUpdate({ courseCode: id }, {
+            courseName: req.body.name,
+            courseCode: req.body.code,
+            year: req.body.year,
+            semester: req.body.semester,
+            department: req.body.branch,
+            description: req.body.description,
+            credits: Number(req.body.credits) || 3
+          }, { new: true });
+        }
+      } catch (castErr) {
+        console.warn('[Subjects] ID cast/update error, attempting fallback by code:', castErr.message);
+        updated = await Course.findOneAndUpdate({ courseCode: id }, {
+          courseName: req.body.name,
+          courseCode: req.body.code,
+          year: req.body.year,
+          semester: req.body.semester,
+          department: req.body.branch,
+          description: req.body.description,
+          credits: Number(req.body.credits) || 3
+        }, { new: true });
+      }
       if (updated) return res.json(updated);
     }
 

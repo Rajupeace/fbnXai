@@ -34,11 +34,26 @@ router.get('/', async (req, res) => {
 // @desc    Create new faculty
 router.post('/', async (req, res) => {
     try {
-        const { facultyId, name, email, password, department, designation, phone, assignments } = req.body;
+        let { facultyId, name, email, password, department, designation, phone, assignments } = req.body;
 
-        if (!facultyId || !name || !email || !password) {
-            return res.status(400).json({ error: 'Please provide all required fields' });
-        }
+            // Defensive: normalize facultyId/name
+            facultyId = facultyId && String(facultyId).trim();
+            name = name && String(name).trim();
+
+            // If email is missing, generate a default to avoid create failures from incomplete forms
+            if (!email || !String(email).trim()) {
+                if (facultyId) {
+                    email = `${facultyId}@example.com`;
+                    console.warn('[Faculty Create] email missing — auto-generated:', email);
+                } else {
+                    // facultyId also missing — reject with clear message
+                    return res.status(400).json({ error: 'Please provide required fields: facultyId, name, and password' });
+                }
+            }
+
+            if (!facultyId || !name || !password) {
+                return res.status(400).json({ error: 'Please provide required fields: facultyId, name, and password' });
+            }
 
         const existing = await Faculty.findOne({ $or: [{ facultyId }, { email }] });
         if (existing) {
@@ -70,6 +85,137 @@ router.post('/', async (req, res) => {
     } catch (err) {
         console.error('Error creating faculty:', err);
         res.status(500).json({ error: 'Server error: ' + err.message });
+    }
+});
+
+// @route   POST /api/faculty/bulk
+// @desc    Bulk upload faculty from CSV/JSON
+router.post('/bulk', async (req, res) => {
+    try {
+        const { faculties } = req.body;
+
+        if (!Array.isArray(faculties) || faculties.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Please provide an array of faculty members'
+            });
+        }
+
+        const results = {
+            success: [],
+            errors: [],
+            total: faculties.length
+        };
+
+        for (let i = 0; i < faculties.length; i++) {
+            const faculty = faculties[i];
+
+            try {
+                // Extract and normalize data
+                const facultyId = faculty.facultyId || faculty.id || faculty.FacultyID;
+                const name = faculty.name || faculty.Name;
+                const email = faculty.email || faculty.Email || `${facultyId}@example.com`;
+                const password = faculty.password || faculty.Password || 'password123';
+                const department = faculty.department || faculty.Department || 'General';
+                const designation = faculty.designation || faculty.Designation || 'Lecturer';
+                const phone = faculty.phone || faculty.Phone || '';
+
+                // Parse assignments if provided
+                let assignments = [];
+                if (faculty.assignments) {
+                    if (typeof faculty.assignments === 'string') {
+                        // Parse from string format: "Year 3 Section A Subject AI; Year 3 Section B Subject ML"
+                        const assignmentParts = faculty.assignments.split(';');
+                        assignments = assignmentParts.map(part => {
+                            const match = part.match(/Year\s*(\d+)\s*Section\s*([A-Z0-9]+)\s*Subject\s*(.+)/i);
+                            if (match) {
+                                return {
+                                    year: match[1],
+                                    section: match[2].toUpperCase(),
+                                    subject: match[3].trim()
+                                };
+                            }
+                            return null;
+                        }).filter(Boolean);
+                    } else if (Array.isArray(faculty.assignments)) {
+                        assignments = faculty.assignments;
+                    }
+                }
+
+                // Validate required fields
+                if (!facultyId || !name) {
+                    results.errors.push({
+                        row: i + 1,
+                        facultyId: facultyId || 'N/A',
+                        error: 'Missing required fields (facultyId, name)'
+                    });
+                    continue;
+                }
+
+                // Check if exists
+                const existing = await Faculty.findOne({
+                    $or: [{ facultyId }, { email }]
+                });
+
+                if (existing) {
+                    results.errors.push({
+                        row: i + 1,
+                        facultyId,
+                        error: 'Faculty with this ID or Email already exists'
+                    });
+                    continue;
+                }
+
+                // Hash password
+                const hashedPassword = await bcrypt.hash(password, 10);
+
+                // Create faculty
+                const newFaculty = new Faculty({
+                    facultyId,
+                    name,
+                    email,
+                    password: hashedPassword,
+                    department,
+                    designation,
+                    phone,
+                    assignments,
+                    createdAt: new Date()
+                });
+
+                await newFaculty.save();
+
+                results.success.push({
+                    row: i + 1,
+                    facultyId,
+                    name
+                });
+
+            } catch (error) {
+                results.errors.push({
+                    row: i + 1,
+                    facultyId: faculty.facultyId || 'N/A',
+                    error: error.message
+                });
+            }
+        }
+
+        // Broadcast update if any succeeded
+        if (results.success.length > 0 && global.broadcastEvent) {
+            global.broadcastEvent({ resource: 'faculty', action: 'bulk-create' });
+        }
+
+        res.json({
+            success: true,
+            message: `Bulk upload complete: ${results.success.length} succeeded, ${results.errors.length} failed`,
+            results
+        });
+
+    } catch (err) {
+        console.error('Bulk faculty upload error:', err);
+        res.status(500).json({
+            success: false,
+            error: 'Server error: ' + err.message
+        });
     }
 });
 
