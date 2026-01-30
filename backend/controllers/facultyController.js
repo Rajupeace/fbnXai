@@ -1,4 +1,5 @@
 const Faculty = require('../models/Faculty');
+const bcrypt = require('bcryptjs');
 
 // @desc    Get all faculty
 // @route   GET /api/faculty
@@ -104,7 +105,7 @@ exports.createFaculty = async (req, res) => {
       facultyId: facultyId.trim(),
       name: name.trim(),
       email: email?.toLowerCase()?.trim() || `${facultyId.trim().toLowerCase()}@example.com`,
-      password, // In production, make sure to hash the password before saving
+      password: await bcrypt.hash(password, 10),
       department: dept,
       designation: desig,
       assignments: validatedAssignments
@@ -166,6 +167,23 @@ exports.updateFaculty = async (req, res) => {
     if (phone) facultyFields.phone = phone;
     if (address) facultyFields.address = address;
     if (typeof isAdmin !== 'undefined') facultyFields.isAdmin = isAdmin;
+
+    // Handle Password Update (Hash it)
+    if (req.body.password) {
+      const salt = await bcrypt.genSalt(10);
+      facultyFields.password = await bcrypt.hash(req.body.password, salt);
+    }
+
+    // Handle Assignments Update
+    if (req.body.assignments && Array.isArray(req.body.assignments)) {
+      facultyFields.assignments = req.body.assignments.map(a => ({
+        year: String(a.year),
+        section: String(a.section).toUpperCase().trim(),
+        subject: String(a.subject).trim(),
+        branch: a.branch || 'CSE',
+        semester: a.semester || ''
+      }));
+    }
 
     let faculty = await Faculty.findById(req.params.id);
 
