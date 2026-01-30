@@ -396,46 +396,35 @@ const FacultyMarks = ({ facultyData }) => {
                 <div className="nexus-mesh-bg"></div>
                 <div className="empty-state">
                     <FaExclamationTriangle size={64} style={{ color: '#f59e0b' }} />
-                    <h3>No Sections Found in Database</h3>
-                    <p>Your faculty account's assignments field is missing year/section information.</p>
+                    <h3>No Teaching Assignments Found</h3>
+                    <p style={{ fontSize: '1.1rem', marginBottom: '2rem' }}>To enter marks, you need to set up your teaching assignments first.</p>
 
-                    <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#fef3c7', borderRadius: '12px', color: '#92400e', textAlign: 'left', maxWidth: '600px' }}>
-                        <h4 style={{ margin: '0 0 1rem 0' }}>🔍 Debugging Information:</h4>
-                        <p style={{ margin: '0.5rem 0' }}><strong>Faculty ID:</strong> {facultyData?.facultyId || 'Not found'}</p>
-                        <p style={{ margin: '0.5rem 0' }}><strong>Name:</strong> {facultyData?.name || 'Not found'}</p>
-                        <p style={{ margin: '0.5rem 0' }}><strong>Subject:</strong> {facultyData?.subject || 'Not found'}</p>
-                        <p style={{ margin: '0.5rem 0' }}><strong>Available Keys:</strong> {Object.keys(facultyData || {}).join(', ')}</p>
-                        <p style={{ margin: '0.5rem 0' }}><strong>Assignments:</strong> {facultyData?.assignments ? `${facultyData.assignments.length} found` : 'Not found'}</p>
-
-                        <div style={{ marginTop: '1rem', padding: '1rem', background: 'white', borderRadius: '8px' }}>
-                            <strong>Each assignment should contain:</strong>
-                            <pre style={{ fontSize: '0.85rem', overflow: 'auto' }}>
-                                {`assignments: [
-  {
-    subject: "Neural Networks",
-    year: 3,
-    section: "A"
-  }
-]`}
-                            </pre>
-                        </div>
-
-                        {facultyData?.assignments && (
-                            <div style={{ marginTop: '1rem', padding: '1rem', background: 'white', borderRadius: '8px' }}>
-                                <strong>Your current assignments:</strong>
-                                <pre style={{ fontSize: '0.85rem', overflow: 'auto', maxHeight: '200px' }}>
-                                    {JSON.stringify(facultyData.assignments, null, 2)}
-                                </pre>
-                            </div>
-                        )}
+                    <div style={{ marginTop: '2rem', padding: '2rem', background: '#eff6ff', borderRadius: '16px', border: '2px solid #3b82f6', maxWidth: '600px', textAlign: 'left' }}>
+                        <h4 style={{ margin: '0 0 1rem 0', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <FaBook /> How to Set Up Teaching Assignments:
+                        </h4>
+                        <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#1e293b', lineHeight: '1.8' }}>
+                            <li>Click on <strong>"Settings"</strong> in the sidebar</li>
+                            <li>Go to the <strong>"Teaching"</strong> tab</li>
+                            <li>Add your classes by entering:
+                                <ul style={{ marginTop: '0.5rem' }}>
+                                    <li>Year (1-4)</li>
+                                    <li>Branch (CSE, IT, ECE, etc.)</li>
+                                    <li>Section (1-20 or A-G)</li>
+                                    <li>Subject Name</li>
+                                </ul>
+                            </li>
+                            <li>Click <strong>"Add Class"</strong></li>
+                            <li>Return to this Marks section</li>
+                        </ol>
                     </div>
 
                     <button
-                        onClick={() => window.location.reload()}
+                        onClick={() => window.location.hash = '#settings'}
                         className="f-node-btn primary"
-                        style={{ marginTop: '1.5rem' }}
+                        style={{ marginTop: '2rem', padding: '1rem 2rem', fontSize: '1.1rem' }}
                     >
-                        Refresh Page
+                        <FaEdit /> Go to Settings
                     </button>
                 </div>
             </div>
