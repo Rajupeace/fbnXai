@@ -392,7 +392,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
         {view === 'settings' && (
           <div className="nexus-hub-viewport">
-            <FacultySettings facultyData={currentFaculty} />
+            <FacultySettings facultyData={currentFaculty} onProfileUpdate={setCurrentFaculty} />
           </div>
         )}
 

@@ -7,7 +7,7 @@ import './FacultyDashboard.css';
  * FACULTY SETTINGS
  * Manage profile details and security settings.
  */
-const FacultySettings = ({ facultyData }) => {
+const FacultySettings = ({ facultyData, onProfileUpdate }) => {
     const [activeTab, setActiveTab] = useState('profile');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ text: '', type: '' });
@@ -59,7 +59,8 @@ const FacultySettings = ({ facultyData }) => {
             // Update profile using facultyId
             const response = await apiPut(`/api/faculty/${profile.facultyId}`, profile);
             if (response) {
-                showMessage("Profile updated successfully! Refresh to see changes.");
+                if (onProfileUpdate) onProfileUpdate(response);
+                showMessage("Profile updated successfully!");
             }
         } catch (error) {
             console.error('Update failed:', error);

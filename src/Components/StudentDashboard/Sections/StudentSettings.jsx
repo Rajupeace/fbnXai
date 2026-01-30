@@ -292,10 +292,12 @@ const StudentSettings = ({ userData, onProfileUpdate }) => {
                                             onChange={handleProfileChange}
                                             style={{ width: '100%', padding: '0.8rem 1rem', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '1rem', background: '#f8fafc' }}
                                         >
-                                            <option value="A">Section A</option>
-                                            <option value="B">Section B</option>
-                                            <option value="C">Section C</option>
-                                            <option value="D">Section D</option>
+                                            {[...Array(20)].map((_, i) => (
+                                                <option key={i + 1} value={String(i + 1)}>Section {i + 1}</option>
+                                            ))}
+                                            {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(char => (
+                                                <option key={char} value={char}>Section {char}</option>
+                                            ))}
                                         </select>
                                     </div>
 
