@@ -32,7 +32,8 @@ app.use(cors());
 // enable gzip compression for responses
 app.use(compression());
 // Limit request body size to avoid large payload abuse
-app.use(express.json({ limit: process.env.BODY_LIMIT || '100kb' }));
+app.use(express.json({ limit: process.env.BODY_LIMIT || '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Basic rate limiting to protect from burst traffic
 const limiter = rateLimit({
