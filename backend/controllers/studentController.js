@@ -2,6 +2,7 @@ const Student = require('../models/Student');
 const Attendance = require('../models/Attendance');
 const ExamResult = require('../models/ExamResult');
 const Exam = require('../models/Exam');
+const Mark = require('../models/Mark');
 const mongoose = require('mongoose');
 
 // @desc    Get Student Mega Overview (Attendance, Marks, Stats)
@@ -60,7 +61,13 @@ exports.getStudentOverview = async (req, res) => {
           attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : 0;
           for (const k of Object.keys(subjectMap)) {
             const s = subjectMap[k];
-            attendanceSummary.details[k] = { total: s.total, present: s.present, percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0 };
+            attendanceSummary.details[k] = {
+              total: s.total,
+              present: s.present,
+              totalClasses: s.total,
+              totalPresent: s.present,
+              percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0
+            };
           }
           console.log(`✅ Attendance calculated: ${attendanceSummary.overall}%`);
         }
@@ -83,7 +90,13 @@ exports.getStudentOverview = async (req, res) => {
         attendanceSummary.overall = total > 0 ? Math.round((present / total) * 100) : 0;
         for (const k of Object.keys(subjectMap)) {
           const s = subjectMap[k];
-          attendanceSummary.details[k] = { total: s.total, present: s.present, percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0 };
+          attendanceSummary.details[k] = {
+            total: s.total,
+            present: s.present,
+            totalClasses: s.total,
+            totalPresent: s.present,
+            percentage: s.total > 0 ? Math.round((s.present / s.total) * 100) : 0
+          };
         }
         console.log(`✅ Attendance calculated: ${attendanceSummary.overall}%`);
       }
@@ -95,34 +108,79 @@ exports.getStudentOverview = async (req, res) => {
     // Academics: attempt to compute overall percentage from ExamResult (Mongo or File)
     let academicsSummary = { overallPercentage: null, details: {}, totalExamsTaken: 0 };
     try {
-      const examResults = await ExamResult.find({ studentId: { $in: [student._id, student.sid, id] } }).lean();
-      const studentResults = Array.isArray(examResults) ? examResults : [];
-      if (studentResults.length > 0) {
-        academicsSummary.totalExamsTaken = studentResults.length;
+      // NEW: Try fetching from Mark collection (Faculty Dashboard Entires) first
+      const allMarks = await Mark.find({ studentId: id }).lean();
 
-        let totalPctAccumulator = 0;
-        const subjectStats = {};
+      if (allMarks && allMarks.length > 0) {
+        const subjects = {};
+        let totalExams = 0;
 
-        studentResults.forEach(er => {
-          const pct = (er.score / (er.totalMarks || 100)) * 100;
-          totalPctAccumulator += pct;
-
-          const subj = er.subject || er.examTitle || 'General';
-          if (!subjectStats[subj]) {
-            subjectStats[subj] = { totalPct: 0, count: 0 };
+        allMarks.forEach(m => {
+          const s = m.subject || 'General';
+          if (!subjects[s]) subjects[s] = { obtained: 0, max: 0, count: 0 };
+          subjects[s].obtained += m.marks;
+          // Use stored maxMarks or default based on type
+          let max = m.maxMarks;
+          if (!max) {
+            if (m.assessmentType.startsWith('cla')) max = 20;
+            else if (m.assessmentType.startsWith('m')) max = 10;
+            else max = 100;
           }
-          subjectStats[subj].totalPct += pct;
-          subjectStats[subj].count += 1;
+          subjects[s].max += max;
+          subjects[s].count += 1;
+          totalExams++;
         });
 
-        academicsSummary.overallPercentage = Math.round(totalPctAccumulator / studentResults.length);
-        Object.keys(subjectStats).forEach(s => {
-          academicsSummary.details[s] = {
-            percentage: Math.round(subjectStats[s].totalPct / subjectStats[s].count),
-            average: Math.round(subjectStats[s].totalPct / subjectStats[s].count)
-          };
+        let totalPctSum = 0;
+        let subjectCount = 0;
+
+        Object.keys(subjects).forEach(subj => {
+          const { obtained, max } = subjects[subj];
+          // Calculate percentage based on total obtained vs total max possible for entries
+          // However, Faculty Marks table assumes fixed total of 180. 
+          // We should display % based on what is Entered OR standard total.
+          // Standard approach: (Obtained / Max) * 100
+          const pct = max > 0 ? Math.round((obtained / max) * 100) : 0;
+          academicsSummary.details[subj] = { percentage: pct, average: pct };
+          totalPctSum += pct;
+          subjectCount++;
         });
-        console.log(`✅ Marks calculated: ${academicsSummary.overallPercentage}%`);
+
+        academicsSummary.overallPercentage = subjectCount > 0 ? Math.round(totalPctSum / subjectCount) : 0;
+        academicsSummary.totalExamsTaken = totalExams;
+        console.log(`✅ Marks calculated from Marks collection: ${academicsSummary.overallPercentage}%`);
+
+      } else {
+        // FALLBACK: Try ExamResult (Old/Admin uploaded)
+        const examResults = await ExamResult.find({ studentId: { $in: [student._id, student.sid, id] } }).lean();
+        const studentResults = Array.isArray(examResults) ? examResults : [];
+        if (studentResults.length > 0) {
+          academicsSummary.totalExamsTaken = studentResults.length;
+
+          let totalPctAccumulator = 0;
+          const subjectStats = {};
+
+          studentResults.forEach(er => {
+            const pct = (er.score / (er.totalMarks || 100)) * 100;
+            totalPctAccumulator += pct;
+
+            const subj = er.subject || er.examTitle || 'General';
+            if (!subjectStats[subj]) {
+              subjectStats[subj] = { totalPct: 0, count: 0 };
+            }
+            subjectStats[subj].totalPct += pct;
+            subjectStats[subj].count += 1;
+          });
+
+          academicsSummary.overallPercentage = Math.round(totalPctAccumulator / studentResults.length);
+          Object.keys(subjectStats).forEach(s => {
+            academicsSummary.details[s] = {
+              percentage: Math.round(subjectStats[s].totalPct / subjectStats[s].count),
+              average: Math.round(subjectStats[s].totalPct / subjectStats[s].count)
+            };
+          });
+          console.log(`✅ Marks calculated from ExamResult: ${academicsSummary.overallPercentage}%`);
+        }
       }
     } catch (examErr) {
       console.error('⚠️  Exam computation skipped:', examErr.message);

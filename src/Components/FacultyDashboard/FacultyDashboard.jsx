@@ -25,6 +25,7 @@ import FacultyStudents from './Sections/FacultyStudents';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 
 const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => {
+  const [currentFaculty, setCurrentFaculty] = useState(facultyData);
   const [view, setView] = useState('overview');
   const [activeContext, setActiveContext] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -39,6 +40,11 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const refreshAll = async () => {
+    try {
+      // Refresh profile for assignments update
+      const freshFac = await apiGet(`/api/faculty/${facultyData.facultyId}`);
+      if (freshFac) setCurrentFaculty(freshFac);
+    } catch (e) { console.warn('Fac profile refresh failed', e); }
     setSyncing(true);
     try {
       // console.debug('📊 FacultyDashboard: Fetching data from database...');
@@ -124,7 +130,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
   const myClasses = useMemo(() => {
     const grouped = {};
-    const assignments = facultyData.assignments || [];
+    const assignments = currentFaculty.assignments || [];
     assignments.forEach(assign => {
       const key = `${assign.year}-${assign.subject}`;
       if (!grouped[key]) {
@@ -133,7 +139,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
       grouped[key].sections.add(assign.section);
     });
     return Object.values(grouped).map(g => ({ ...g, sections: Array.from(g.sections).sort() }));
-  }, [facultyData.assignments]);
+  }, [currentFaculty.assignments]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -300,7 +306,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
         {view === 'marks' && (
           <div className="nexus-hub-viewport">
-            <FacultyMarks facultyData={facultyData} />
+            <FacultyMarks facultyData={currentFaculty} />
           </div>
         )}
 
@@ -330,7 +336,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 </select>
               </header>
               <FacultyAttendanceManager
-                facultyData={facultyData}
+                facultyData={currentFaculty}
               />
             </div>
           ) : <div className="no-content">No classes assigned.</div>;
@@ -365,8 +371,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                 subject={ctx.subject}
                 year={ctx.year}
                 sections={ctx.sections}
-                facultyId={facultyData.facultyId}
-                branch={facultyData.department}
+                facultyId={currentFaculty.facultyId}
+                branch={currentFaculty.department}
               />
             </div>
           ) : <div className="no-content">No classes assigned.</div>;
@@ -374,7 +380,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
         {view === 'schedule' && (
           <div className="nexus-hub-viewport">
-            <FacultyScheduleView facultyData={facultyData} />
+            <FacultyScheduleView facultyData={currentFaculty} />
           </div>
         )}
 
@@ -386,7 +392,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
         {view === 'settings' && (
           <div className="nexus-hub-viewport">
-            <FacultySettings facultyData={facultyData} />
+            <FacultySettings facultyData={currentFaculty} />
           </div>
         )}
 

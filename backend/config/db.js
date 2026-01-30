@@ -36,6 +36,9 @@ const connectDB = async () => {
       const connectOptions = {
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 45000,
+        // connection pool sizing for concurrency
+        maxPoolSize: Number(process.env.MONGO_MAX_POOL_SIZE || 50),
+        minPoolSize: Number(process.env.MONGO_MIN_POOL_SIZE || 0)
       };
       if (preferIPv4) {
         // Instruct the underlying driver to prefer IPv4

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaSave, FaTimes, FaUserGraduate, FaBook, FaCheck, FaFilter, FaUsers, FaExclamationTriangle } from 'react-icons/fa';
+import { FaEdit, FaSave, FaTimes, FaUserGraduate, FaBook, FaCheck, FaFilter, FaUsers, FaExclamationTriangle, FaFileDownload } from 'react-icons/fa';
 import { apiGet, apiPost } from '../../utils/apiClient';
 import './FacultyMarks.css';
 
@@ -38,17 +38,7 @@ const FacultyMarks = ({ facultyData }) => {
         ]
     };
 
-    useEffect(() => {
-        initializeData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [facultyData]);
 
-    useEffect(() => {
-        if (selectedSection.year && selectedSection.section && students.length > 0) {
-            fetchMarks();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedSection, students]);
 
     const initializeData = async () => {
         try {
@@ -91,87 +81,55 @@ const FacultyMarks = ({ facultyData }) => {
     };
 
     const extractSectionsFromData = (data) => {
-        if (!data) {
-            console.log('No data provided');
-            return [];
-        }
+        if (!data) return [];
 
-        console.log('=== EXTRACTING SECTIONS ===');
-        console.log('Data keys:', Object.keys(data));
-
-        // Method 1: Check assignments array (YOUR DATABASE HAS THIS!)
+        // Method 1: Check assignments array (includes Subject)
         if (data.assignments && Array.isArray(data.assignments) && data.assignments.length > 0) {
-            console.log('✅ Found assignments field:', data.assignments);
-            // Extract unique year+section combinations from assignments
             const sectionsMap = new Map();
             data.assignments.forEach(assignment => {
-                // Try multiple field name variations
                 const year = parseInt(assignment.year || assignment.Year || assignment.classYear);
                 const section = String(assignment.section || assignment.Section || assignment.classSection).toUpperCase();
+                const subject = assignment.subject || assignment.Subject || data.subject || 'General';
 
                 if (year && section && section !== 'UNDEFINED') {
-                    const key = `${year}-${section}`;
+                    const key = `${year}-${section}-${subject}`;
                     if (!sectionsMap.has(key)) {
-                        sectionsMap.set(key, { year, section });
-                        console.log(`✅ Extracted: Year ${year}, Section ${section}`);
+                        sectionsMap.set(key, { year, section, subject });
                     }
                 }
             });
-            const sections = Array.from(sectionsMap.values());
-            console.log('✅ Final extracted sections from assignments:', sections);
-            if (sections.length > 0) return sections;
+            return Array.from(sectionsMap.values());
         }
 
-        // Method 2: Check sections array (standard field)
-        if (data.sections && Array.isArray(data.sections) && data.sections.length > 0) {
-            console.log('✅ Found in data.sections:', data.sections);
-            return data.sections.map(s => ({
-                year: parseInt(s.year || s.Year),
-                section: String(s.section || s.Section).toUpperCase()
-            }));
+        // Method 2: Check sections array (Fallbacks)
+        const possibleArrays = [data.sections, data.assignedSections, data.teaching];
+        for (const arr of possibleArrays) {
+            if (arr && Array.isArray(arr) && arr.length > 0) {
+                return arr.map(s => ({
+                    year: parseInt(s.year || s.Year),
+                    section: String(s.section || s.Section).toUpperCase(),
+                    subject: data.subject || 'General'
+                }));
+            }
         }
 
-        // Method 3: Check assignedSections array
-        if (data.assignedSections && Array.isArray(data.assignedSections) && data.assignedSections.length > 0) {
-            console.log('✅ Found in data.assignedSections:', data.assignedSections);
-            return data.assignedSections.map(s => ({
-                year: parseInt(s.year || s.Year),
-                section: String(s.section || s.Section).toUpperCase()
-            }));
-        }
-
-        // Method 4: Check teaching array
-        if (data.teaching && Array.isArray(data.teaching) && data.teaching.length > 0) {
-            console.log('✅ Found in data.teaching:', data.teaching);
-            return data.teaching.map(t => ({
-                year: parseInt(t.year || t.Year),
-                section: String(t.section || t.Section).toUpperCase()
-            }));
-        }
-
-        // Method 5: Direct year+section fields (lowercase)
+        // Method 3: Direct fields
         if (data.year && data.section) {
-            console.log('✅ Found in direct fields (lowercase):', { year: data.year, section: data.section });
             return [{
                 year: parseInt(data.year),
-                section: String(data.section).toUpperCase()
+                section: String(data.section).toUpperCase(),
+                subject: data.subject || 'General'
             }];
         }
 
-        // Method 6: Direct Year+Section fields (uppercase)
         if (data.Year && data.Section) {
-            console.log('✅ Found in direct fields (uppercase):', { Year: data.Year, Section: data.Section });
             return [{
                 year: parseInt(data.Year),
-                section: String(data.Section).toUpperCase()
+                section: String(data.Section).toUpperCase(),
+                subject: data.subject || 'General'
             }];
         }
 
-        console.error('❌ NO SECTIONS FOUND in any field');
-        console.log('Available fields:', Object.keys(data));
-        if (data.assignments) {
-            console.log('Assignments field exists but may be missing year/section:', data.assignments);
-        }
         return [];
     };
 
@@ -181,7 +139,7 @@ const FacultyMarks = ({ facultyData }) => {
             console.log('=== FETCHING STUDENTS ===');
             console.log('Faculty ID:', facultyData.facultyId);
 
-            const data = await apiGet(`/api/faculty/${facultyData.facultyId}/students`);
+            const data = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
             console.log(`✅ Fetched ${data?.length || 0} total students`);
 
             if (data && data.length > 0) {
@@ -255,10 +213,10 @@ const FacultyMarks = ({ facultyData }) => {
     const fetchMarks = async () => {
         try {
             setLoading(true);
-            const subject = facultyData?.subject || '';
+            const subject = selectedSection.subject || facultyData?.subject || '';
             console.log('Fetching marks for:', { subject, year: selectedSection.year, section: selectedSection.section });
 
-            const data = await apiGet(`/api/marks/${subject}/all`);
+            const data = await apiGet(`/api/marks/${encodeURIComponent(subject)}/all`);
             console.log('Fetched marks data:', data);
 
             // Initialize marks structure
@@ -331,7 +289,7 @@ const FacultyMarks = ({ facultyData }) => {
                     if (markValue !== '' && markValue !== null && markValue !== undefined) {
                         marksArray.push({
                             studentId,
-                            subject: facultyData?.subject || '',
+                            subject: selectedSection.subject || facultyData?.subject || '',
                             year: selectedSection.year,
                             section: selectedSection.section,
                             assessmentType: assessmentId,
@@ -386,6 +344,52 @@ const FacultyMarks = ({ facultyData }) => {
     };
 
     // Show debug message if no sections
+    useEffect(() => {
+        initializeData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [facultyData]);
+
+    useEffect(() => {
+        if (selectedSection.year && selectedSection.section && students.length > 0) {
+            fetchMarks();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedSection, students]);
+
+    // CSV Export Logic
+    const handleDownloadCSV = () => {
+        if (!students || students.length === 0) return alert('No students to export');
+
+        const headers = ['Student ID', 'Student Name'];
+        // Use assessmentStructure to build dynamic columns
+        if (assessmentStructure.cla) assessmentStructure.cla.forEach(a => headers.push(a.label));
+        if (assessmentStructure.module1) assessmentStructure.module1.forEach(a => headers.push(a.label));
+        if (assessmentStructure.module2) assessmentStructure.module2.forEach(a => headers.push(a.label));
+
+        let csv = headers.join(',') + '\n';
+
+        students.forEach(s => {
+            const sid = s.sid || s.studentId;
+            const name = s.studentName || s.name || 'Unknown';
+            // Escape name for CSV
+            const row = [sid, `"${name}"`];
+
+            if (assessmentStructure.cla) assessmentStructure.cla.forEach(a => row.push(marksData[sid]?.[a.id] || 0));
+            if (assessmentStructure.module1) assessmentStructure.module1.forEach(a => row.push(marksData[sid]?.[a.id] || 0));
+            if (assessmentStructure.module2) assessmentStructure.module2.forEach(a => row.push(marksData[sid]?.[a.id] || 0));
+
+            csv += row.join(',') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Marks_${selectedSection.subject || 'Subject'}_${selectedSection.year}-${selectedSection.section}_${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    };
+
     if (availableSections.length === 0) {
         return (
             <div className="faculty-marks-container">
@@ -470,9 +474,14 @@ const FacultyMarks = ({ facultyData }) => {
                             </button>
                         </>
                     ) : (
-                        <button className="f-node-btn primary" onClick={() => setEditMode(true)} disabled={students.length === 0}>
-                            <FaEdit /> Edit Marks
-                        </button>
+                        <>
+                            <button className="f-node-btn outline" onClick={handleDownloadCSV} disabled={students.length === 0} style={{ marginRight: '0.5rem', background: '#e2e8f0', color: '#0f172a' }}>
+                                <FaFileDownload /> CSV Export
+                            </button>
+                            <button className="f-node-btn primary" onClick={() => setEditMode(true)} disabled={students.length === 0}>
+                                <FaEdit /> Edit Marks
+                            </button>
+                        </>
                     )}
                 </div>
             </header>
@@ -493,10 +502,11 @@ const FacultyMarks = ({ facultyData }) => {
                     {availableSections.map((sec, index) => (
                         <button
                             key={index}
-                            className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section ? 'active' : ''}`}
+                            className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section && selectedSection.subject === sec.subject ? 'active' : ''}`}
                             onClick={() => handleSectionChange(sec)}
                         >
                             <FaUsers /> Year {sec.year} - Section {sec.section}
+                            {sec.subject && <span style={{ display: 'block', fontSize: '0.8em', opacity: 0.8 }}>{sec.subject}</span>}
                         </button>
                     ))}
                 </div>
@@ -505,7 +515,7 @@ const FacultyMarks = ({ facultyData }) => {
             {/* Subject Info Bar */}
             <div className="subject-info-bar">
                 <FaBook />
-                <span>Subject: <strong>{facultyData?.subject || 'N/A'}</strong></span>
+                <span>Subject: <strong>{selectedSection.subject || facultyData?.subject || 'N/A'}</strong></span>
                 <span className="section-badge">
                     Year {selectedSection.year} - Section {selectedSection.section}
                 </span>

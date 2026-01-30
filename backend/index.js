@@ -1,6 +1,9 @@
 require('dotenv').config();
 const path = require('path');
 const express = require('express');
+const compression = require('compression');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const cors = require('cors');
 const fs = require('fs');
 const chokidar = require('chokidar');
@@ -22,8 +25,23 @@ const Message = require('./models/Message');
 const materialController = require('./controllers/materialController');
 
 const app = express();
+
+// Security and performance middleware
+app.use(helmet());
 app.use(cors());
-app.use(express.json());
+// enable gzip compression for responses
+app.use(compression());
+// Limit request body size to avoid large payload abuse
+app.use(express.json({ limit: process.env.BODY_LIMIT || '100kb' }));
+
+// Basic rate limiting to protect from burst traffic
+const limiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000), // 1 minute
+  max: Number(process.env.RATE_LIMIT_MAX || 200), // limit each IP to 200 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use(limiter);
 
 
 
@@ -97,6 +115,12 @@ function broadcastEvent(payload) {
 global.broadcastEvent = broadcastEvent;
 
 app.get('/api/stream', (req, res) => {
+  // Prevent excessive SSE connections from exhausting resources
+  const MAX_SSE_CLIENTS = Number(process.env.MAX_SSE_CLIENTS || 500);
+  if (sseClients.length >= MAX_SSE_CLIENTS) {
+    return res.status(503).json({ error: 'Server busy: too many live connections' });
+  }
+
   res.set({
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -305,6 +329,7 @@ const courseRoutes = require('./routes/courseRoutes');
 // Register Faculty Routes (Admin CRUD)
 const facultyRoutes = require('./routes/facultyRoutes');
 app.use('/api/faculty', facultyRoutes);
+app.use('/api/faculty-stats', require('./routes/facultyStats'));
 
 // Placement/Interview Prep Routes
 app.use('/api/placements', require('./routes/placementRoutes'));
@@ -3162,6 +3187,24 @@ const initializeApp = async () => {
       process.exit(1);
     }
 
+    // Ensure important indexes exist to improve query performance and avoid
+    // unexpected full-collection scans under high concurrency.
+    try {
+      console.log('Ensuring MongoDB indexes for models...');
+      // createIndexes is safe to call repeatedly; it will noop if index exists
+      await Promise.all([
+        typeof Admin?.createIndexes === 'function' ? Admin.createIndexes() : Promise.resolve(),
+        typeof Student?.createIndexes === 'function' ? Student.createIndexes() : Promise.resolve(),
+        typeof Faculty?.createIndexes === 'function' ? Faculty.createIndexes() : Promise.resolve(),
+        typeof Course?.createIndexes === 'function' ? Course.createIndexes() : Promise.resolve(),
+        typeof Message?.createIndexes === 'function' ? Message.createIndexes() : Promise.resolve()
+      ]);
+      console.log('✅ Indexes ensured for core models');
+    } catch (idxErr) {
+      console.warn('⚠️ Failed to ensure indexes on startup:', idxErr && idxErr.message ? idxErr.message : idxErr);
+      // Do not fail startup for index build errors; log for ops to inspect
+    }
+
     const PORT = process.env.PORT || 5000;
     console.log(`Attempting to listen on port ${PORT}...`);
     server = app.listen(PORT, () => {
@@ -3173,6 +3216,17 @@ const initializeApp = async () => {
       console.log('   • Course Data: MongoDB ONLY');
       console.log('   • File DB: Disabled for critical operations\n');
     });
+
+    // Tune server timeouts to better handle many concurrent keep-alive connections
+    try {
+      const keepAlive = Number(process.env.SERVER_KEEPALIVE_MS || 60000);
+      const headersTimeout = Number(process.env.SERVER_HEADERS_TIMEOUT_MS || (keepAlive + 5000));
+      server.keepAliveTimeout = keepAlive;
+      server.headersTimeout = headersTimeout;
+      console.log(`[server] keepAliveTimeout=${keepAlive} headersTimeout=${headersTimeout}`);
+    } catch (e) {
+      console.warn('[server] Failed to set server timeouts:', e.message);
+    }
 
     server.on('error', (err) => {
       console.error('Server listen error:', err.message);

@@ -18,16 +18,7 @@ const FacultyAttendanceManager = ({ facultyData }) => {
     const [history, setHistory] = useState([]);
     const [viewMode, setViewMode] = useState('take');
 
-    useEffect(() => {
-        initializeSections();
-    }, [facultyData, initializeSections]);
 
-    useEffect(() => {
-        if (selectedSection.year && selectedSection.section) {
-            fetchStudentsAndAttendance();
-            fetchHistory();
-        }
-    }, [selectedSection, date, fetchStudentsAndAttendance, fetchHistory]);
 
     const initializeSections = useCallback(() => {
         console.log('=== INITIALIZING ATTENDANCE SECTIONS ===');
@@ -51,11 +42,13 @@ const FacultyAttendanceManager = ({ facultyData }) => {
             data.assignments.forEach(assignment => {
                 const year = parseInt(assignment.year || assignment.Year || assignment.classYear);
                 const section = String(assignment.section || assignment.Section || assignment.classSection).toUpperCase();
+                const subject = assignment.subject || assignment.Subject || data.subject || 'General';
 
                 if (year && section && section !== 'UNDEFINED') {
-                    const key = `${year}-${section}`;
+                    // Include subject in key to differentiate subjects for same section
+                    const key = `${year}-${section}-${subject}`;
                     if (!sectionsMap.has(key)) {
-                        sectionsMap.set(key, { year, section });
+                        sectionsMap.set(key, { year, section, subject });
                     }
                 }
             });
@@ -89,14 +82,16 @@ const FacultyAttendanceManager = ({ facultyData }) => {
     const fetchStudentsAndAttendance = useCallback(async () => {
         setLoading(true);
         try {
-            const allStudents = await apiGet(`/api/faculty/${facultyData.facultyId}/students`);
+            const allStudents = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
             console.log('Fetched students for attendance:', allStudents);
 
             // Filter by selected section
             const filteredStudents = allStudents.filter(s => {
                 const studentYear = String(s.year || s.Year);
-                const studentSection = String(s.section || s.Section).toUpperCase();
-                return studentYear === selectedSection.year && studentSection === selectedSection.section;
+                const studentSection = String(s.section || s.Section).toUpperCase().trim();
+                // Compare as strings to avoid type mismatch
+                return studentYear === String(selectedSection.year) &&
+                    studentSection === String(selectedSection.section).toUpperCase().trim();
             });
 
             filteredStudents.sort((a, b) => String(a.sid).localeCompare(String(b.sid)));
@@ -105,10 +100,10 @@ const FacultyAttendanceManager = ({ facultyData }) => {
             console.log(`Filtered ${filteredStudents.length} students for attendance in Year ${selectedSection.year} Section ${selectedSection.section}`);
 
             // Fetch existing attendance
-            const subject = facultyData?.subject || '';
+            const subject = selectedSection.subject || facultyData?.subject || '';
             const branch = filteredStudents[0]?.branch || 'CSE';
             const existing = await apiGet(
-                `/api/attendance/all?year=${selectedSection.year}&section=${selectedSection.section}&subject=${subject}&date=${date}&branch=${branch}`
+                `/api/attendance/all?year=${selectedSection.year}&section=${selectedSection.section}&subject=${encodeURIComponent(subject)}&date=${date}&branch=${branch}`
             );
 
             if (existing && existing.length > 0) {
@@ -130,15 +125,26 @@ const FacultyAttendanceManager = ({ facultyData }) => {
 
     const fetchHistory = useCallback(async () => {
         try {
-            const subject = facultyData?.subject || '';
+            const subject = selectedSection.subject || facultyData?.subject || '';
             const res = await apiGet(
-                `/api/attendance/all?year=${selectedSection.year}&section=${selectedSection.section}&subject=${subject}`
+                `/api/attendance/all?year=${selectedSection.year}&section=${selectedSection.section}&subject=${encodeURIComponent(subject)}`
             );
             setHistory(res || []);
         } catch (err) {
             console.error("History fetch fail:", err);
         }
     }, [facultyData, selectedSection]);
+
+    useEffect(() => {
+        initializeSections();
+    }, [facultyData, initializeSections]);
+
+    useEffect(() => {
+        if (selectedSection.year && selectedSection.section) {
+            fetchStudentsAndAttendance();
+            fetchHistory();
+        }
+    }, [selectedSection, date, fetchStudentsAndAttendance, fetchHistory]);
 
     const handleSectionChange = (newSection) => {
         setSelectedSection(newSection);
@@ -165,7 +171,7 @@ const FacultyAttendanceManager = ({ facultyData }) => {
         try {
             await apiPost('/api/attendance', {
                 date,
-                subject: facultyData?.subject || '',
+                subject: selectedSection.subject || facultyData?.subject || '',
                 year: selectedSection.year,
                 section: selectedSection.section,
                 branch: students[0]?.branch || 'CSE',
@@ -229,10 +235,10 @@ const FacultyAttendanceManager = ({ facultyData }) => {
                             {availableSections.map((sec, index) => (
                                 <button
                                     key={index}
-                                    className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section ? 'active' : ''}`}
+                                    className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section && selectedSection.subject === sec.subject ? 'active' : ''}`}
                                     onClick={() => handleSectionChange(sec)}
                                 >
-                                    <FaUsers /> Year {sec.year} - Section {sec.section}
+                                    <FaUsers /> Year {sec.year} - Sec {sec.section} ({sec.subject || 'All'})
                                 </button>
                             ))}
                         </div>
