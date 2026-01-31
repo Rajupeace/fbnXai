@@ -128,6 +128,21 @@ class UltraFastResponse {
             priority: 1,
             responseTime: 2
         });
+
+        // INSTANT NAVIGATION PATTERNS
+        const navResponse = (section) => `Navigation request detected. {{NAVIGATE: ${section}}}`;
+
+        this.patterns.set('browse', { response: navResponse('semester'), priority: 5 });
+        this.patterns.set('materials', { response: navResponse('semester'), priority: 5 });
+        this.patterns.set('notes', { response: navResponse('semester'), priority: 5 });
+        this.patterns.set('marks', { response: navResponse('marks'), priority: 5 });
+        this.patterns.set('results', { response: navResponse('marks'), priority: 5 });
+        this.patterns.set('grades', { response: navResponse('marks'), priority: 5 });
+        this.patterns.set('schedule', { response: navResponse('schedule'), priority: 5 });
+        this.patterns.set('timetable', { response: navResponse('schedule'), priority: 5 });
+        this.patterns.set('exams', { response: navResponse('exams'), priority: 5 });
+        this.patterns.set('fees', { response: navResponse('fees'), priority: 5 });
+        this.patterns.set('profile', { response: navResponse('settings'), priority: 5 });
     }
 
     // Ultra-fast response generation
@@ -138,7 +153,7 @@ class UltraFastResponse {
         // Check cache first
         const cacheKey = message.toLowerCase().trim();
         const cached = this.responseCache.get(cacheKey);
-        
+
         if (cached) {
             this.cacheHits++;
             this.responseTime = Date.now() - startTime;
@@ -152,7 +167,7 @@ class UltraFastResponse {
 
         // Pattern matching for ultra-fast responses
         const lowerMessage = message.toLowerCase().trim();
-        
+
         // Direct pattern matches
         for (const [pattern, data] of this.patterns.entries()) {
             if (lowerMessage.includes(pattern)) {
@@ -180,30 +195,21 @@ class UltraFastResponse {
             };
         }
 
-        // Default ultra-fast response
-        const defaultResponse = '⚡ Ultra-Fast Response System Active!\nAsk me anything for instant help! 🚀';
-        this.responseCache.set(cacheKey, defaultResponse);
-        this.responseTime = Date.now() - startTime;
-        
-        return {
-            response: defaultResponse,
-            cached: false,
-            responseTime: this.responseTime,
-            source: 'default'
-        };
+        // If no match, return null to fallback to other engines
+        return null;
     }
 
     // Quick math calculations
     quickMathCalculation(message) {
         const lowerMessage = message.toLowerCase().trim();
-        
+
         // Basic arithmetic
         const match = lowerMessage.match(/(\d+)\s*([+\-*/])\s*(\d+)/);
         if (match) {
             const a = parseFloat(match[1]);
             const b = parseFloat(match[3]);
             const operator = match[2];
-            
+
             let result;
             switch (operator) {
                 case '+': result = a + b; break;
@@ -212,7 +218,7 @@ class UltraFastResponse {
                 case '/': result = a / b; break;
                 default: return null;
             }
-            
+
             return `🧮 ${a} ${operator} ${b} = ${result}`;
         }
 
@@ -241,7 +247,7 @@ class UltraFastResponse {
         return {
             totalRequests: this.totalRequests,
             cacheHits: this.cacheHits,
-            cacheHitRate: this.totalRequests > 0 ? 
+            cacheHitRate: this.totalRequests > 0 ?
                 ((this.cacheHits / this.totalRequests) * 100).toFixed(2) + '%' : '0%',
             averageResponseTime: this.responseTime + 'ms',
             cacheSize: this.responseCache.size,

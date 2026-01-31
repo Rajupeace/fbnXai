@@ -592,6 +592,23 @@ Key Approach:
                 // Enhanced student context for better personalization
                 let studentContext = `Student Profile: Name ${context.name || 'Student'}, Year ${context.year || 'N/A'}, Branch ${context.branch || 'Engineering'}.\n\nConversation Tips:\n- Address the student by name occasionally\n- Reference their year/branch when relevant\n- Adapt explanations to their academic level\n- Be encouraging and supportive\n- Ask questions to understand their specific needs better`;
 
+                // 🌟 SELF-LEARNING INTEGRATION: Fetch adaptive learning insights
+                try {
+                    const adaptiveInsight = await selfLearningAgent.generateAdaptiveResponse(
+                        userId || 'guest',
+                        userMessage,
+                        detectCategory(userMessage),
+                        context.branch || 'general'
+                    );
+
+                    if (adaptiveInsight && typeof adaptiveInsight === 'string') {
+                        console.log('[VuAiAgent] Injecting adaptive learning context:', adaptiveInsight);
+                        studentContext += `\n\n**ADAPTIVE LEARNING INSIGHT**\nBased on past interactions: "${adaptiveInsight}"\nPlease incorporate this nuance into your response style.`;
+                    }
+                } catch (adaptErr) {
+                    console.warn('[VuAiAgent] Adaptive insight fetch failed:', adaptErr.message);
+                }
+
                 // Add document context if available
                 if (context && context.document) {
                     studentContext += `\n\n**ACTIVE DOCUMENT CONTEXT**\nThe student is currently viewing: "${context.document.title}"\nURL: ${context.document.url}\n\nINSTRUCTION: The user is asking questions about this specific document. If the URL is accessible to you, use its content. If not, ask the student to copy relevant parts. Assume their questions are related to this document unless specified otherwise.`;
