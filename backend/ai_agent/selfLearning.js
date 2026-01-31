@@ -98,7 +98,7 @@ class SelfLearningAgent {
     async recordInteraction(userId, branch, query, response, responseTime, category, keywords) {
         try {
             let learningProfile = await this.LearningAnalytics.findOne({ userId });
-            
+
             if (!learningProfile) {
                 learningProfile = new this.LearningAnalytics({
                     userId,
@@ -135,6 +135,11 @@ class SelfLearningAgent {
 
             learningProfile.interactions.push(interaction);
 
+            // Optimization: Keep only the last 50 interactions to prevent document bloating
+            if (learningProfile.interactions.length > 50) {
+                learningProfile.interactions = learningProfile.interactions.slice(-50);
+            }
+
             // Update learning profile based on interaction
             await this.updateLearningProfile(learningProfile, interaction);
 
@@ -145,7 +150,7 @@ class SelfLearningAgent {
             await this.generateImprovementSuggestions(learningProfile);
 
             await learningProfile.save();
-            
+
             console.log(`[SelfLearning] Recorded interaction for user ${userId}`);
             return learningProfile;
         } catch (error) {
@@ -157,7 +162,7 @@ class SelfLearningAgent {
     // Update learning profile based on interactions
     async updateLearningProfile(profile, interaction) {
         const hour = new Date().getHours();
-        
+
         // Update peak hours
         if (!profile.learningProfile.interactionPatterns.peakHours.includes(hour)) {
             profile.learningProfile.interactionPatterns.peakHours.push(hour);
@@ -183,7 +188,7 @@ class SelfLearningAgent {
     assessQueryComplexity(query) {
         const wordCount = query.split(' ').length;
         const technicalTerms = (query.match(/\b(algorithm|equation|formula|theorem|proof|analysis|design|implement|optimize)\b/gi) || []).length;
-        
+
         if (wordCount > 20 || technicalTerms > 3) return 'complex';
         if (wordCount > 10 || technicalTerms > 1) return 'moderate';
         return 'simple';
@@ -192,7 +197,7 @@ class SelfLearningAgent {
     // Update strengths and weaknesses
     async updateStrengthsAndWeaknesses(profile, interaction) {
         const category = interaction.category;
-        
+
         // This would be updated based on user feedback
         // For now, we'll use a simple heuristic
         if (interaction.responseTime < this.learningThresholds.responseTimeThreshold) {
@@ -222,7 +227,7 @@ class SelfLearningAgent {
         Object.entries(categoryFrequency).forEach(([category, frequency]) => {
             if (frequency >= this.learningThresholds.knowledgeGapThreshold) {
                 const existingGap = profile.knowledgeGaps.find(gap => gap.topic === category);
-                
+
                 if (existingGap) {
                     existingGap.frequency += frequency;
                     existingGap.lastAsked = new Date();
@@ -273,7 +278,7 @@ class SelfLearningAgent {
     async generateAdaptiveResponse(userId, query, category, branch) {
         try {
             const profile = await this.LearningAnalytics.findOne({ userId });
-            
+
             if (!profile) {
                 return null; // Fall back to standard response
             }
@@ -319,7 +324,7 @@ class SelfLearningAgent {
         const preferredTopics = profile.learningProfile.preferredTopics;
 
         let personalizedPrefix = '';
-        
+
         if (weaknesses.includes(category)) {
             personalizedPrefix = "I notice you're still learning about this topic. Let me explain this step-by-step to help you master it. ";
         } else if (strengths.includes(category)) {
@@ -327,7 +332,7 @@ class SelfLearningAgent {
         }
 
         // Add connections to preferred topics
-        const relatedTopics = preferredTopics.filter(topic => 
+        const relatedTopics = preferredTopics.filter(topic =>
             query.toLowerCase().includes(topic.toLowerCase())
         );
 
@@ -348,7 +353,48 @@ class SelfLearningAgent {
             });
 
             await update.save();
-            
+
+            // Auto-apply high-confidence improvements to adaptive responses
+            if (update.type === 'improvement' && (update.confidence || 0) >= 0.7) {
+                try {
+                    const keywords = update.category ? [update.category] : [];
+
+                    let pattern = await this.AdaptiveResponse.findOne({
+                        responseTemplate: update.oldContent || update.newContent,
+                        branches: update.branch
+                    });
+
+                    if (!pattern) {
+                        pattern = new this.AdaptiveResponse({
+                            patternId: `pattern_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                            keywords,
+                            contexts: [],
+                            branches: [update.branch],
+                            responseTemplate: update.newContent,
+                            usageCount: 0,
+                            successRate: 0,
+                            lastUsed: new Date()
+                        });
+                    } else {
+                        pattern.responseTemplate = update.newContent;
+                        if (!pattern.branches.includes(update.branch)) pattern.branches.push(update.branch);
+                        // merge keywords
+                        update.category && pattern.keywords.push(update.category);
+                        pattern.keywords = Array.from(new Set(pattern.keywords));
+                    }
+
+                    await pattern.save();
+
+                    update.approved = true;
+                    update.appliedAt = new Date();
+                    await update.save();
+
+                    console.log(`[SelfLearning] Knowledge update auto-applied as adaptive pattern: ${pattern.patternId}`);
+                } catch (applyError) {
+                    console.error('[SelfLearning] Error applying knowledge update:', applyError);
+                }
+            }
+
             console.log(`[SelfLearning] Knowledge update queued: ${update.updateId}`);
             return update;
         } catch (error) {
@@ -361,7 +407,7 @@ class SelfLearningAgent {
     async getLearningAnalytics(userId) {
         try {
             const profile = await this.LearningAnalytics.findOne({ userId });
-            
+
             if (!profile) {
                 return {
                     message: 'No learning data available yet. Keep interacting to build your learning profile!',
@@ -370,7 +416,7 @@ class SelfLearningAgent {
             }
 
             const recentInteractions = profile.interactions.slice(-10);
-            const avgResponseTime = recentInteractions.reduce((sum, interaction) => 
+            const avgResponseTime = recentInteractions.reduce((sum, interaction) =>
                 sum + (interaction.responseTime || 0), 0) / recentInteractions.length;
 
             return {
@@ -394,7 +440,7 @@ class SelfLearningAgent {
     async processFeedback(userId, interactionId, satisfaction, wasHelpful, feedback) {
         try {
             const profile = await this.LearningAnalytics.findOne({ userId });
-            
+
             if (!profile) {
                 throw new Error('User profile not found');
             }
@@ -404,7 +450,7 @@ class SelfLearningAgent {
             if (interaction) {
                 interaction.satisfaction = satisfaction;
                 interaction.wasHelpful = wasHelpful;
-                
+
                 // Update learning profile based on feedback
                 if (wasHelpful && satisfaction >= 4) {
                     if (!profile.learningProfile.strengths.includes(interaction.category)) {
@@ -414,7 +460,7 @@ class SelfLearningAgent {
                     if (!profile.learningProfile.weaknesses.includes(interaction.category)) {
                         profile.learningProfile.weaknesses.push(interaction.category);
                     }
-                    
+
                     // Create knowledge update suggestion
                     await this.updateKnowledgeBase({
                         type: 'improvement',

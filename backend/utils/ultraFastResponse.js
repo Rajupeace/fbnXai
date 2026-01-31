@@ -132,17 +132,36 @@ class UltraFastResponse {
         // INSTANT NAVIGATION PATTERNS
         const navResponse = (section) => `Navigation request detected. {{NAVIGATE: ${section}}}`;
 
+        // Academic navigation
         this.patterns.set('browse', { response: navResponse('semester'), priority: 5 });
-        this.patterns.set('materials', { response: navResponse('semester'), priority: 5 });
-        this.patterns.set('notes', { response: navResponse('semester'), priority: 5 });
-        this.patterns.set('marks', { response: navResponse('marks'), priority: 5 });
-        this.patterns.set('results', { response: navResponse('marks'), priority: 5 });
-        this.patterns.set('grades', { response: navResponse('marks'), priority: 5 });
+        this.patterns.set('material', { response: navResponse('semester'), priority: 5 });
+        this.patterns.set('note', { response: navResponse('semester'), priority: 5 });
+        this.patterns.set('syllabus', { response: navResponse('semester'), priority: 5 });
+
+        // Results & Performance
+        this.patterns.set('mark', { response: navResponse('marks'), priority: 5 });
+        this.patterns.set('result', { response: navResponse('marks'), priority: 5 });
+        this.patterns.set('grade', { response: navResponse('marks'), priority: 5 });
+        this.patterns.set('gpa', { response: navResponse('marks'), priority: 5 });
+
+        // Scheduling
         this.patterns.set('schedule', { response: navResponse('schedule'), priority: 5 });
         this.patterns.set('timetable', { response: navResponse('schedule'), priority: 5 });
-        this.patterns.set('exams', { response: navResponse('exams'), priority: 5 });
-        this.patterns.set('fees', { response: navResponse('fees'), priority: 5 });
+        this.patterns.set('class', { response: navResponse('schedule'), priority: 5 });
+        this.patterns.set('exam', { response: navResponse('exams'), priority: 5 });
+        this.patterns.set('quiz', { response: navResponse('exams'), priority: 5 });
+
+        // Admin / Account
+        this.patterns.set('fee', { response: navResponse('fees'), priority: 5 });
+        this.patterns.set('payment', { response: navResponse('fees'), priority: 5 });
         this.patterns.set('profile', { response: navResponse('settings'), priority: 5 });
+        this.patterns.set('setting', { response: navResponse('settings'), priority: 5 });
+        this.patterns.set('password', { response: navResponse('settings'), priority: 5 });
+
+        // Dashboard
+        this.patterns.set('dashboard', { response: navResponse('overview'), priority: 5 });
+        this.patterns.set('home', { response: navResponse('overview'), priority: 5 });
+        this.patterns.set('stats', { response: navResponse('overview'), priority: 5 });
     }
 
     // Ultra-fast response generation
