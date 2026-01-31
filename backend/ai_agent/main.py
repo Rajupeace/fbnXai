@@ -20,16 +20,17 @@ from fastapi.security import OAuth2PasswordBearer
 import logging
 
 # --- PERFORMANT RAG IMPORTS ---
+# Temporarily disabled for quick setup - Node.js layer handles fast responses
+RAG_AVAILABLE = False
 try:
     from langchain_community.vectorstores import FAISS
     from langchain_community.embeddings import HuggingFaceEmbeddings
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain.chains import RetrievalQA
     from langchain_core.documents import Document
-    RAG_AVAILABLE = True
+    # RAG_AVAILABLE = True  # Enable after verifying dependencies
 except ImportError as e:
     print(f"[!] RAG dependencies missing: {e}")
-    # Fallback to simple logic if installation failed
     RAG_AVAILABLE = False
 
 # Load environment variables
