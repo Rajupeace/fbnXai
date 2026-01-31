@@ -1,5 +1,5 @@
 // Emergency Fast Response System - Always Responds
-const EmergencyFastResponse = require('./utils/emergencyFastResponse');
+const EmergencyFastResponse = require('./emergencyFastResponse');
 
 class EmergencyResponseHandler {
     constructor() {
