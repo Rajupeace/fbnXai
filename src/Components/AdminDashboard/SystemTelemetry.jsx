@@ -7,21 +7,26 @@ import { FaServer, FaDatabase, FaNetworkWired, FaMemory } from 'react-icons/fa';
  */
 const SystemTelemetry = () => {
     const [stats, setStats] = useState({
-        cpu: 42,
-        mem: 68,
-        db: 12,
-        network: 85
+        cpu: 0,
+        mem: 0,
+        db: 0,
+        network: 0,
+        status: 'CONNECTING'
     });
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setStats({
-                cpu: Math.floor(Math.random() * (60 - 30) + 30),
-                mem: Math.floor(Math.random() * (75 - 65) + 65),
-                db: Math.floor(Math.random() * (15 - 10) + 10),
-                network: Math.floor(Math.random() * (95 - 70) + 70)
-            });
-        }, 3000);
+        const fetchStats = async () => {
+            try {
+                const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/api/system/stats`);
+                const data = await res.json();
+                if (data) setStats(data);
+            } catch (err) {
+                console.error('Telemetry Sync Failed:', err);
+            }
+        };
+
+        fetchStats();
+        const interval = setInterval(fetchStats, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -72,7 +77,9 @@ const SystemTelemetry = () => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <div className="value" style={{ margin: 0 }}>{stats.db}ms</div>
-                    <span className="admin-badge success" style={{ fontSize: '0.6rem' }}>CONNECTED</span>
+                    <span className={`admin-badge ${stats.status === 'CONNECTED' ? 'success' : 'danger'}`} style={{ fontSize: '0.6rem' }}>
+                        {stats.status}
+                    </span>
                 </div>
             </div>
 

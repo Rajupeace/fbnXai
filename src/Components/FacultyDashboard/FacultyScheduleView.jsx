@@ -15,46 +15,32 @@ const weekDays = daysOfWeek.filter(day => day !== 'Sunday');
  * Weekly Class Schedule management.
  * Theme: Friendly Notebook
  */
-const FacultyScheduleView = ({ facultyData }) => {
+const FacultyScheduleView = ({ facultyData, schedule = [] }) => {
     // Proactive Hardening
     facultyData = facultyData || {};
-    const [schedule, setSchedule] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [selectedDay, setSelectedDay] = useState(new Date().getDay());
     const [myClasses, setMyClasses] = useState([]);
 
     useEffect(() => {
-        const fetchSchedule = async () => {
-            setLoading(true);
-            try {
-                const response = await apiGet(`/api/schedule?faculty=${encodeURIComponent(facultyData.name)}`);
-                if (response && response.length > 0) {
-                    setSchedule(response);
-                    const classesMap = new Map();
-                    response.forEach(item => {
-                        const key = `${item.year}-${item.section}-${item.branch}`;
-                        if (!classesMap.has(key)) {
-                            classesMap.set(key, { year: item.year, section: item.section, branch: item.branch, subjects: new Set() });
-                        }
-                        classesMap.get(key).subjects.add(item.subject);
-                    });
-                    setMyClasses(Array.from(classesMap.values()).map(c => ({ ...c, subjects: Array.from(c.subjects) })));
-                } else {
-                    setSchedule([]);
-                    setMyClasses([]);
+        if (schedule && schedule.length > 0) {
+            const classesMap = new Map();
+            schedule.forEach(item => {
+                const key = `${item.year}-${item.section}-${item.branch}`;
+                if (!classesMap.has(key)) {
+                    classesMap.set(key, { year: item.year, section: item.section, branch: item.branch, subjects: new Set() });
                 }
-            } catch (error) {
-                console.error('Failed to fetch faculty schedule:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchSchedule();
-    }, [facultyData]);
+                classesMap.get(key).subjects.add(item.subject);
+            });
+            setMyClasses(Array.from(classesMap.values()).map(c => ({ ...c, subjects: Array.from(c.subjects) })));
+        } else {
+            setMyClasses([]);
+        }
+    }, [schedule]);
 
     const todaySchedule = useMemo(() => {
-        const todayStr = daysOfWeek[selectedDay];
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const todayStr = days[selectedDay];
         return schedule.filter(item => item.day === todayStr);
     }, [schedule, selectedDay]);
 

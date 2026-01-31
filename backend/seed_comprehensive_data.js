@@ -239,6 +239,72 @@ const seedData = async () => {
         }
         console.log(`   -> Seeded ${examsPayload.length} Exams`);
 
+
+        // --- 4. SEED MARKS (For Admin Dashboard Visualization) ---
+        console.log('📊 Seeding Marks...');
+        const Mark = require('./models/Mark');
+        await Mark.deleteMany({}); // Reset marks
+
+        const subjects = ['Programming with C', 'Advanced AI', 'Engineering Physics'];
+        const assessments = [
+            { id: 'cla1', max: 20 }, { id: 'cla2', max: 20 },
+            { id: 'm1t1', max: 10 }, { id: 'm1t2', max: 10 }
+        ];
+
+        for (const s of students) {
+            // Give each student marks in relevant subjects based on their year?
+            // For simplicity, give them marks in all subjects
+            for (const sub of subjects) {
+                // Determine if subject is relevant (simple filter)
+                if (s.year === '1' && sub === 'Advanced AI') continue; // First year doesn't take AI
+                if (s.year === '4' && sub === 'Programming with C') continue; // Final year done with C
+
+                for (const assess of assessments) {
+                    await Mark.create({
+                        studentId: s.sid,
+                        subject: sub,
+                        assessmentType: assess.id,
+                        marks: Math.floor(Math.random() * (assess.max - 5) + 5), // Random decent marks
+                        maxMarks: assess.max,
+                        updatedBy: 'system'
+                    });
+                }
+            }
+        }
+        console.log(`   -> Seeded Marks for ${students.length} students`);
+
+
+        // --- UPDATE STUDENTS WITH RICH STATS ---
+        console.log('📈 Updating Students with Rich Stats...');
+        for (const s of students) {
+            await Student.findOneAndUpdate(
+                { sid: s.sid },
+                {
+                    $set: {
+                        stats: {
+                            streak: Math.floor(Math.random() * 20),
+                            lastLogin: new Date(),
+                            aiUsageCount: Math.floor(Math.random() * 50),
+                            tasksCompleted: Math.floor(Math.random() * 15),
+                            advancedProgress: Math.floor(Math.random() * 100),
+                            careerReadyScore: Math.floor(Math.random() * 100),
+                            totalClasses: 120,
+                            totalPresent: 100 + Math.floor(Math.random() * 20),
+                            weeklyActivity: [
+                                { day: 'Mon', hours: Math.floor(Math.random() * 5) },
+                                { day: 'Tue', hours: Math.floor(Math.random() * 5) },
+                                { day: 'Wed', hours: Math.floor(Math.random() * 5) },
+                                { day: 'Thu', hours: Math.floor(Math.random() * 5) },
+                                { day: 'Fri', hours: Math.floor(Math.random() * 5) },
+                                { day: 'Sat', hours: Math.floor(Math.random() * 2) },
+                                { day: 'Sun', hours: 0 }
+                            ]
+                        }
+                    }
+                }
+            );
+        }
+
         console.log('\n✨ COMPREHENSIVE SEEDING COMPLETE! Login to Admin/Faculty/Student dashboards to verify.');
         process.exit(0);
 

@@ -122,7 +122,7 @@ if (-not $remotes) {
     Write-Host "`nTo add a remote repository, run:" -ForegroundColor Cyan
     Write-Host "   git remote add origin <your-github-repo-url>`n" -ForegroundColor White
     Write-Host "Example:" -ForegroundColor Cyan
-    Write-Host "   git remote add origin https://github.com/yourusername/fbnXai.git`n" -ForegroundColor White
+    Write-Host "   git remote add origin https://github.com/rajupeace/fbnXai.git`n" -ForegroundColor White
 } else {
     Write-Host "📡 Remote repositories:" -ForegroundColor Cyan
     git remote -v

@@ -67,15 +67,17 @@
 
 /* --- GUIDELINES --- */
 .forge-guidelines {
-    background: #fffbeb;
-    border: 1px solid #fcd34d;
+    background: rgba(255, 251, 235, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(252, 211, 77, 0.3);
     padding: 1.5rem 2rem;
     border-radius: 20px;
     display: flex;
     gap: 1.5rem;
     margin-bottom: 3rem;
     align-items: center;
-    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.15);
 }
 
 .guideline-icon {

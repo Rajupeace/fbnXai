@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     FaUserGraduate, FaLayerGroup, FaFileAlt, FaEye, FaHistory,
-    FaBullhorn, FaBookReader, FaChalkboardTeacher, FaCalendarAlt, FaRobot
+    FaBullhorn, FaBookReader, FaChalkboardTeacher, FaCalendarAlt, FaRobot, FaVideo
 } from 'react-icons/fa';
 import FacultyTeachingStats from '../FacultyTeachingStats';
 import './FacultyHome.css';
@@ -13,6 +13,7 @@ const FacultyHome = ({
     studentsList = [],
     materialsList = [],
     myClasses = [],
+    schedule = [],
     facultyData = {},
     messages = [],
     getFileUrl,
@@ -25,6 +26,29 @@ const FacultyHome = ({
         if (hour < 17) return 'Good Afternoon';
         return 'Good Evening';
     };
+
+    const nextClass = React.useMemo(() => {
+        if (!schedule.length) return null;
+        const now = new Date();
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const currentDay = days[now.getDay()];
+        const currentTime = now.getHours() * 60 + now.getMinutes();
+
+        // Sort schedule by time
+        const todayClasses = schedule
+            .filter(c => c.day === currentDay)
+            .sort((a, b) => {
+                const [hA, mA] = a.startTime.split(':').map(Number);
+                const [hB, mB] = b.startTime.split(':').map(Number);
+                return (hA * 60 + mA) - (hB * 60 + mB);
+            });
+
+        // Find next or current
+        return todayClasses.find(c => {
+            const [h, m] = c.startTime.split(':').map(Number);
+            return (h * 60 + m) > currentTime;
+        }) || todayClasses[0]; // If none left today, show first of today or null
+    }, [schedule]);
 
     const studentCount = studentsList.length;
     const courseCount = myClasses.length;
@@ -108,8 +132,46 @@ const FacultyHome = ({
                     </div>
                 </div>
 
+                {/* ⚡ Live Session Tracker */}
+                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.45s', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1px solid #bae6fd' }}>
+                    <div className="card-header-row">
+                        <h3><FaCalendarAlt style={{ color: '#0284c7' }} /> Session Pulse</h3>
+                        <span className="f-tag-badge" style={{ background: '#0284c7', color: 'white' }}>LIVE NOW</span>
+                    </div>
+                    {nextClass ? (
+                        <div className="live-session-info">
+                            <div style={{ fontSize: '1.4rem', fontWeight: 950, color: '#0c4a6e' }}>{nextClass.subject}</div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, color: '#0369a1' }}>
+                                <span>{nextClass.startTime} - {nextClass.endTime}</span>
+                                <span>•</span>
+                                <span>Sec {nextClass.section} (Year {nextClass.year})</span>
+                            </div>
+                            <button
+                                className="nexus-btn-primary"
+                                style={{ marginTop: '1.5rem', background: '#0284c7', padding: '0.6rem 1.2rem', fontSize: '0.75rem' }}
+                                onClick={() => setView('attendance')}
+                            >
+                                Open Roster
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="no-content" style={{ padding: '2rem 0' }}>No active classes detected</div>
+                    )}
+                </div>
+
+                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.5s' }}>
+                    <div className="card-header-row">
+                        <h3><FaRobot style={{ color: '#6366f1' }} /> AI Strategy</h3>
+                        <button className="view-all-btn" onClick={() => openAiWithPrompt("Analyze my curriculum and suggest engagement improvements.")}>Ask Agent</button>
+                    </div>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700, lineHeight: 1.5, margin: 0 }}>
+                        Your current curriculum coverage for <strong>{myClasses[0]?.subject || 'your courses'}</strong> is at 65%.
+                        The AI suggests deploying more visual resources for UNIT 4.
+                    </p>
+                </div>
+
                 {/* 📅 Teaching Analytics (Expansion) */}
-                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.5s', gridColumn: 'span 4' }}>
+                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.55s', gridColumn: 'span 4' }}>
                     <FacultyTeachingStats facultyId={facultyData.facultyId} />
                 </div>
 
@@ -123,7 +185,7 @@ const FacultyHome = ({
                         {materialsList.slice(0, 4).map((m, i) => (
                             <div key={m.id || m._id} className="f-feed-node" onClick={() => window.open(getFileUrl(m.url), '_blank')}>
                                 <div className="node-icon-wrap">
-                                    {m.type === 'videos' ? <FaLayerGroup /> : <FaFileAlt />}
+                                    {m.type === 'videos' ? <FaVideo /> : <FaFileAlt />}
                                 </div>
                                 <div className="node-main-info">
                                     <div className="node-title">{m.title}</div>

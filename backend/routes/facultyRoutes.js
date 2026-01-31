@@ -3,6 +3,14 @@ const router = express.Router();
 const Faculty = require('../models/Faculty');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
+const { parseCSV } = require('../utils/csvParser');
+
+const upload = multer({ storage: multer.memoryStorage() });
+
 
 // @route   GET /api/faculty
 // @desc    Get all faculty
@@ -90,14 +98,31 @@ router.post('/', async (req, res) => {
 
 // @route   POST /api/faculty/bulk
 // @desc    Bulk upload faculty from CSV/JSON
-router.post('/bulk', async (req, res) => {
+router.post('/bulk', upload.single('file'), async (req, res) => {
     try {
-        const { faculties } = req.body;
+        let faculties = [];
 
-        if (!Array.isArray(faculties) || faculties.length === 0) {
+        // Handle file upload (CSV)
+        if (req.file) {
+            const csvContent = req.file.buffer.toString('utf8');
+            faculties = parseCSV(csvContent);
+            console.log(`[Bulk Faculty] Parsed ${faculties.length} entries from CSV file: ${req.file.originalname}`);
+        }
+        // Handle JSON body
+        else if (req.body.faculties && Array.isArray(req.body.faculties)) {
+            faculties = req.body.faculties;
+        }
+        else {
             return res.status(400).json({
                 success: false,
-                error: 'Please provide an array of faculty members'
+                error: 'Please provide an array of faculty members or upload a CSV file'
+            });
+        }
+
+        if (faculties.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No faculty data found in request'
             });
         }
 

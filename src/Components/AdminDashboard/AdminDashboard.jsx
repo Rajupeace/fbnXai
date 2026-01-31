@@ -283,26 +283,53 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
     if (!data.sid || !data.studentName) return alert('ID and Name required');
 
+    console.log('📝 FRONTEND: Preparing to save student');
+    console.log('  Mode:', editItem ? 'EDIT' : 'CREATE');
+
     try {
       let newStudents = [...students];
+
       if (editItem) {
-        newStudents = newStudents.map(s => s.sid === editItem.sid ? { ...s, ...data } : s);
-        if (USE_API) await api.apiPut(`/api/students/${editItem.sid}`, data);
+        // EDIT
+        if (USE_API) {
+          console.log('🔄 Updating student:', editItem.sid);
+          const response = await api.apiPut(`/api/students/${editItem.sid}`, data);
+          const updatedStudent = response.data || response;
+
+          newStudents = newStudents.map(s => {
+            if (s.sid === editItem.sid || (s._id && updatedStudent._id && s._id === updatedStudent._id)) {
+              return { ...s, ...updatedStudent };
+            }
+            return s;
+          });
+        } else {
+          newStudents = newStudents.map(s => s.sid === editItem.sid ? { ...s, ...data } : s);
+          await writeStudents(newStudents);
+        }
       } else {
-        const newS = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
-        newStudents.push(newS);
-        if (USE_API) await api.apiPost('/api/students', newS);
+        // CREATE
+        if (USE_API) {
+          console.log('➕ Creating new student');
+          const response = await api.apiPost('/api/students', data);
+          const newStudent = response.data || response;
+          newStudents.push(newStudent);
+        } else {
+          const newS = { ...data, id: Date.now().toString(), createdAt: new Date().toISOString() };
+          newStudents.push(newS);
+          await writeStudents(newStudents);
+        }
       }
 
-      if (!USE_API) await writeStudents(newStudents);
       setStudents(newStudents);
       closeModal();
-      // Optional: reload data to ensure sync with server generated fields
-      if (USE_API) await loadData();
+      alert(`✅ Student ${editItem ? 'updated' : 'added'} successfully!`);
+
+      if (USE_API) setTimeout(() => loadData(), 500);
+
     } catch (error) {
       console.error("Save Student Error:", error);
       const msg = error.response?.data?.error || error.message || "Failed to save student";
-      alert(msg);
+      alert('Error: ' + msg);
     }
   };
 
@@ -1482,7 +1509,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           return (
             showModal && (
               <div className="modal-overlay">
-                <div className="modal-content" style={{ width: '95%', maxWidth: modalType === 'syllabus-view' || modalType === 'student-view' ? '900px' : '650px' }}>
+                <div className="admin-modal-content" style={{ width: '95%', maxWidth: modalType === 'syllabus-view' || modalType === 'student-view' ? '900px' : '650px' }}>
                   <div className="modal-header">
                     <h2 style={{ fontWeight: 950, letterSpacing: '0.05em' }}>
                       {modalType === 'about' ? 'SYSTEM INFO' :
@@ -1494,7 +1521,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     </h2>
                     <button onClick={closeModal} className="close-btn">&times;</button>
                   </div>
-                  <div className="modal-body" style={{ padding: '2rem' }}>
+                  <div className="nexus-modal-body" style={{ padding: '2rem' }}>
 
                     {/* ABOUT / FEATURES MODAL */}
                     {modalType === 'about' && (
@@ -1532,41 +1559,43 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {/* FEE MODAL */}
+                    {/* FEE MODAL */}
+                    {/* FEE MODAL */}
                     {modalType === 'fee' && (
-                      <form onSubmit={handleSaveFee} className="admin-form">
-                        <div className="form-group">
-                          <label>Student ID</label>
-                          <input type="text" name="studentId" defaultValue={editItem?.studentId} readOnly={!!editItem} required />
+                      <form onSubmit={handleSaveFee} className="admin-form" style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="admin-grid-2">
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">STUDENT ID</label>
+                              <input className="admin-form-input" type="text" name="studentId" defaultValue={editItem?.studentId} readOnly={!!editItem} required />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">TOTAL FEE (INR)</label>
+                              <input className="admin-form-input" type="number" name="totalFee" defaultValue={editItem?.totalFee || 75000} required />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">PAID AMOUNT (INR)</label>
+                              <input className="admin-form-input" type="number" name="paidAmount" defaultValue={editItem?.paidAmount || 0} required />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">ACADEMIC YEAR</label>
+                              <input className="admin-form-input" type="text" name="academicYear" defaultValue={editItem?.academicYear || '2023-24'} placeholder="e.g. 2023-24" required />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">SEMESTER</label>
+                              <input className="admin-form-input" type="text" name="semester" defaultValue={editItem?.semester || '1st Year'} placeholder="e.g. 1st Year" required />
+                            </div>
+                          </div>
                         </div>
-                        <div className="form-grid">
-                          <div className="form-group">
-                            <label>Total Fee (INR)</label>
-                            <input type="number" name="totalFee" defaultValue={editItem?.totalFee || 75000} required />
-                          </div>
-                          <div className="form-group">
-                            <label>Paid Amount (INR)</label>
-                            <input type="number" name="paidAmount" defaultValue={editItem?.paidAmount || 0} required />
-                          </div>
-                        </div>
-                        <div className="form-grid">
-                          <div className="form-group">
-                            <label>Academic Year</label>
-                            <input type="text" name="academicYear" defaultValue={editItem?.academicYear || '2023-24'} placeholder="e.g. 2023-24" required />
-                          </div>
-                          <div className="form-group">
-                            <label>Semester</label>
-                            <input type="text" name="semester" defaultValue={editItem?.semester || '1st Year'} placeholder="e.g. 1st Year" required />
-                          </div>
-                        </div>
-                        <div className="modal-footer" style={{ marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-                          <button type="button" onClick={closeModal} className="admin-btn">CANCEL</button>
+                        <div className="admin-modal-actions">
+                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline">CANCEL</button>
                           <button type="submit" className="admin-btn admin-btn-primary">UPDATE RECORD</button>
                         </div>
                       </form>
                     )}
 
                     {modalType === 'syllabus-view' && editItem && (
-                      <div className="syllabus-view-container" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                      <div className="nexus-modal-body syllabus-view-container">
                         <div style={{ marginBottom: '2.5rem', borderBottom: '1px solid var(--admin-border)', paddingBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
                             <h4 style={{ margin: 0, color: 'var(--admin-secondary)', fontWeight: 950, fontSize: '1.3rem' }}>{editItem.name}</h4>
@@ -1648,16 +1677,17 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             </div>
                           );
                         })()}
-
-                        <div className="admin-modal-actions">
-                          <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CLOSE</button>
-                        </div>
+                      </div>
+                    )}
+                    {modalType === 'syllabus-view' && (
+                      <div className="admin-modal-actions" style={{ marginTop: 0 }}>
+                        <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline">CLOSE</button>
                       </div>
                     )}
 
                     {/* STUDENT CURRICULUM INSPECTION */}
                     {modalType === 'student-curriculum' && editItem && (
-                      <div className="view-details">
+                      <div className="modal-body view-details">
                         <div className="f-node-head" style={{ padding: '2rem', borderBottom: '1px solid var(--admin-border)' }}>
                           <div>
                             <h3 className="f-node-title" style={{ fontSize: '1.4rem' }}>{editItem.studentName}</h3>
@@ -1670,7 +1700,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                           <FaLayerGroup size={32} style={{ opacity: 0.2 }} />
                         </div>
 
-                        <div className="admin-list-container" style={{ maxHeight: '600px', overflowY: 'auto', padding: '2rem' }}>
+                        <div className="admin-list-container" style={{ padding: '2rem' }}>
                           {(() => {
                             const staticData = getYearData(editItem.branch, editItem.year);
                             const semesters = staticData ? staticData.semesters : [];
@@ -1731,50 +1761,53 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                             ));
                           })()}
                         </div>
-
-                        <div className="modal-actions" style={{ padding: '0 2rem 2rem' }}>
-                          <button onClick={closeModal} className="admin-btn admin-btn-primary" style={{ width: '100%' }}>CLOSE INSPECTION</button>
-                        </div>
+                      </div>
+                    )}
+                    {modalType === 'student-curriculum' && (
+                      <div className="admin-modal-actions" style={{ marginTop: 0 }}>
+                        <button onClick={closeModal} className="admin-btn admin-btn-primary" style={{ width: '100%' }}>CLOSE INSPECTION</button>
                       </div>
                     )}
 
                     {/* Dynamic Forms based on modalType */}
                     {modalType === 'student' && (
-                      <form onSubmit={handleSaveStudent}>
-                        <div className="admin-form-grid">
-                          <div className="admin-form-group full-width">
-                            <label className="admin-form-label">FULL NAME *</label>
-                            <input className="admin-search-input" name="studentName" defaultValue={editItem?.studentName} required placeholder="Enter student's full name" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">STUDENT ID *</label>
-                            <input className="admin-search-input" name="sid" defaultValue={editItem?.sid} required placeholder="e.g. S-100234" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">EMAIL *</label>
-                            <input className="admin-search-input" name="email" type="email" defaultValue={editItem?.email} required placeholder="email@nexus.edu" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">YEAR *</label>
-                            <select className="admin-search-input" name="year" defaultValue={editItem?.year || '1'} style={{ paddingLeft: '1rem' }}>
-                              <option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option>
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">BRANCH *</label>
-                            <select className="admin-search-input" name="branch" defaultValue={editItem?.branch || 'CSE'} style={{ paddingLeft: '1rem' }}>
-                              {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIML'].map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">SECTION *</label>
-                            <select className="admin-search-input" name="section" defaultValue={editItem?.section || 'A'} style={{ paddingLeft: '1rem' }}>
-                              {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">PASSWORD</label>
-                            <input className="admin-search-input" name="password" type="password" placeholder={editItem ? "Leave empty to retain" : "Initial password"} />
+                      <form onSubmit={handleSaveStudent} style={{ display: 'contents' }}>
+                        <div className="modal-body">
+                          <div className="admin-grid-2">
+                            <div className="admin-form-group full-width admin-grid-span-2">
+                              <label className="admin-form-label">FULL NAME *</label>
+                              <input className="admin-form-input" name="studentName" defaultValue={editItem?.studentName} required placeholder="Enter student's full name" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">STUDENT ID *</label>
+                              <input className="admin-form-input" name="sid" defaultValue={editItem?.sid} required placeholder="e.g. S-100234" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">EMAIL *</label>
+                              <input className="admin-form-input" name="email" type="email" defaultValue={editItem?.email} required placeholder="email@nexus.edu" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">YEAR *</label>
+                              <select className="admin-form-input" name="year" defaultValue={editItem?.year || '1'} style={{ paddingLeft: '1rem' }}>
+                                <option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option>
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">BRANCH *</label>
+                              <select className="admin-form-input" name="branch" defaultValue={editItem?.branch || 'CSE'} style={{ paddingLeft: '1rem' }}>
+                                {['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'AIML'].map(b => <option key={b} value={b}>{b}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">SECTION *</label>
+                              <select className="admin-form-input" name="section" defaultValue={editItem?.section || 'A'} style={{ paddingLeft: '1rem' }}>
+                                {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group full-width admin-grid-span-2">
+                              <label className="admin-form-label">PASSWORD</label>
+                              <input className="admin-form-input" name="password" type="password" placeholder={editItem ? "Leave empty to retain" : "Initial password"} />
+                            </div>
                           </div>
                         </div>
                         <div className="admin-modal-actions">
@@ -1785,18 +1818,20 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {modalType === 'bulk-student' && (
-                      <form onSubmit={handleBulkUploadStudents}>
-                        <div className="f-node-card" style={{ padding: '2rem', textAlign: 'center' }}>
-                          <div style={{ fontSize: '3rem', color: 'var(--admin-primary)', marginBottom: '1.5rem' }}><FaFileUpload /></div>
-                          <label style={{ display: 'block', fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem' }}>CSV UPLOAD</label>
-                          <input type="file" name="file" accept=".csv" required style={{ width: '100%', padding: '2rem', border: '2px dashed var(--admin-border)', borderRadius: '16px', background: '#f8fafc' }} />
-                          <div style={{ marginTop: '1.5rem', textAlign: 'left', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: 0 }}>
-                              REQUIRED HEADERS: <code>studentName, sid, email, year, section, branch</code>
-                            </p>
+                      <form onSubmit={handleBulkUploadStudents} style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="f-node-card" style={{ padding: '2rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '3rem', color: 'var(--admin-primary)', marginBottom: '1.5rem' }}><FaFileUpload /></div>
+                            <label style={{ display: 'block', fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem' }}>CSV UPLOAD</label>
+                            <input type="file" name="file" accept=".csv" required style={{ width: '100%', padding: '2rem', border: '2px dashed var(--admin-border)', borderRadius: '16px', background: '#f8fafc' }} />
+                            <div style={{ marginTop: '1.5rem', textAlign: 'left', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
+                              <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: 0 }}>
+                                REQUIRED HEADERS: <code>studentName, sid, email, year, section, branch</code>
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        <div className="modal-actions" style={{ marginTop: '2rem' }}>
+                        <div className="admin-modal-actions">
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
                           <button className="admin-btn admin-btn-primary">UPLOAD STUDENTS</button>
                         </div>
@@ -1805,24 +1840,26 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
 
                     {modalType === 'bulk-faculty' && (
-                      <form onSubmit={handleBulkUploadFaculty}>
-                        <div className="f-node-card" style={{ padding: '2rem', textAlign: 'center' }}>
-                          <div style={{ fontSize: '3rem', color: 'var(--admin-primary)', marginBottom: '1.5rem' }}><FaFileUpload /></div>
-                          <label style={{ display: 'block', fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem' }}>FACULTY BULK UPLOAD - CSV</label>
-                          <input type="file" name="file" accept=".csv" required style={{ width: '100%', padding: '2rem', border: '2px dashed var(--admin-border)', borderRadius: '16px', background: '#f8fafc' }} />
-                          <div style={{ marginTop: '1.5rem', textAlign: 'left', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: '0 0 0.5rem 0' }}>
-                              REQUIRED HEADERS: <code>name, facultyId, email, department, designation</code>
-                            </p>
-                            <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: 0 }}>
-                              OPTIONAL: <code>phone, password, assignments</code>
-                            </p>
-                            <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.5rem', marginBottom: 0 }}>
-                              Assignments format: "Year 3 Section A Subject AI; Year 3 Section B Subject ML"
-                            </p>
+                      <form onSubmit={handleBulkUploadFaculty} style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="f-node-card" style={{ padding: '2rem', textAlign: 'center' }}>
+                            <div style={{ fontSize: '3rem', color: 'var(--admin-primary)', marginBottom: '1.5rem' }}><FaFileUpload /></div>
+                            <label style={{ display: 'block', fontSize: '1rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem' }}>FACULTY BULK UPLOAD - CSV</label>
+                            <input type="file" name="file" accept=".csv" required style={{ width: '100%', padding: '2rem', border: '2px dashed var(--admin-border)', borderRadius: '16px', background: '#f8fafc' }} />
+                            <div style={{ marginTop: '1.5rem', textAlign: 'left', background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
+                              <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: '0 0 0.5rem 0' }}>
+                                REQUIRED HEADERS: <code>name, facultyId, email, department, designation</code>
+                              </p>
+                              <p style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 850, margin: 0 }}>
+                                OPTIONAL: <code>phone, password, assignments</code>
+                              </p>
+                              <p style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic', marginTop: '0.5rem', marginBottom: 0 }}>
+                                Assignments format: "Year 3 Section A Subject AI; Year 3 Section B Subject ML"
+                              </p>
+                            </div>
                           </div>
                         </div>
-                        <div className="modal-actions" style={{ marginTop: '2rem' }}>
+                        <div className="admin-modal-actions">
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>CANCEL</button>
                           <button className="admin-btn admin-btn-primary">UPLOAD FACULTY</button>
                         </div>
@@ -1831,7 +1868,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
 
 
                     {modalType === 'student-view' && editItem && (
-                      <div className="view-details" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                      <div className="nexus-modal-body view-details">
                         <div className="admin-profile-header" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '2rem', marginBottom: '2rem' }}>
                           <div className="admin-avatar-lg">
                             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${editItem.studentName}`} alt="Profile" style={{ width: '100%', height: '100%' }} />
@@ -1905,7 +1942,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {modalType === 'faculty-view' && editItem && (
-                      <div className="view-details" style={{ maxHeight: '75vh', overflowY: 'auto' }}>
+                      <div className="nexus-modal-body view-details">
                         <div className="admin-profile-header" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '2rem', marginBottom: '2rem' }}>
                           <div className="admin-avatar-lg" style={{ background: '#e0f2fe', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}>
                             <FaUserGraduate />
@@ -1956,7 +1993,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {modalType === 'material-view' && editItem && (
-                      <div className="view-details">
+                      <div className="nexus-modal-body view-details">
                         <div className="f-node-card" style={{ padding: '0' }}>
                           <div className="f-node-head" style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--admin-border)' }}>
                             <h3 className="f-node-title" style={{ fontSize: '1.2rem' }}>{editItem.title}</h3>
@@ -2007,74 +2044,78 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                       </div>
                     )}
 
+
+                    {/* FACULTY FORM */}
                     {modalType === 'faculty' && (
-                      <form onSubmit={handleSaveFaculty}>
-                        <div className="admin-grid-2">
-                          <div className="admin-form-group admin-grid-span-2">
-                            <label className="admin-form-label">FULL NAME *</label>
-                            <input className="admin-form-input" name="name" defaultValue={editItem?.name} required placeholder="Full Name" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">FACULTY ID *</label>
-                            <input className="admin-form-input" name="facultyId" defaultValue={editItem?.facultyId} required placeholder="e.g. F-501" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">EMAIL *</label>
-                            <input className="admin-form-input" name="email" defaultValue={editItem?.email || (editItem?.facultyId ? `${editItem.facultyId}@example.com` : '')} required placeholder="email@domain.com" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">DEPARTMENT</label>
-                            <input className="admin-form-input" name="department" defaultValue={editItem?.department || 'CSE'} placeholder="e.g. CSE" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">DESIGNATION</label>
-                            <input className="admin-form-input" name="designation" defaultValue={editItem?.designation} placeholder="e.g. Professor" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">PASSWORD {!editItem && '*'}</label>
-                            <div style={{ position: 'relative' }}>
-                              <input
-                                className="admin-form-input"
-                                name="password"
-                                type={showPassword ? "text" : "password"}
-                                required={!editItem}
-                                placeholder={editItem ? "Leave blank to keep current password" : "Enter password"}
-                                style={{ paddingRight: '40px' }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                style={{
-                                  position: 'absolute',
-                                  right: '10px',
-                                  top: '50%',
-                                  transform: 'translateY(-50%)',
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  color: 'var(--admin-text-muted)'
-                                }}
-                              >
-                                {showPassword ? <FaEyeSlash /> : <FaEye />}
-                              </button>
+                      <form onSubmit={handleSaveFaculty} style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="admin-grid-2">
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">FULL NAME *</label>
+                              <input className="admin-form-input" name="name" defaultValue={editItem?.name} required placeholder="Full Name" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">FACULTY ID *</label>
+                              <input className="admin-form-input" name="facultyId" defaultValue={editItem?.facultyId} required placeholder="e.g. F-501" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">EMAIL *</label>
+                              <input className="admin-form-input" name="email" defaultValue={editItem?.email || (editItem?.facultyId ? `${editItem.facultyId}@example.com` : '')} required placeholder="email@domain.com" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">DEPARTMENT</label>
+                              <input className="admin-form-input" name="department" defaultValue={editItem?.department || 'CSE'} placeholder="e.g. CSE" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">DESIGNATION</label>
+                              <input className="admin-form-input" name="designation" defaultValue={editItem?.designation} placeholder="e.g. Professor" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">PASSWORD {!editItem && '*'}</label>
+                              <div style={{ position: 'relative' }}>
+                                <input
+                                  className="admin-form-input"
+                                  name="password"
+                                  type={showPassword ? "text" : "password"}
+                                  required={!editItem}
+                                  placeholder={editItem ? "Leave to keep current" : "Enter password"}
+                                  style={{ paddingRight: '40px' }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  style={{
+                                    position: 'absolute',
+                                    right: '10px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: 'var(--admin-text-muted)'
+                                  }}
+                                >
+                                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                                </button>
+                              </div>
                             </div>
                           </div>
 
                           {/* Assignment Manager */}
-                          <div className="admin-form-group admin-grid-span-2" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--admin-border)' }}>
-                            <label className="admin-form-label" style={{ marginBottom: '1.25rem', color: 'var(--admin-secondary)' }}>CLASS ASSIGNMENTS</label>
+                          <div style={{ marginTop: '1.5rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
+                            <label className="admin-form-label" style={{ marginBottom: '1rem', color: 'var(--admin-secondary)', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.5rem' }}>CLASS ASSIGNMENTS</label>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', alignItems: 'flex-end' }}>
-                              <div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', alignItems: 'flex-end' }}>
+                              <div style={{ flex: 1 }}>
                                 <label className="admin-form-label" style={{ fontSize: '0.65rem' }}>YEAR</label>
-                                <select id="assign-year" className="admin-form-input" style={{ padding: '0 0.75rem', height: '40px' }}>
+                                <select id="assign-year" className="admin-form-input" style={{ padding: '0.6rem' }}>
                                   <option value="">Select</option>
                                   <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
                                 </select>
                               </div>
-                              <div>
+                              <div style={{ flex: 1 }}>
                                 <label className="admin-form-label" style={{ fontSize: '0.65rem' }}>BRANCH</label>
-                                <select id="assign-branch" className="admin-form-input" style={{ padding: '0 0.75rem', height: '40px' }}>
+                                <select id="assign-branch" className="admin-form-input" style={{ padding: '0.6rem' }}>
                                   <option value="CSE">CSE</option>
                                   <option value="ECE">ECE</option>
                                   <option value="EEE">EEE</option>
@@ -2084,38 +2125,47 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                                   <option value="CIVIL">CIVIL</option>
                                 </select>
                               </div>
-                              <div>
+                              <div style={{ flex: 1 }}>
                                 <label className="admin-form-label" style={{ fontSize: '0.65rem' }}>SECTION</label>
-                                <select id="assign-section" className="admin-form-input" style={{ padding: '0 0.75rem', height: '40px' }}>
+                                <select id="assign-section" className="admin-form-input" style={{ padding: '0.6rem' }}>
                                   <option value="">Select</option>
                                   {SECTION_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                               </div>
-                              <div>
-                                <label className="admin-form-label" style={{ fontSize: '0.65rem' }}>SUBJECT</label>
-                                <select id="assign-subject" className="admin-form-input" style={{ padding: '0 0.75rem', height: '40px' }}>
-                                  <option value="">Select Subject</option>
-                                  {allAvailableSubjects.map(c => (
-                                    <option key={c.code} value={c.name}>{c.name} ({c.code})</option>
-                                  ))}
-                                </select>
-                              </div>
                             </div>
-                            <button type="button" onClick={handleAddAssignment} className="admin-btn admin-btn-outline full-width" style={{ marginTop: '1rem', height: '40px', justifyContent: 'center' }}>ADD ASSIGNMENT</button>
+                            <div style={{ marginTop: '0.75rem' }}>
+                              <label className="admin-form-label" style={{ fontSize: '0.65rem' }}>SUBJECT</label>
+                              <select id="assign-subject" className="admin-form-input" style={{ padding: '0.6rem' }}>
+                                <option value="">Select Subject</option>
+                                {allAvailableSubjects.map(c => (
+                                  <option key={c.code} value={c.name}>{c.name} ({c.code})</option>
+                                ))}
+                              </select>
+                            </div>
 
-                            <div className="assignments-list" style={{ marginTop: '1.5rem', display: 'grid', gap: '0.6rem' }}>
+                            <button type="button" onClick={handleAddAssignment} className="admin-btn admin-btn-outline full-width" style={{ marginTop: '1rem', justifyContent: 'center' }}>
+                              <FaPlus /> ADD ASSIGNMENT
+                            </button>
+
+                            <div className="assignments-list" style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                               {facultyAssignments.map((assign, idx) => (
-                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.75rem 1.25rem', borderRadius: '12px', border: '1px solid var(--admin-border)' }}>
-                                  <span style={{ fontSize: '0.85rem', fontWeight: 850 }}>Year {assign.year} <span>•</span> {assign.branch} <span>•</span> Sec {assign.section} <span>•</span> {assign.subject}</span>
-                                  <button type="button" onClick={() => handleRemoveAssignment(idx)} style={{ background: 'none', border: 'none', color: '#f43f5e', cursor: 'pointer' }}>
-                                    <FaTrash size={12} />
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid var(--admin-border)', fontSize: '0.85rem' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--admin-secondary)' }}>
+                                    <span style={{ color: 'var(--admin-primary)' }}>{assign.branch}</span> • Y{assign.year} • Sec {assign.section}
+                                    <br />
+                                    <span style={{ fontWeight: 400, color: 'var(--admin-text-muted)', fontSize: '0.8rem' }}>{assign.subject}</span>
+                                  </span>
+                                  <button type="button" onClick={() => handleRemoveAssignment(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.5rem' }}>
+                                    <FaTrash />
                                   </button>
                                 </div>
                               ))}
-                              {facultyAssignments.length === 0 && <p className="admin-text-muted" style={{ padding: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>No assignments yet</p>}
+                              {facultyAssignments.length === 0 && <div className="admin-empty-state" style={{ padding: '1rem' }}><p style={{ fontSize: '0.85rem' }}>No classes assigned yet.</p></div>}
                             </div>
                           </div>
+                          <br />
                         </div>
+
                         <div className="admin-modal-actions">
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline">CANCEL</button>
                           <button className="admin-btn admin-btn-primary">SAVE FACULTY</button>
@@ -2124,40 +2174,42 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {modalType === 'course' && (
-                      <form onSubmit={handleSaveCourse}>
-                        <div className="admin-grid-2">
-                          <div className="admin-form-group admin-grid-span-2">
-                            <label className="admin-form-label">COURSE NAME *</label>
-                            <input className="admin-form-input" name="name" defaultValue={editItem?.name} required placeholder="e.g. Software Systems" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">COURSE CODE *</label>
-                            <input className="admin-form-input" name="code" defaultValue={editItem?.code} required placeholder="e.g. CS-501" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">YEAR *</label>
-                            <select className="admin-form-input" name="year" defaultValue={editItem?.year || '1'} required style={{ paddingLeft: '1rem' }}>
-                              <option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option>
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">SEMESTER *</label>
-                            <select className="admin-form-input" name="semester" defaultValue={editItem?.semester || '1'} required style={{ paddingLeft: '1rem' }}>
-                              {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Semester {s}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">BRANCH *</label>
-                            <select className="admin-form-input" name="branch" defaultValue={editItem?.branch || 'CSE'} required style={{ paddingLeft: '1rem' }}>
-                              {['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil', 'IT', 'AIML', 'All'].map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">SECTION</label>
-                            <select className="admin-form-input" name="section" defaultValue={editItem?.section || 'All'} required style={{ paddingLeft: '1rem' }}>
-                              <option value="All">All Sections</option>
-                              {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
-                            </select>
+                      <form onSubmit={handleSaveCourse} style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="admin-grid-2">
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">COURSE NAME *</label>
+                              <input className="admin-form-input" name="name" defaultValue={editItem?.name} required placeholder="e.g. Software Systems" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">COURSE CODE *</label>
+                              <input className="admin-form-input" name="code" defaultValue={editItem?.code} required placeholder="e.g. CS-501" />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">YEAR *</label>
+                              <select className="admin-form-input" name="year" defaultValue={editItem?.year || '1'} required>
+                                <option value="1">Year 1</option><option value="2">Year 2</option><option value="3">Year 3</option><option value="4">Year 4</option>
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">SEMESTER *</label>
+                              <select className="admin-form-input" name="semester" defaultValue={editItem?.semester || '1'} required>
+                                {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>Semester {s}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">BRANCH *</label>
+                              <select className="admin-form-input" name="branch" defaultValue={editItem?.branch || 'CSE'} required>
+                                {['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil', 'IT', 'AIML', 'All'].map(b => <option key={b} value={b}>{b}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">SECTION</label>
+                              <select className="admin-form-input" name="section" defaultValue={editItem?.section || 'All'} required>
+                                <option value="All">All Sections</option>
+                                {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
+                              </select>
+                            </div>
                           </div>
                         </div>
                         <div className="admin-modal-actions">
@@ -2168,80 +2220,83 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {modalType === 'material' && (
-                      <form onSubmit={handleSaveMaterial}>
-                        <div className="admin-grid-2">
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">CATEGORY</label>
-                            <select className="admin-form-input" name="type" defaultValue={editItem?.type || "notes"} style={{ paddingLeft: '1rem' }}>
-                              <option value="notes">Notes/PDF</option>
-                              <option value="videos">Video Lectures</option>
-                              <option value="models">AI Models / 3D</option>
-                              <option value="interviewQnA">Q&A / Interviews</option>
-                              <option value="modelPapers">Exam Papers</option>
-                              <option value="syllabus">Syllabus</option>
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">TITLE *</label>
-                            <input className="admin-form-input" name="title" required placeholder="e.g. Unit 1 Notes" />
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">YEAR</label>
-                            <select className="admin-form-input" name="year" required defaultValue={editItem?.isAdvanced ? 'Advanced' : (editItem?.year || '1')} style={{ paddingLeft: '1rem' }}>
-                              {editItem?.isAdvanced ? <option value="Advanced">Advanced</option> :
-                                [1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)
-                              }
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">SUBJECT</label>
-                            <select className="admin-form-input" name="subject" required defaultValue={editItem?.subject || ''} style={{ paddingLeft: '1rem' }}>
-                              <option value="">Select Subject...</option>
-                              {editItem?.isAdvanced
-                                ? ADVANCED_TOPICS.map(t => <option key={t} value={t}>{t}</option>)
-                                : allAvailableSubjects.map(c => <option key={c.code} value={c.name}>{c.name} ({c.code})</option>)
-                              }
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">MODULE</label>
-                            <select className="admin-form-input" name="module" style={{ paddingLeft: '1rem' }}>
-                              {[1, 2, 3, 4, 5].map(m => <option key={m} value={m}>Module {m}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">UNIT</label>
-                            <select className="admin-form-input" name="unit" style={{ paddingLeft: '1rem' }}>
-                              {[1, 2, 3, 4, 5].map(u => <option key={u} value={u}>Unit {u}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">BRANCH</label>
-                            <select className="admin-form-input" name="branch" defaultValue="All" style={{ paddingLeft: '1rem' }}>
-                              {['All', 'CSE', 'AIML', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(b => <option key={b} value={b}>{b}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">SECTION</label>
-                            <select className="admin-form-input" name="section" defaultValue={editItem?.section || 'All'} style={{ paddingLeft: '1rem' }}>
-                              <option value="All">All Sections</option>
-                              {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
-                            </select>
-                          </div>
-                          <div className="admin-form-group admin-grid-span-2">
-                            <label className="admin-form-label">TOPIC</label>
-                            <input className="admin-form-input" name="topic" placeholder="e.g. Introduction to Systems" />
-                          </div>
-                          <div className="admin-form-group admin-grid-span-2">
-                            <label className="admin-form-label">FILE / LINK</label>
-                            <div className="admin-grid-2">
-                              <input type="file" className="admin-form-input" name="file" style={{ padding: '0.6rem' }} />
-                              <input className="admin-form-input" name="url" placeholder="OR Secure External URL (https://...)" />
+                      <form onSubmit={handleSaveMaterial} style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="admin-grid-2">
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">TITLE *</label>
+                              <input className="admin-form-input" name="title" required placeholder="e.g. Unit 1 Notes" defaultValue={editItem?.title} />
                             </div>
-                          </div>
-                          <div className="admin-form-group admin-grid-span-2" style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
-                            <input type="checkbox" name="isAdvanced" id="isAdvanced" defaultChecked={editItem?.isAdvanced || false} style={{ width: '20px', height: '20px' }} />
-                            <label htmlFor="isAdvanced" className="admin-form-label" style={{ margin: 0, color: 'var(--admin-secondary)', fontSize: '0.85rem' }}>MARK AS ADVANCED LEARNING CONTENT</label>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">CATEGORY</label>
+                              <select className="admin-form-input" name="type" defaultValue={editItem?.type || "notes"}>
+                                <option value="notes">Notes/PDF</option>
+                                <option value="videos">Video Lectures</option>
+                                <option value="models">AI Models / 3D</option>
+                                <option value="interviewQnA">Q&A / Interviews</option>
+                                <option value="modelPapers">Exam Papers</option>
+                                <option value="syllabus">Syllabus</option>
+                              </select>
+                            </div>
+
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">YEAR</label>
+                              <select className="admin-form-input" name="year" required defaultValue={editItem?.isAdvanced ? 'Advanced' : (editItem?.year || '1')}>
+                                {editItem?.isAdvanced ? <option value="Advanced">Advanced</option> :
+                                  [1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)
+                                }
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">SUBJECT</label>
+                              <select className="admin-form-input" name="subject" required defaultValue={editItem?.subject || ''}>
+                                <option value="">Select Subject...</option>
+                                {editItem?.isAdvanced
+                                  ? ADVANCED_TOPICS.map(t => <option key={t} value={t}>{t}</option>)
+                                  : allAvailableSubjects.map(c => <option key={c.code} value={c.name}>{c.name} ({c.code})</option>)
+                                }
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">MODULE</label>
+                              <select className="admin-form-input" name="module" defaultValue={editItem?.module}>
+                                {[1, 2, 3, 4, 5].map(m => <option key={m} value={m}>Module {m}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">UNIT</label>
+                              <select className="admin-form-input" name="unit" defaultValue={editItem?.unit}>
+                                {[1, 2, 3, 4, 5].map(u => <option key={u} value={u}>Unit {u}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">BRANCH</label>
+                              <select className="admin-form-input" name="branch" defaultValue={editItem?.branch || "All"}>
+                                {['All', 'CSE', 'AIML', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL'].map(b => <option key={b} value={b}>{b}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">SECTION</label>
+                              <select className="admin-form-input" name="section" defaultValue={editItem?.section || 'All'}>
+                                <option value="All">All Sections</option>
+                                {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
+                              </select>
+                            </div>
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">TOPIC</label>
+                              <input className="admin-form-input" name="topic" placeholder="e.g. Introduction to Systems" defaultValue={editItem?.topic} />
+                            </div>
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">FILE / LINK</label>
+                              <div className="admin-grid-2">
+                                <input type="file" className="admin-form-input" name="file" style={{ padding: '0.6rem' }} />
+                                <input className="admin-form-input" name="url" placeholder="OR Secure External URL (https://...)" defaultValue={editItem?.url} />
+                              </div>
+                            </div>
+                            <div className="admin-form-group admin-grid-span-2" style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#f8fafc', padding: '1rem', borderRadius: '12px' }}>
+                              <input type="checkbox" name="isAdvanced" id="isAdvanced" defaultChecked={editItem?.isAdvanced || false} style={{ width: '20px', height: '20px' }} />
+                              <label htmlFor="isAdvanced" className="admin-form-label" style={{ margin: 0, color: 'var(--admin-secondary)', fontSize: '0.85rem' }}>MARK AS ADVANCED LEARNING CONTENT</label>
+                            </div>
                           </div>
                         </div>
                         <div className="admin-modal-actions">
@@ -2252,24 +2307,26 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {modalType === 'todo' && (
-                      <form onSubmit={handleSaveTodo}>
-                        <div className="admin-grid-2">
-                          <div className="admin-form-group admin-grid-span-2">
-                            <label className="admin-form-label">TASK DESCRIPTION *</label>
-                            <textarea className="admin-form-input" name="text" defaultValue={editItem?.text} required rows="4" style={{ padding: '1.25rem' }} placeholder="Define the task details..."></textarea>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">ASSIGNMENT SCOPE</label>
-                            <select className="admin-form-input" name="target" defaultValue={editItem?.target || 'admin'} style={{ paddingLeft: '1rem' }}>
-                              <option value="admin">Admin Only (Private)</option>
-                              <option value="all">Global (Public Announcement)</option>
-                              <option value="student">All Students</option>
-                              <option value="faculty">All Faculty</option>
-                            </select>
-                          </div>
-                          <div className="admin-form-group">
-                            <label className="admin-form-label">DEADLINE</label>
-                            <input className="admin-form-input" type="date" name="dueDate" defaultValue={editItem?.dueDate} style={{ paddingLeft: '1rem' }} />
+                      <form onSubmit={handleSaveTodo} style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="admin-grid-2">
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">TASK DESCRIPTION *</label>
+                              <textarea className="admin-form-input" name="text" defaultValue={editItem?.text} required rows="4" style={{ padding: '1.25rem' }} placeholder="Define the task details..."></textarea>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">ASSIGNMENT SCOPE</label>
+                              <select className="admin-form-input" name="target" defaultValue={editItem?.target || 'admin'}>
+                                <option value="admin">Admin Only (Private)</option>
+                                <option value="all">Global (Public Announcement)</option>
+                                <option value="student">All Students</option>
+                                <option value="faculty">All Faculty</option>
+                              </select>
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-form-label">DEADLINE</label>
+                              <input className="admin-form-input" type="date" name="dueDate" defaultValue={editItem?.dueDate} />
+                            </div>
                           </div>
                         </div>
                         <div className="admin-modal-actions">
@@ -2280,43 +2337,45 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
                     )}
 
                     {modalType === 'message' && (
-                      <form onSubmit={handleSendMessage}>
-                        <div className="admin-grid-2">
-                          <div className="admin-form-group admin-grid-span-2">
-                            <label className="admin-form-label">TARGET AUDIENCE</label>
-                            <select className="admin-form-input" name="target" value={msgTarget} onChange={(e) => setMsgTarget(e.target.value)} style={{ paddingLeft: '1rem' }}>
-                              <option value="all">EVERYONE (GLOBAL ANNOUNCEMENT)</option>
-                              <option value="students">ALL STUDENTS</option>
-                              <option value="students-specific">SPECIFIC SECTION (YEAR/SEC)</option>
-                              <option value="faculty">ALL FACULTY</option>
-                            </select>
-                          </div>
-
-                          {msgTarget === 'students-specific' && (
-                            <div className="admin-grid-span-2 animate-fade-in" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', border: '1px solid var(--admin-border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                              <div className="admin-form-group">
-                                <label className="admin-form-label">TARGET YEAR</label>
-                                <select className="admin-form-input" name="targetYear" style={{ paddingLeft: '1rem' }}>
-                                  {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
-                                </select>
-                              </div>
-                              <div className="admin-form-group">
-                                <label className="admin-form-label">TARGET SECTIONS (MULTI)</label>
-                                <select className="admin-form-input" name="targetSections" multiple style={{ height: '100px', padding: '0.75rem' }}>
-                                  {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
-                                </select>
-                              </div>
+                      <form onSubmit={handleSendMessage} style={{ display: 'contents' }}>
+                        <div className="nexus-modal-body">
+                          <div className="admin-grid-2">
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">TARGET AUDIENCE</label>
+                              <select className="admin-form-input" name="target" value={msgTarget} onChange={(e) => setMsgTarget(e.target.value)}>
+                                <option value="all">EVERYONE (GLOBAL ANNOUNCEMENT)</option>
+                                <option value="students">ALL STUDENTS</option>
+                                <option value="students-specific">SPECIFIC SECTION (YEAR/SEC)</option>
+                                <option value="faculty">ALL FACULTY</option>
+                              </select>
                             </div>
-                          )}
 
-                          <div className="admin-form-group admin-grid-span-2">
-                            <label className="admin-form-label">ANNOUNCEMENT CONTENT *</label>
-                            <textarea className="admin-form-input" name="message" required rows="6" style={{ padding: '1.25rem' }} placeholder="Type announcement here..."></textarea>
+                            {msgTarget === 'students-specific' && (
+                              <div className="admin-grid-span-2 animate-fade-in" style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--admin-border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                <div className="admin-form-group">
+                                  <label className="admin-form-label">TARGET YEAR</label>
+                                  <select className="admin-form-input" name="targetYear">
+                                    {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
+                                  </select>
+                                </div>
+                                <div className="admin-form-group">
+                                  <label className="admin-form-label">TARGET SECTION</label>
+                                  <select className="admin-form-input" name="targetSections">
+                                    {SECTION_OPTIONS.map(s => <option key={s} value={s}>Section {s}</option>)}
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="admin-form-group admin-grid-span-2">
+                              <label className="admin-form-label">MESSAGE CONTENT</label>
+                              <textarea className="admin-form-input" name="text" required rows="4" placeholder="Type your broadcast message here..." style={{ padding: '1.25rem' }}></textarea>
+                            </div>
                           </div>
                         </div>
                         <div className="admin-modal-actions">
                           <button type="button" onClick={closeModal} className="admin-btn admin-btn-outline">CANCEL</button>
-                          <button className="admin-btn admin-btn-primary">SEND ANNOUNCEMENT</button>
+                          <button className="admin-btn admin-btn-primary">SEND BROADCAST</button>
                         </div>
                       </form>
                     )}

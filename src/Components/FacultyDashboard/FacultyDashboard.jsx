@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaRobot, FaChevronRight
+  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaRobot, FaChevronRight, FaVideo
 } from 'react-icons/fa';
 import sseClient from '../../utils/sseClient';
 import MaterialManager from './MaterialManager';
@@ -12,6 +12,7 @@ import FacultyScheduleView from './FacultyScheduleView';
 import FacultyExams from './FacultyExams';
 import FacultyAssignments from './FacultyAssignments';
 import FacultyMarks from './FacultyMarks';
+import FacultyAnalytics from './FacultyAnalytics';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 import { apiGet, apiDelete, apiPost } from '../../utils/apiClient';
 
@@ -34,6 +35,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   const [messages, setMessages] = useState([]);
   const [materialsList, setMaterialsList] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
+  const [schedule, setSchedule] = useState([]);
   const [initialLoad, setInitialLoad] = useState(true);
   const [showMsgModal, setShowMsgModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
@@ -75,6 +77,9 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
       const studentsData = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
       if (Array.isArray(studentsData)) setStudentsList(studentsData);
+
+      const scheduleData = await apiGet(`/api/schedule?faculty=${encodeURIComponent(facultyData.facultyName || facultyData.name)}`);
+      if (Array.isArray(scheduleData)) setSchedule(scheduleData);
     } catch (e) {
       console.error("❌ FacultyDashboard: Sync Failed", e);
     }
@@ -230,6 +235,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
               studentsList={studentsList}
               materialsList={materialsList}
               myClasses={myClasses}
+              schedule={schedule}
               facultyData={facultyData}
               messages={messages}
               getFileUrl={getFileUrl}
@@ -280,7 +286,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                     <div key={node.id || node._id} className="f-node-card animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
                       <div className="f-node-head">
                         <div className="f-node-type-icon">
-                          {node.type === 'videos' ? <FaLayerGroup /> : <FaFileAlt />}
+                          {node.type === 'videos' ? <FaVideo /> : <FaFileAlt />}
                         </div>
                         <div className="f-node-actions">
                           <a href={getFileUrl(node.url)} target="_blank" rel="noreferrer" className="f-node-btn view" title="View File"><FaEye /></a>
@@ -301,6 +307,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
           {view === 'assignments' && <FacultyAssignments facultyId={facultyData.facultyId} openAiWithPrompt={openAiWithPrompt} />}
           {view === 'marks' && <FacultyMarks facultyData={currentFaculty} openAiWithPrompt={openAiWithPrompt} />}
+          {view === 'analytics' && <FacultyAnalytics facultyId={facultyData.facultyId} materialsList={materialsList} studentsList={studentsList} />}
 
           {view === 'attendance' && (() => {
             const ctx = ensureContext();
@@ -376,7 +383,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
             ) : <div className="no-content">No classes assigned.</div>;
           })()}
 
-          {view === 'schedule' && <FacultyScheduleView facultyData={currentFaculty} openAiWithPrompt={openAiWithPrompt} />}
+          {view === 'schedule' && <FacultyScheduleView facultyData={currentFaculty} schedule={schedule} openAiWithPrompt={openAiWithPrompt} />}
           {view === 'curriculum' && (
             <FacultyCurriculumArch
               myClasses={myClasses}
@@ -436,43 +443,48 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
             <button className="nexus-modal-close" onClick={toggleAiModal}>
               &times;
             </button>
-            <VuAiAgent onNavigate={(path) => {
-              const target = String(path).toLowerCase();
-              setShowAiModal(false);
-              setAiInitialPrompt('');
+            <div className="nexus-modal-body" style={{ padding: 0 }}>
+              <VuAiAgent onNavigate={(path) => {
+                const target = String(path).toLowerCase();
+                setShowAiModal(false);
+                setAiInitialPrompt('');
 
-              const viewMap = {
-                'overview': 'overview',
-                'materials': 'materials',
-                'assignment': 'assignments',
-                'assignments': 'assignments',
-                'mark': 'marks',
-                'marks': 'marks',
-                'attend': 'attendance',
-                'attendance': 'attendance',
-                'exam': 'exams',
-                'exams': 'exams',
-                'schedule': 'schedule',
-                'settings': 'settings',
-                'message': 'messages',
-                'messages': 'messages',
-                'students': 'students',
-                'broadcast': 'broadcast',
-                'curriculum': 'curriculum'
-              };
+                const viewMap = {
+                  'overview': 'overview',
+                  'materials': 'materials',
+                  'assignment': 'assignments',
+                  'assignments': 'assignments',
+                  'mark': 'marks',
+                  'marks': 'marks',
+                  'analytics': 'analytics',
+                  'intel': 'analytics',
+                  'intelligence': 'analytics',
+                  'attend': 'attendance',
+                  'attendance': 'attendance',
+                  'exam': 'exams',
+                  'exams': 'exams',
+                  'schedule': 'schedule',
+                  'settings': 'settings',
+                  'message': 'messages',
+                  'messages': 'messages',
+                  'students': 'students',
+                  'broadcast': 'broadcast',
+                  'curriculum': 'curriculum'
+                };
 
-              let matched = false;
-              Object.keys(viewMap).forEach(key => {
-                if (target.includes(key)) {
-                  setView(viewMap[key]);
-                  matched = true;
+                let matched = false;
+                Object.keys(viewMap).forEach(key => {
+                  if (target.includes(key)) {
+                    setView(viewMap[key]);
+                    matched = true;
+                  }
+                });
+
+                if (!matched) {
+                  console.log('AI requested unknown path:', path);
                 }
-              });
-
-              if (!matched) {
-                console.log('AI requested unknown path:', path);
-              }
-            }} initialMessage={aiInitialPrompt} />
+              }} initialMessage={aiInitialPrompt} />
+            </div>
           </div>
         </div>
       )}
@@ -480,27 +492,31 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
       {showMsgModal && (
         <div className="nexus-modal-overlay" onClick={() => setShowMsgModal(false)}>
           <div className="nexus-modal-content" onClick={e => e.stopPropagation()}>
-            <div className="f-modal-header"><FaBullhorn /><h2>QUICK ALERT</h2></div>
-            <form onSubmit={handleSendMessage} className="f-broadcast-form">
-              <div className="nexus-group">
-                <label className="f-form-label">Target Class</label>
-                <select name="targetClass" className="f-form-select">
-                  {myClasses.map(c => (
-                    <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
-                      {c.subject} (YEAR {c.year})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="nexus-group">
-                <label className="f-form-label">Message</label>
-                <textarea name="message" placeholder="Type info..." required className="f-form-textarea" style={{ height: '100px' }}></textarea>
-              </div>
-              <div className="f-modal-actions">
-                <button type="button" onClick={() => setShowMsgModal(false)} className="f-cancel-btn">CLOSE</button>
-                <button type="submit" className="f-quick-btn primary">SEND</button>
-              </div>
-            </form>
+            <div className="f-modal-header" style={{ padding: '2rem 2rem 0', marginBottom: '1rem' }}>
+              <FaBullhorn /><h2>QUICK ALERT</h2>
+            </div>
+            <div className="nexus-modal-body" style={{ padding: '0 2rem 2rem' }}>
+              <form onSubmit={handleSendMessage} className="f-broadcast-form">
+                <div className="nexus-group">
+                  <label className="f-form-label">Target Class</label>
+                  <select name="targetClass" className="f-form-select">
+                    {myClasses.map(c => (
+                      <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
+                        {c.subject} (YEAR {c.year})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="nexus-group">
+                  <label className="f-form-label">Message</label>
+                  <textarea name="message" placeholder="Type info..." required className="f-form-textarea" style={{ height: '100px' }}></textarea>
+                </div>
+                <div className="f-modal-actions">
+                  <button type="button" onClick={() => setShowMsgModal(false)} className="f-cancel-btn">CLOSE</button>
+                  <button type="submit" className="f-quick-btn primary">SEND</button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

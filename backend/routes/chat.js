@@ -50,7 +50,7 @@ const { addLanguageContext } = require('../utils/languageHelper');
 // Helper functions for self-learning
 function detectCategory(message) {
     const lowerMessage = message.toLowerCase();
-    
+
     if (lowerMessage.includes('circuit') || lowerMessage.includes('electrical') || lowerMessage.includes('power')) {
         return 'electrical_engineering';
     } else if (lowerMessage.includes('electronic') || lowerMessage.includes('communication') || lowerMessage.includes('signal')) {
@@ -64,7 +64,7 @@ function detectCategory(message) {
     } else if (lowerMessage.includes('help') || lowerMessage.includes('study') || lowerMessage.includes('explain')) {
         return 'general_help';
     }
-    
+
     return 'general';
 }
 
@@ -110,12 +110,12 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
     // First check advanced AI intelligence patterns for master-level responses
     for (const [category, data] of Object.entries(advancedAIIntelligence)) {
         if (category === 'default') continue;
-        
+
         if (data.keywords) {
             const hasMatch = data.keywords.some(keyword =>
                 lowerMessage.includes(keyword.toLowerCase())
             );
-            
+
             if (hasMatch) {
                 return typeof data.response === 'function'
                     ? data.response(context)
@@ -138,17 +138,17 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
     // Check important knowledge for fast responses
     for (const [category, data] of Object.entries(importantKnowledge)) {
         if (category === 'default') continue;
-        
+
         if (data.keywords) {
             const hasMatch = data.keywords.some(keyword =>
                 lowerMessage.includes(keyword.toLowerCase())
             );
-            
+
             if (hasMatch) {
                 const response = typeof data.response === 'function'
                     ? data.response(context)
                     : data.response;
-                
+
                 return {
                     response,
                     fast: true,
@@ -162,17 +162,17 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
     // Check universal multi-language knowledge first
     for (const [category, data] of Object.entries(universalKnowledge)) {
         if (category === 'default') continue;
-        
+
         if (data.keywords) {
             const hasMatch = data.keywords.some(keyword =>
                 lowerMessage.includes(keyword.toLowerCase())
             );
-            
+
             if (hasMatch) {
                 const response = typeof data.response === 'function'
                     ? data.response(context)
                     : data.response;
-                
+
                 // Add language detection and response
                 const detectedLanguage = detectLanguage(userMessage);
                 return addLanguageContext(response, detectedLanguage, context);
@@ -185,12 +185,12 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
         const branchKnowledge = getBranchKnowledge(context.branch);
         for (const [category, data] of Object.entries(branchKnowledge)) {
             if (category === 'default') continue;
-            
+
             if (data.keywords) {
                 const hasMatch = data.keywords.some(keyword =>
                     lowerMessage.includes(keyword.toLowerCase())
                 );
-                
+
                 if (hasMatch) {
                     return typeof data.response === 'function'
                         ? data.response(context)
@@ -203,12 +203,12 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
     // Then check friendly conversation patterns for natural interaction
     for (const [category, data] of Object.entries(friendlyConversation)) {
         if (category === 'default') continue;
-        
+
         if (data.keywords) {
             const hasMatch = data.keywords.some(keyword =>
                 lowerMessage.includes(keyword.toLowerCase())
             );
-            
+
             if (hasMatch) {
                 return typeof data.response === 'function'
                     ? data.response(context)
@@ -220,12 +220,12 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
     // Check comprehensive knowledge for general academic support
     for (const [category, data] of Object.entries(comprehensiveKnowledge)) {
         if (category === 'default') continue;
-        
+
         if (data.keywords) {
             const hasMatch = data.keywords.some(keyword =>
                 lowerMessage.includes(keyword.toLowerCase())
             );
-            
+
             if (hasMatch) {
                 return typeof data.response === 'function'
                     ? data.response(context)
@@ -260,35 +260,35 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
 // Helper function to get branch-specific knowledge
 function getBranchKnowledge(branch) {
     const normalizedBranch = branch ? branch.toLowerCase().trim() : '';
-    
+
     switch (normalizedBranch) {
         case 'eee':
         case 'electrical':
         case 'electrical engineering':
             return eeeKnowledge;
-            
+
         case 'ece':
         case 'electronics':
         case 'electronics and communication':
         case 'electronics engineering':
             return eceKnowledge;
-            
+
         case 'aiml':
         case 'ai':
         case 'machine learning':
         case 'artificial intelligence':
             return aimlKnowledge;
-            
+
         case 'cse':
         case 'computer science':
         case 'computer science and engineering':
         case 'computer engineering':
             return cseKnowledge;
-            
+
         case 'civil':
         case 'civil engineering':
             return civilKnowledge;
-            
+
         default:
             return comprehensiveKnowledge;
     }
@@ -307,7 +307,7 @@ function getKnowledgeBase(role, context) {
         }
         return studentDashboard;
     }
-    
+
     return comprehensiveKnowledge;
 }
 
@@ -315,13 +315,13 @@ function getKnowledgeBase(role, context) {
 function isLeetCodeRequest(message) {
     if (!message) return false;
     const lower = message.toLowerCase();
-    
+
     // Direct LeetCode mentions
     const directTriggers = [
         'leetcode', 'lc ', 'lc.', 'problem', 'solve', 'algorithm',
         'data structure', 'coding interview', 'programming challenge'
     ];
-    
+
     // Enhanced problem patterns for comprehensive detection
     const problemPatterns = [
         'two sum', 'palindrome', 'roman to integer', 'add two numbers',
@@ -337,29 +337,29 @@ function isLeetCodeRequest(message) {
         'container with most water', '3sum', 'letter combinations',
         'generate parentheses', 'next permutation', 'search in rotated array'
     ];
-    
+
     // Algorithm and complexity mentions
     const algorithmTriggers = [
         'time complexity', 'space complexity', 'big o', 'o(n)', 'o(log n)',
         'optimize', 'efficient', 'optimal solution', 'brute force'
     ];
-    
+
     // Check all patterns
     const allTriggers = [...directTriggers, ...problemPatterns, ...algorithmTriggers];
-    
+
     if (allTriggers.some(trigger => lower.includes(trigger))) {
         return true;
     }
-    
+
     // Check for programming language mentions with problem context
     const languages = ['python', 'java', 'c++', 'javascript', 'cpp'];
     const problemContext = ['solve', 'implement', 'write', 'code'];
-    
-    if (languages.some(lang => lower.includes(lang)) && 
+
+    if (languages.some(lang => lower.includes(lang)) &&
         problemContext.some(ctx => lower.includes(ctx))) {
         return true;
     }
-    
+
     // Check for coding interview context
     const interviewTriggers = ['interview', 'technical', 'coding test', 'programming test'];
     return interviewTriggers.some(trigger => lower.includes(trigger));
@@ -485,6 +485,7 @@ router.post('/', async (req, res) => {
     try {
         // Destructure the payload sent from VuAiAgent.jsx
         const { userId, prompt, role, context, query } = req.body;
+        const startTime = Date.now();
         const userMessage = prompt || query || '';
         const rawMessage = userMessage;
 
@@ -628,10 +629,9 @@ Key Approach:
 
         // Record interaction for self-learning
         try {
-            const startTime = Date.now();
             const category = detectCategory(userMessage);
             const keywords = extractKeywords(userMessage);
-            
+
             await selfLearningAgent.recordInteraction(
                 userId || 'guest',
                 context?.branch || 'general',

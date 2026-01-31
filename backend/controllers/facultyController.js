@@ -14,15 +14,7 @@ exports.getFaculty = async (req, res) => {
     }));
     res.json(normalized);
   } catch (error) {
-    console.error('MongoDB Faculty fetch failed, trying file DB:', error.message);
-    try {
-      const dbFile = require('../dbHelper');
-      const facultyData = dbFile('faculty').read();
-      res.json(facultyData);
-    } catch (fileErr) {
-      console.error('File DB failed too:', fileErr);
-      res.status(500).json({ message: 'Server Error' });
-    }
+    res.status(500).json({ message: 'Server Error' });
   }
 };
 

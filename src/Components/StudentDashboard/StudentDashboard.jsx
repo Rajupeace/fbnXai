@@ -967,7 +967,9 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         <button className="nexus-modal-close" onClick={() => setShowAiModal(false)}>
                             &times;
                         </button>
-                        <VuAiAgent onNavigate={handleAiNavigate} />
+                        <div className="nexus-modal-body" style={{ padding: 0 }}>
+                            <VuAiAgent onNavigate={handleAiNavigate} />
+                        </div>
                     </div>
                 </div>
             )}

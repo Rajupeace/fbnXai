@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './FacultyDashboard.css';
 import { FaCalendarAlt, FaCheckCircle, FaSave, FaUserCheck, FaHistory, FaFilter, FaUsers, FaExclamationTriangle } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 import { apiGet, apiPost } from '../../utils/apiClient';
 
 /**
@@ -38,16 +39,18 @@ const FacultyAttendanceManager = ({ facultyData }) => {
 
         console.log('Extracting sections from:', Object.keys(data));
 
-        // Method 1: Check assignments array (YOUR DATABASE HAS THIS!)
+        // Method 1: Check assignments array (Primary Source)
         if (data.assignments && Array.isArray(data.assignments) && data.assignments.length > 0) {
             const sectionsMap = new Map();
             data.assignments.forEach(assignment => {
                 const year = parseInt(assignment.year || assignment.Year || assignment.classYear);
-                const section = String(assignment.section || assignment.Section || assignment.classSection).toUpperCase();
+                // Default to 'A' if section is missing or undefined
+                let section = String(assignment.section || assignment.Section || assignment.classSection || 'A').toUpperCase();
+                if (section === 'UNDEFINED' || section === 'NULL' || section === '') section = 'A';
+
                 const subject = assignment.subject || assignment.Subject || data.subject || 'General';
 
-                if (year && section && section !== 'UNDEFINED') {
-                    // Include subject in key to differentiate subjects for same section
+                if (year) {
                     const key = `${year}-${section}-${subject}`;
                     if (!sectionsMap.has(key)) {
                         sectionsMap.set(key, { year, section, subject });
@@ -65,15 +68,15 @@ const FacultyAttendanceManager = ({ facultyData }) => {
         if (data.sections && Array.isArray(data.sections) && data.sections.length > 0) {
             return data.sections.map(s => ({
                 year: String(s.year || s.Year),
-                section: String(s.section || s.Section).toUpperCase()
+                section: String(s.section || s.Section || 'A').toUpperCase()
             }));
         }
 
         // Method 3: Check direct fields
-        if (data.year && data.section) {
+        if (data.year) {
             return [{
                 year: String(data.year),
-                section: String(data.section).toUpperCase()
+                section: String(data.section || 'A').toUpperCase()
             }];
         }
 
@@ -216,163 +219,193 @@ const FacultyAttendanceManager = ({ facultyData }) => {
 
     return (
         <div className="attendance-manager animate-fade-in">
-
-            <div className="nexus-glass-pills f-spacer-xl">
-                <button className={`nexus-pill ${viewMode === 'take' ? 'active' : ''}`} onClick={() => setViewMode('take')}>
-                    <FaUserCheck /> MARK ATTENDANCE
-                </button>
-                <button className={`nexus-pill ${viewMode === 'history' ? 'active' : ''}`} onClick={() => setViewMode('history')}>
-                    <FaHistory /> ATTENDANCE HISTORY
-                </button>
-            </div>
+            <header className="f-view-header">
+                <div>
+                    <h2>ATTENDANCE <span>CONTROL</span></h2>
+                    <p className="nexus-subtitle">Track and manage student presence across your sections</p>
+                </div>
+                <div className="nexus-glass-pills" style={{ marginBottom: 0 }}>
+                    <button className={`nexus-pill ${viewMode === 'take' ? 'active' : ''}`} onClick={() => setViewMode('take')}>
+                        <FaUserCheck /> MARK ATTENDANCE
+                    </button>
+                    <button className={`nexus-pill ${viewMode === 'history' ? 'active' : ''}`} onClick={() => setViewMode('history')}>
+                        <FaHistory /> HISTORY
+                    </button>
+                </div>
+            </header>
 
             {viewMode === 'take' ? (
                 <>
-                    {/* Section Filter */}
-                    <div className="section-filter-bar" style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
-                            <FaFilter style={{ color: '#6366f1' }} />
-                            <div className="section-buttons">
+                    {/* Section Filter & Stats */}
+                    <div className="f-flex-gap f-spacer-lg animate-slide-up" style={{ alignItems: 'flex-start' }}>
+                        <div className="f-node-card" style={{ flex: 1, padding: '1.25rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <FaFilter style={{ color: 'var(--accent-primary)' }} />
+                                <span style={{ fontWeight: 900, fontSize: '0.75rem', color: '#94a3b8', letterSpacing: '0.05em' }}>SELECT ACADEMIC SECTION</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                 {availableSections.map((sec, idx) => (
-                                    <button key={idx} className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section && selectedSection.subject === sec.subject ? 'active' : ''}`} onClick={() => handleSectionChange(sec)}>
-                                        YR {sec.year} ({sec.section}) - {sec.subject || 'All'}
+                                    <button
+                                        key={idx}
+                                        className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section && selectedSection.subject === sec.subject ? 'active' : ''}`}
+                                        onClick={() => handleSectionChange(sec)}
+                                        style={{ fontSize: '0.7rem' }}
+                                    >
+                                        YR {sec.year} ({sec.section})
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Section Stats Ribbon */}
-                        <div className="f-stats-ribbon" style={{ display: 'flex', gap: '1.5rem', background: '#f8fafc', padding: '0.5rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                            <div className="ribbon-item">
-                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>PRESENT</span>
-                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#10b981' }}>{stats.present}</span>
+                        <div className="f-weekly-stats" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: 'transparent', padding: 0 }}>
+                            <div className="f-stat-card" style={{ padding: '1rem 1.5rem' }}>
+                                <span className="val" style={{ color: '#10b981', fontSize: '1.5rem' }}>{stats.present}</span>
+                                <span className="lab">PRESENT</span>
                             </div>
-                            <div className="ribbon-item" style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
-                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>ABSENT</span>
-                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#ef4444' }}>{stats.absent}</span>
+                            <div className="f-stat-card" style={{ padding: '1rem 1.5rem' }}>
+                                <span className="val" style={{ color: '#ef4444', fontSize: '1.5rem' }}>{stats.absent}</span>
+                                <span className="lab">ABSENT</span>
                             </div>
-                            <div className="ribbon-item" style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
-                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>RATE</span>
-                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#4f46e5' }}>{stats.percentage}%</span>
+                            <div className="f-stat-card" style={{ padding: '1rem 1.5rem' }}>
+                                <span className="val" style={{ color: 'var(--accent-primary)', fontSize: '1.5rem' }}>{stats.percentage}%</span>
+                                <span className="lab">RATE</span>
                             </div>
-                            <div className="ribbon-item" style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
-                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>ROSTER</span>
-                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#f59e0b' }}>{students.length}</span>
+                            <div className="f-stat-card" style={{ padding: '1rem 1.5rem' }}>
+                                <span className="val" style={{ color: '#f59e0b', fontSize: '1.5rem' }}>{students.length}</span>
+                                <span className="lab">TOTAL</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="f-attendance-controls animate-slide-up">
-                        <div className="f-control-group">
+                    <div className="f-attendance-controls animate-slide-up" style={{ padding: '1.5rem', background: 'white', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
                             <div className="f-pill-control">
-                                <label>CURRENT SECTION</label>
-                                <div style={{ padding: '0.5rem 1rem', background: 'linear-gradient(135deg, #667eea15 0%, #764ba215 100%)', borderRadius: '8px', fontWeight: '700', color: '#667eea' }}>
-                                    Year {selectedSection.year} - Section {selectedSection.section}
-                                </div>
+                                <FaCalendarAlt style={{ color: 'var(--accent-primary)' }} />
+                                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="f-form-select" style={{ border: 'none', background: 'transparent', padding: 0, width: 'auto' }} />
                             </div>
-
-                            <div className="f-pill-control">
-                                <FaCalendarAlt className="f-text-muted" />
-                                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                            <div style={{ height: '24px', width: '1px', background: '#e2e8f0' }}></div>
+                            <div className="f-text-muted" style={{ fontWeight: 850, fontSize: '0.85rem' }}>
+                                <FaUsers /> {selectedSection.subject || 'All Subjects'}
                             </div>
                         </div>
 
-                        <div className="f-flex-gap">
-                            <button onClick={() => markAll('Present')} className="f-cancel-btn text-success">MARK ALL PRESENT</button>
-                            <button onClick={() => markAll('Absent')} className="f-cancel-btn text-danger">MARK ALL ABSENT</button>
-                        </div>
-                    </div>
-
-                    <div className="f-summary-row animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                        <div className="f-summary-node present">
-                            <h4>{stats.present}</h4>
-                            <span>PRESENT STUDENTS</span>
-                        </div>
-                        <div className="f-summary-node absent">
-                            <h4>{stats.absent}</h4>
-                            <span>ABSENT STUDENTS</span>
-                        </div>
-                        <div className="f-summary-node rate">
-                            <h4>{stats.percentage}%</h4>
-                            <span>ATTENDANCE RATE</span>
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button onClick={() => markAll('Present')} className="f-node-btn secondary" style={{ fontSize: '0.7rem' }}>MARK ALL PRESENT</button>
+                            <button onClick={() => markAll('Absent')} className="f-node-btn secondary" style={{ fontSize: '0.7rem' }}>MARK ALL ABSENT</button>
                         </div>
                     </div>
 
                     {loading ? (
-                        <div className="no-content">Loading Roster...</div>
+                        <div className="f-node-card f-center-empty">
+                            <div className="spinner"></div>
+                            <p style={{ marginTop: '1rem', fontWeight: 850 }}>Syncing Roster...</p>
+                        </div>
                     ) : (
-                        <div className="f-roster-wrap animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                            <div className="f-roster-head">
-                                <span>STUDENT NAME / ID</span>
-                                <span>STATUS</span>
-                            </div>
-
-                            <div className="f-roster-list">
+                        <div className="f-roster-wrap animate-slide-up" style={{ marginTop: '2rem' }}>
+                            <div className="f-roster-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1rem' }}>
                                 {students.map((student, index) => {
                                     const isAbsent = attendance[student.sid || student.id] === 'Absent';
                                     return (
-                                        <div key={student.sid || student.id} className={`f-roster-item ${isAbsent ? 'absent' : 'present'}`}>
-                                            <div className="f-student-identity">
-                                                <div className="f-student-index">{index + 1}</div>
-                                                <div>
-                                                    <div className="f-student-name">{student.studentName || student.name}</div>
-                                                    <div className="f-student-sid">{student.sid || student.id}</div>
-                                                </div>
+                                        <div
+                                            key={student.sid || student.id}
+                                            className={`f-node-card f-flex-gap ${isAbsent ? 'absent-node' : 'present-node'}`}
+                                            style={{
+                                                padding: '1.25rem',
+                                                cursor: 'pointer',
+                                                borderLeft: `6px solid ${isAbsent ? '#ef4444' : '#10b981'}`,
+                                                transition: 'all 0.2s',
+                                                background: isAbsent ? 'rgba(239, 68, 68, 0.02)' : 'rgba(16, 185, 129, 0.02)'
+                                            }}
+                                            onClick={() => handleStatusChange(student.sid || student.id, isAbsent ? 'Present' : 'Absent')}
+                                        >
+                                            <div className="f-student-index" style={{
+                                                width: '32px', height: '32px', borderRadius: '10px',
+                                                background: isAbsent ? '#fee2e2' : '#dcfce7',
+                                                color: isAbsent ? '#ef4444' : '#10b981',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                fontWeight: 950, fontSize: '0.8rem'
+                                            }}>
+                                                {index + 1}
                                             </div>
-
-                                            <label className="f-status-trigger">
-                                                <span className="f-status-label">{isAbsent ? 'ABSENT' : 'PRESENT'}</span>
-                                                <input
-                                                    type="checkbox"
-                                                    className="f-status-checkbox"
-                                                    checked={isAbsent}
-                                                    onChange={(e) => handleStatusChange(student.sid || student.id, e.target.checked ? 'Absent' : 'Present')}
-                                                />
-                                            </label>
+                                            <div style={{ flex: 1 }}>
+                                                <div style={{ fontWeight: 950, color: '#1e293b', fontSize: '1rem' }}>{student.studentName || student.name}</div>
+                                                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>ID: {student.sid || student.id}</div>
+                                            </div>
+                                            <div style={{
+                                                padding: '0.4rem 0.8rem', borderRadius: '8px',
+                                                background: isAbsent ? '#ef4444' : '#10b981',
+                                                color: 'white', fontWeight: 950, fontSize: '0.65rem'
+                                            }}>
+                                                {isAbsent ? 'ABSENT' : 'PRESENT'}
+                                            </div>
                                         </div>
                                     );
                                 })}
-                                {students.length === 0 && <div className="no-content">No students found in Year {selectedSection.year} Section {selectedSection.section}.</div>}
                             </div>
+                            {students.length === 0 && (
+                                <div className="f-node-card f-center-empty">
+                                    <h3 style={{ color: '#94a3b8', margin: 0 }}>NO REGISTERED STUDENTS</h3>
+                                    <p style={{ marginTop: '0.5rem', opacity: 0.6 }}>Verify the section filters or year assignment.</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    <div className="f-submit-footer animate-slide-up">
+                    <div className="f-submit-footer animate-slide-up" style={{ marginTop: '3rem', position: 'sticky', bottom: '2rem', zIndex: 100, background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 20px 50px -20px rgba(0,0,0,0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div className="f-flex-gap f-text-muted">
-                            <FaCheckCircle className="text-success" style={{ fontSize: '1.2rem' }} />
-                            <span style={{ fontWeight: 850, fontSize: '0.85rem' }}>Attendance for Year {selectedSection.year} Section {selectedSection.section} on {new Date(date).toLocaleDateString()}.</span>
+                            <FaCheckCircle style={{ color: '#10b981', fontSize: '1.5rem' }} />
+                            <div>
+                                <div style={{ fontWeight: 950, color: '#1e293b', lineHeight: 1 }}>Roster Synchronized</div>
+                                <div style={{ fontSize: '0.75rem', fontWeight: 850, marginTop: '0.4rem' }}>{date} • {selectedSection.subject || 'Standard Session'}</div>
+                            </div>
                         </div>
                         <button
                             className="nexus-btn-primary"
                             onClick={handleSubmit}
                             disabled={saving || students.length === 0}
+                            style={{ padding: '1rem 2.5rem' }}
                         >
-                            {saving ? 'SAVING...' : <><FaSave /> SAVE ATTENDANCE</>}
+                            {saving ? 'PROCESSING...' : <><FaSave /> COMMIT ATTENDANCE</>}
                         </button>
                     </div>
                 </>
             ) : (
                 <div className="history-view animate-fade-in">
-                    <h2 className="nexus-page-subtitle f-spacer-lg">ATTENDANCE HISTORY - Year {selectedSection.year} Section {selectedSection.section}</h2>
-                    <div className="f-history-list">
+                    <div className="f-history-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.5rem' }}>
                         {history.map(record => {
                             const p = record.records.filter(r => r.status === 'Present').length;
                             const t = record.records.length;
                             const pct = t > 0 ? Math.round((p / t) * 100) : 0;
                             return (
-                                <div key={record._id || record.id} className="f-history-item">
+                                <motion.div
+                                    whileHover={{ y: -5 }}
+                                    key={record._id || record.id}
+                                    className="f-node-card"
+                                    style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                >
                                     <div>
-                                        <div style={{ fontWeight: 950, color: '#1e293b', fontSize: '1.1rem' }}>{new Date(record.date).toLocaleDateString()}</div>
-                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 850, marginTop: '0.2rem' }}>SECTION {record.section} • {record.facultyName || 'FACULTY'}</div>
+                                        <div style={{ fontWeight: 950, color: '#1e293b', fontSize: '1.1rem' }}>{new Date(record.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 900, marginTop: '0.4rem', textTransform: 'uppercase' }}>
+                                            Section {record.section} • {record.subject}
+                                        </div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: 950, color: pct > 75 ? '#10b981' : pct > 50 ? '#f59e0b' : '#ef4444' }}>{pct}% ATTENDANCE</div>
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 900, marginTop: '0.2rem' }}>({p} / {t} STUDENTS)</div>
+                                        <div style={{
+                                            fontWeight: 950,
+                                            color: pct > 80 ? '#10b981' : pct > 60 ? '#f59e0b' : '#ef4444',
+                                            fontSize: '1.2rem'
+                                        }}>{pct}%</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 900 }}>{p}/{t} PRESENT</div>
                                     </div>
-                                </div>
+                                </motion.div>
                             )
                         })}
-                        {history.length === 0 && <div className="no-content">No attendance history found for this section.</div>}
+                        {history.length === 0 && (
+                            <div className="f-node-card f-center-empty" style={{ gridColumn: '1/-1', opacity: 0.6 }}>
+                                <FaHistory size={48} style={{ marginBottom: '1.5rem' }} />
+                                <p style={{ fontWeight: 850 }}>No historical records found for this section.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

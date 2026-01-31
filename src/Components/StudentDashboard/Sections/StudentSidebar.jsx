@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn, FaUniversity, FaHeadset
+    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn, FaUniversity, FaHeadset, FaLayerGroup, FaBolt
 } from 'react-icons/fa';
 import './StudentSidebar.css';
 
@@ -34,10 +34,10 @@ const StudentSidebar = ({
         {
             title: 'CORE',
             items: [
-                { id: 'overview', label: 'Dashboard', icon: <FaChartBar /> },
+                { id: 'overview', label: 'Dashboard', icon: <FaLayerGroup /> },
                 { id: 'tasks', label: 'Task List', icon: <FaClipboardList /> },
                 { id: 'announcements', label: 'Announcements', icon: <FaBullhorn /> },
-                { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
+                { id: 'ai-agent', label: 'AI Tutor', icon: <FaBolt /> },
             ]
         },
         {

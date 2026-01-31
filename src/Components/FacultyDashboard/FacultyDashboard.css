@@ -2194,10 +2194,11 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  transition: width 0.4s var(--nexus-ease);
+  transition: width 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   z-index: 50;
   flex-shrink: 0;
   position: relative;
+  will-change: width;
 }
 
 .nexus-sidebar.collapsed {

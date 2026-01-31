@@ -1,0 +1,23 @@
+
+index.js:589:    //   const fileMaterials = materialsDB.read() || [];
+index.js:871:    // const all = materialsDB.read();
+index.js:955:      // const all = materialsDB.read();
+index.js:1304://   res.json(studentsDB.read());
+index.js:1341:    //   const fileStudents = studentsDB.read() || [];
+index.js:1373:        //   const fileStudents = studentsDB.read() || [];
+index.js:1439:      // const students = studentsDB.read() || [];
+index.js:1469:    // const arr = studentsDB.read();
+index.js:2096:          // const allMsgs = messagesDB.read() || [];
+index.js:2219:  const all = materialsDB.read();
+index.js:2238:  const all = materialsDB.read();
+index.js:2255:  const admin = adminDB.read() || {};
+index.js:2256:  const faculty = facultyDB.read() || [];
+index.js:2307:  // const all = materialsDB.read();
+index.js:2393:    const all = materialsDB.read();
+index.js:2498:  // const all = messagesDB.read();
+index.js:2528:  // const all = messagesDB.read();
+index.js:2565:    // const all = messagesDB.read();
+index.js:2583:  // const all = messagesDB.read();
+index.js:2866:      // const arr = coursesDB.read();
+index.js:2945:    // const arr = coursesDB.read();
+

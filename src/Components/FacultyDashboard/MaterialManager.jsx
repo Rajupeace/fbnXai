@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaCloudUploadAlt, FaTrash } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaTrash, FaFilter } from 'react-icons/fa';
 import { apiUpload, apiPost, apiGet, apiDelete } from '../../utils/apiClient';
 
 /**
@@ -128,74 +128,174 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
 
     return (
         <div className="deployment-hub animate-fade-in">
-            <div className="hub-header">
+            <header className="f-view-header">
                 <div>
-                    <h2>{editId ? 'EDIT MATERIAL' : 'CONTENT MANAGER'}</h2>
-                    <span className="sd-brand-tag" style={{ color: '#6366f1' }}>{selectedSubject}</span>
+                    <h2>CONTENT <span>DEPLOYMENT</span></h2>
+                    <p className="nexus-subtitle">Orchestrate and distribute academic assets across course pipelines</p>
                 </div>
-                <div className="nexus-glass-pills">
-                    <button className={`nexus-pill ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>UPLOAD</button>
+                <div className="nexus-glass-pills" style={{ marginBottom: 0 }}>
+                    <button className={`nexus-pill ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>FILES</button>
                     <button className={`nexus-pill ${activeTab === 'links' ? 'active' : ''}`} onClick={() => setActiveTab('links')}>LINKS</button>
-                    <button className={`nexus-pill ${activeTab === 'broadcast' ? 'active' : ''}`} onClick={() => setActiveTab('broadcast')}>ANNOUNCE</button>
-                    <button className={`nexus-pill ${activeTab === 'resources' ? 'active' : ''}`} onClick={() => setActiveTab('resources')}>HISTORY</button>
+                    <button className={`nexus-pill ${activeTab === 'broadcast' ? 'active' : ''}`} onClick={() => setActiveTab('broadcast')}>ALERTS</button>
+                    <button className={`nexus-pill ${activeTab === 'resources' ? 'active' : ''}`} onClick={() => setActiveTab('resources')}>REGISTRY</button>
                 </div>
-            </div>
+            </header>
 
-            <div className="hub-stage">
+            <div className="f-node-card animate-slide-up" style={{ minHeight: '550px', padding: '2.5rem' }}>
                 {activeTab === 'upload' && (
                     <div className="animate-fade-in">
-                        <div className="type-nexus-grid">
+                        <div className="f-type-selector-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '1rem', marginBottom: '3rem' }}>
                             {['notes', 'videos', 'assignments', 'modelPapers', 'interviewQnA'].map(t => (
-                                <button key={t} className={`nexus-card ${uploadType === t ? 'active' : ''}`} onClick={() => setUploadType(t)}>
-                                    <span>{t.toUpperCase()}</span>
+                                <button
+                                    key={t}
+                                    className={`nexus-pill ${uploadType === t ? 'active' : ''}`}
+                                    onClick={() => setUploadType(t)}
+                                    style={{ width: '100%', height: '48px', borderRadius: '14px', fontSize: '0.7rem' }}
+                                >
+                                    {t.replace(/([A-Z])/g, ' $1').toUpperCase()}
                                 </button>
                             ))}
                         </div>
-                        <div className="nexus-dropzone" onClick={() => document.getElementById(uploadType).click()}>
+
+                        <div
+                            className="nexus-dropzone"
+                            onClick={() => document.getElementById(uploadType).click()}
+                            style={{
+                                height: '220px',
+                                border: '2px dashed #e2e8f0',
+                                borderRadius: '32px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                background: '#f8fafc',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                position: 'relative',
+                                overflow: 'hidden'
+                            }}
+                        >
                             <input type="file" id={uploadType} name={uploadType} style={{ display: 'none' }} onChange={handleFileChange} />
-                            <h3>{materials[uploadType] ? materials[uploadType].name : 'SELECT FILE'}</h3>
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '4px', background: 'var(--accent-primary)', opacity: 0.1 }}></div>
+                            <FaCloudUploadAlt style={{ fontSize: '3.5rem', color: 'var(--accent-primary)', marginBottom: '1.5rem', filter: 'drop-shadow(0 10px 15px rgba(99, 102, 241, 0.2))' }} />
+                            <h3 style={{ margin: 0, fontWeight: 950, color: '#1e293b', fontSize: '1.2rem' }}>
+                                {materials[uploadType] ? materials[uploadType].name : 'INITIALIZE TARGET UPLOAD'}
+                            </h3>
+                            <p style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 850, marginTop: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                <FaFilter /> {selectedSubject}
+                            </p>
                         </div>
-                        <div className="nexus-form-grid">
-                            <input placeholder="Topic" value={formData.topic} onChange={e => setFormData({ ...formData, topic: e.target.value })} className="f-form-select" />
-                            {uploadType === 'videos' && (
-                                <input placeholder="Duration (e.g. 10:30)" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="f-form-select" />
-                            )}
-                            {uploadType === 'modelPapers' && (
-                                <input placeholder="Exam Year (e.g. 2023)" value={formData.examYear || ''} onChange={e => setFormData({ ...formData, examYear: e.target.value })} className="f-form-select" />
-                            )}
-                        </div>
-                        <button className="nexus-btn-primary" onClick={handleUpload}>{editId ? 'UPDATE' : 'UPLOAD'}</button>
-                    </div>
-                )}
-                {activeTab === 'resources' && (
-                    <div className="registry-nexus">
-                        {globalResources.map((res, i) => (
-                            <div key={i} className="mini-resource-card">
-                                <span>{res.title}</span>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button onClick={() => handleEdit(res)}><FaCloudUploadAlt /></button>
-                                    <button onClick={() => handleDelete(res._id || res.id)}><FaTrash /></button>
-                                </div>
+
+                        <div className="nexus-form-grid" style={{ marginTop: '3rem', marginBottom: '3rem' }}>
+                            <div className="nexus-group">
+                                <label className="f-form-label">OPERATIONAL TOPIC / TITLE</label>
+                                <input placeholder="e.g. System Architecture v2.0" value={formData.topic} onChange={e => setFormData({ ...formData, topic: e.target.value })} className="f-form-select" />
                             </div>
-                        ))}
+                            <div className="nexus-group">
+                                <label className="f-form-label">MODULE DESIGNATION</label>
+                                <select className="f-form-select" value={formData.module} onChange={e => setFormData({ ...formData, module: e.target.value })}>
+                                    {[1, 2, 3, 4, 5].map(m => <option key={m} value={m}>Module {m}</option>)}
+                                </select>
+                            </div>
+                            <div className="nexus-group">
+                                <label className="f-form-label">UNIT IDENTIFIER</label>
+                                <select className="f-form-select" value={formData.unit} onChange={e => setFormData({ ...formData, unit: e.target.value })}>
+                                    {[1, 2, 3, 4, 5].map(u => <option key={u} value={u}>Unit {u}</option>)}
+                                </select>
+                            </div>
+                            {uploadType === 'videos' && (
+                                <div className="nexus-group">
+                                    <label className="f-form-label">TEMPORAL FOOTPRINT (DURATION)</label>
+                                    <input placeholder="e.g. 15:00" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="f-form-select" />
+                                </div>
+                            )}
+                        </div>
+
+                        <button className="nexus-btn-primary" onClick={handleUpload} style={{ width: '100%', height: '64px', borderRadius: '18px', boxShadow: '0 15px 30px -10px rgba(99, 102, 241, 0.4)' }}>
+                            {editId ? 'COMMIT ASSET REFINEMENT' : <><FaCloudUploadAlt /> DEPLOY TO ACADEMIC PIPELINE</>}
+                        </button>
                     </div>
                 )}
+
+                {activeTab === 'resources' && (
+                    <div className="registry-nexus animate-fade-in">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                            {globalResources.length > 0 ? globalResources.map((res, i) => (
+                                <div key={i} className="f-modal-list-item animate-slide-up" style={{ animationDelay: `${i * 0.05}s`, background: '#f8fafc', padding: '1.5rem', borderRadius: '20px', border: '1px solid #f1f5f9' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flex: 1 }}>
+                                        <div style={{ background: 'white', color: 'var(--accent-primary)', width: '52px', height: '52px', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', fontWeight: 950, fontSize: '0.8rem' }}>
+                                            {res.type?.substring(0, 3).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 950, color: '#1e293b', fontSize: '1rem' }}>{res.title || res.topic}</div>
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 850, color: '#94a3b8', marginTop: '0.3rem', textTransform: 'uppercase' }}>
+                                                MOD {res.module} • UNIT {res.unit} • {res.type}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                        <button className="f-quick-btn shadow" onClick={() => handleEdit(res)} title="Refine Node"><FaCloudUploadAlt /></button>
+                                        <button className="f-quick-btn shadow delete" onClick={() => handleDelete(res._id || res.id)} title="Purge Node"><FaTrash /></button>
+                                    </div>
+                                </div>
+                            )) : (
+                                <div className="f-center-empty" style={{ padding: '5rem' }}>
+                                    <p style={{ fontWeight: 850, color: '#cbd5e1', letterSpacing: '0.1em' }}>NO ASSETS DETECTED IN REGISTRY</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {activeTab === 'broadcast' && (
-                    <div className="animate-fade-in">
-                        <textarea className="f-form-textarea" value={broadcastMsg} onChange={(e) => setBroadcastMsg(e.target.value)} placeholder="Announcement..." />
-                        <button className="nexus-btn-primary" onClick={async () => {
-                            const { subject, year } = getContext();
-                            await apiPost('/api/faculty/messages', { message: broadcastMsg, type: broadcastType, year, sections: selectedSections, subject });
-                            alert('Sent!'); setBroadcastMsg('');
-                        }}>SEND</button>
+                    <div className="animate-fade-in" style={{ maxWidth: '700px', margin: '0 auto' }}>
+                        <div className="nexus-group" style={{ marginBottom: '2.5rem' }}>
+                            <label className="f-form-label">TACTICAL SIGNAL (BROADCAST MESSAGE)</label>
+                            <textarea
+                                className="f-form-textarea"
+                                value={broadcastMsg}
+                                onChange={(e) => setBroadcastMsg(e.target.value)}
+                                placeholder="Define emergency alert or general broadcast parameters..."
+                                style={{ height: '240px', padding: '1.5rem', background: '#f8fafc' }}
+                            />
+                        </div>
+                        <button
+                            className="nexus-btn-primary"
+                            style={{ width: '100%', height: '60px' }}
+                            onClick={async () => {
+                                if (!broadcastMsg) return alert('Signal message required.');
+                                const { subject, year } = getContext();
+                                await apiPost('/api/faculty/messages', { message: broadcastMsg, type: broadcastType, year, sections: selectedSections, subject });
+                                alert('Broadcast Signal Transmitted.'); setBroadcastMsg('');
+                            }}
+                        >
+                            INITIALIZE SYSTEM BROADCAST
+                        </button>
                     </div>
                 )}
+
                 {activeTab === 'links' && (
-                    <div className="animate-fade-in">
-                        <input id="link-title" placeholder="Title" className="f-form-select" />
-                        <input id="link-url" placeholder="URL" className="f-form-select" />
-                        <select id="link-type" className="f-form-select"><option value="notes">Notes</option><option value="videos">Video</option></select>
-                        <button className="nexus-btn-primary" onClick={handleLinkAdd}>ADD LINK</button>
+                    <div className="animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                        <div className="nexus-form-grid" style={{ gridTemplateColumns: '1fr', gap: '2rem', marginBottom: '3rem' }}>
+                            <div className="nexus-group">
+                                <label className="f-form-label">REFERENCE NODE TITLE</label>
+                                <input id="link-title" placeholder="e.g. External Deep Learning Guide" className="f-form-select" />
+                            </div>
+                            <div className="nexus-group">
+                                <label className="f-form-label">DIGITAL ACCESS URL</label>
+                                <input id="link-url" placeholder="https://resource.nexus.core/..." className="f-form-select" />
+                            </div>
+                            <div className="nexus-group">
+                                <label className="f-form-label">RESOURCE CLASSIFICATION</label>
+                                <select id="link-type" className="f-form-select">
+                                    <option value="notes">Digital Documentation</option>
+                                    <option value="videos">Video Stream Node</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button className="nexus-btn-primary" onClick={handleLinkAdd} style={{ width: '100%', height: '60px' }}>
+                            ATTACH DIGITAL ASSET LINK
+                        </button>
                     </div>
                 )}
             </div>

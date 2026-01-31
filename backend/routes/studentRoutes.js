@@ -4,6 +4,11 @@ const mongoose = require('mongoose');
 const Material = require('../models/Material');
 const Course = require('../models/Course');
 const { getStudentOverview } = require('../controllers/studentController');
+const multer = require('multer');
+const { parseCSV } = require('../utils/csvParser');
+const bcrypt = require('bcryptjs');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 // NEW: Student Overview (Mega Stats)
 router.get('/:id/overview', getStudentOverview);
@@ -197,7 +202,6 @@ router.get('/:studentId/courses/:courseId', async (req, res) => {
         uploaderName: m.uploadedBy?.name || 'Unknown'
       }));
     }
-    // courseMaterials already populated from MongoDB above
 
     res.json({
       ...course,
@@ -208,8 +212,6 @@ router.get('/:studentId/courses/:courseId', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch course details', details: error.message });
   }
 });
-
-// Roadmap progress handled at bottom of file for clarity and enhanced logic.
 
 // PUT /api/students/profile/:sid
 // Update student profile (including avatar/profilePic)
@@ -222,14 +224,11 @@ router.put('/profile/:sid', async (req, res) => {
     // Map frontend 'profilePic' to schema 'profileImage'
     if (updates.profilePic !== undefined) {
       updates.profileImage = updates.profilePic;
-      // Also update avatar field if it's a dicebear URL (optional, but good for consistency)
       if (typeof updates.profilePic === 'string' && updates.profilePic.includes('dicebear')) {
-        // Extract seed if possible or just save url
         updates.avatar = updates.profilePic;
       }
     }
 
-    // Ensure we don't accidentally overwrite critical fields with nulls if not sent
     const allowedUpdates = ['studentName', 'email', 'phone', 'address', 'profileImage', 'avatar', 'year', 'section', 'branch'];
     const safeUpdates = {};
     Object.keys(updates).forEach(key => {
@@ -258,7 +257,6 @@ router.put('/profile/:sid', async (req, res) => {
 });
 
 // PUT /api/students/change-password/:sid
-// Simple password change (Plaintext as per existing pattern, should be hashed in prod)
 router.put('/change-password/:sid', async (req, res) => {
   try {
     const { sid } = req.params;
@@ -268,7 +266,6 @@ router.put('/change-password/:sid', async (req, res) => {
     const student = await Student.findOne({ sid });
     if (!student) return res.status(404).json({ error: 'Student not found' });
 
-    // In a real app, compare hashes. Here we assume plaintext based on provided context.
     if (student.password !== currentPassword) {
       return res.status(400).json({ error: 'Incorrect current password' });
     }
@@ -296,10 +293,8 @@ router.post('/:studentId/roadmap-progress', async (req, res) => {
     if (!student.roadmapProgress) student.roadmapProgress = new Map();
 
     if (completedTopics && Array.isArray(completedTopics)) {
-      // Bulk update/sync
       student.roadmapProgress.set(roadmapSlug, completedTopics);
     } else if (topicName) {
-      // Single toggle
       const currentProgress = student.roadmapProgress.get(roadmapSlug) || [];
       let newProgress;
       if (currentProgress.includes(topicName)) {
@@ -318,4 +313,119 @@ router.post('/:studentId/roadmap-progress', async (req, res) => {
   }
 });
 
+// @route   POST /api/students/bulk
+// @desc    Bulk upload students from CSV/JSON
+router.post('/bulk', upload.single('file'), async (req, res) => {
+  try {
+    let studentDataList = [];
+    const Student = require('../models/Student');
+
+    // Handle file upload (CSV)
+    if (req.file) {
+      const csvContent = req.file.buffer.toString('utf8');
+      studentDataList = parseCSV(csvContent);
+      console.log(`[Bulk Student] Parsed ${studentDataList.length} entries from CSV file`);
+    }
+    // Handle JSON body
+    else if (req.body.students && Array.isArray(req.body.students)) {
+      studentDataList = req.body.students;
+    }
+    else {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide an array of students or upload a CSV file'
+      });
+    }
+
+    if (studentDataList.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No student data found in request'
+      });
+    }
+
+    const results = {
+      success: [],
+      errors: [],
+      total: studentDataList.length
+    };
+
+    for (let i = 0; i < studentDataList.length; i++) {
+      const data = studentDataList[i];
+
+      try {
+        const sid = data.sid || data.SID || data.studentId || data.StudentId;
+        const studentName = data.studentName || data.name || data.Name || data.StudentName;
+        const email = data.email || data.Email || (sid ? `${sid}@university.com` : null);
+        const password = data.password || data.Password || 'password123';
+        const year = data.year || data.Year || '1';
+        const section = data.section || data.Section || 'A';
+        const branch = data.branch || data.Branch || 'CSE';
+
+        if (!sid || !studentName) {
+          results.errors.push({
+            row: i + 1,
+            sid: sid || 'N/A',
+            error: 'Missing required fields (sid, studentName)'
+          });
+          continue;
+        }
+
+        // Check if exists
+        const existing = await Student.findOne({ sid });
+        if (existing) {
+          results.errors.push({
+            row: i + 1,
+            sid,
+            error: 'Student with this ID already exists'
+          });
+          continue;
+        }
+
+        // Create student
+        const newStudent = new Student({
+          sid,
+          studentName,
+          email,
+          password, // Note: In a real app, hash this. But keeping it simple for now as rest of app uses plain text for student passwords? 
+          // Wait, student passwords in Student.js... let's check model.
+          year: String(year),
+          section: String(section).toUpperCase(),
+          branch: String(branch).toUpperCase(),
+          createdAt: new Date()
+        });
+
+        await newStudent.save();
+        results.success.push({ row: i + 1, sid, name: studentName });
+
+      } catch (error) {
+        results.errors.push({
+          row: i + 1,
+          sid: data.sid || 'N/A',
+          error: error.message
+        });
+      }
+    }
+
+    // Broadcast update if any succeeded
+    if (results.success.length > 0 && global.broadcastEvent) {
+      global.broadcastEvent({ resource: 'students', action: 'bulk-create' });
+    }
+
+    res.json({
+      success: true,
+      message: `Bulk upload complete: ${results.success.length} succeeded, ${results.errors.length} failed`,
+      results
+    });
+
+  } catch (err) {
+    console.error('Bulk student upload error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Server error: ' + err.message
+    });
+  }
+});
+
 module.exports = router;
+

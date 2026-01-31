@@ -61,14 +61,13 @@ const AdminMarks = () => {
                 </div>
             </header>
 
-            {/* Filter Bar */}
-            <div className="admin-filter-bar">
+            <div className="filter-bar">
                 <div className="filter-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%' }}>
                     <FaFilter style={{ color: 'var(--admin-text-light)' }} />
                     <select
                         value={filters.year}
                         onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                        className="admin-filter-select"
+                        className="filter-select"
                     >
                         <option value="">All Years</option>
                         <option value="1">Year 1</option>
@@ -80,7 +79,7 @@ const AdminMarks = () => {
                     <select
                         value={filters.section}
                         onChange={(e) => setFilters({ ...filters, section: e.target.value })}
-                        className="admin-filter-select"
+                        className="filter-select"
                     >
                         <option value="">All Sections</option>
                         {['A', 'B', 'C', 'D', 'E', 'F'].map(s => (
@@ -88,53 +87,52 @@ const AdminMarks = () => {
                         ))}
                     </select>
 
-                    <button className="admin-btn admin-btn-outline" onClick={() => setFilters({ year: '', section: '', subject: '' })} style={{ marginLeft: 'auto' }}>
+                    <button className="filter-reset" onClick={() => setFilters({ year: '', section: '', subject: '' })} style={{ marginLeft: 'auto' }}>
                         RESET FILTERS
                     </button>
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="admin-stats-grid">
-                <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#e0e7ff', color: 'var(--admin-primary)' }}>
+            <div className="stats-grid">
+                <div className="stat-card primary">
+                    <div className="stat-icon">
                         <FaUsers />
                     </div>
-                    <div style={{ flex: 1 }}>
-                        <div className="value">{overview?.totalStudents || 0}</div>
-                        <div className="label">Total Students</div>
+                    <div className="stat-content">
+                        <div className="stat-value">{overview?.totalStudents || 0}</div>
+                        <div className="stat-label">Total Students</div>
                     </div>
                 </div>
 
-                <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#dcfce7', color: 'var(--admin-success)' }}>
+                <div className="stat-card success">
+                    <div className="stat-icon">
                         <FaBook />
                     </div>
-                    <div>
-                        <div className="value">{overview?.subjectsAnalyzed?.length || 0}</div>
-                        <div className="label">Subjects Analyzed</div>
+                    <div className="stat-content">
+                        <div className="stat-value">{overview?.subjectsAnalyzed?.length || 0}</div>
+                        <div className="stat-label">Subjects Analyzed</div>
                     </div>
                 </div>
 
-                <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#fef3c7', color: 'var(--admin-warning)' }}>
+                <div className="stat-card warning">
+                    <div className="stat-icon">
                         <FaTrophy />
                     </div>
-                    <div>
-                        <div className="value">{overview?.overallAverage || 0}%</div>
-                        <div className="label">Class Average</div>
+                    <div className="stat-content">
+                        <div className="stat-value">{overview?.overallAverage || 0}%</div>
+                        <div className="stat-label">Class Average</div>
                     </div>
                 </div>
 
-                <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#f3e8ff', color: '#8b5cf6' }}>
+                <div className="stat-card accent">
+                    <div className="stat-icon">
                         <FaChartBar />
                     </div>
-                    <div>
-                        <div className="value">
+                    <div className="stat-content">
+                        <div className="stat-value">
                             {overview?.averagesBySubject ? Object.keys(overview.averagesBySubject).length : 0}
                         </div>
-                        <div className="label">Active Assessments</div>
+                        <div className="stat-label">Active Assessments</div>
                     </div>
                 </div>
             </div>

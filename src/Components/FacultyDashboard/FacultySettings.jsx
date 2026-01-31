@@ -120,125 +120,134 @@ const FacultySettings = ({ facultyData, onProfileUpdate }) => {
     };
 
     return (
-        <div className="animate-fade-in">
-            <header className="f-settings-header animate-slide-up">
+        <div className="command-center animate-fade-in">
+            <header className="f-view-header">
                 <div>
-                    <h2 className="f-settings-title">ACCOUNT <span>SETTINGS</span></h2>
-                    <p className="f-settings-subtitle">Manage your faculty profile and credentials</p>
+                    <h2>ACCOUNT <span>COMMAND</span></h2>
+                    <p className="nexus-subtitle">Configure operational parameters and security protocols</p>
                 </div>
                 {message.text && (
-                    <div className={`f-sync-badge ${message.type === 'error' ? 'error' : ''}`} style={{ background: message.type === 'error' ? '#fee2e2' : '#dcfce7', color: message.type === 'error' ? '#dc2626' : '#166534', border: 'none' }}>
-                        {message.text}
+                    <div className="f-sync-badge" style={{ background: message.type === 'error' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: message.type === 'error' ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', borderRadius: '12px', fontWeight: 850, fontSize: '0.75rem' }}>
+                        {message.type === 'error' ? 'SYSTEM ALERT' : 'SIGNAL SUCCESS'}: {message.text.toUpperCase()}
                     </div>
                 )}
             </header>
 
-            <div className="f-settings-node animate-slide-up f-settings-node-card">
-                <div className="nexus-glass-pills f-settings-pills-wrap">
+            <div className="f-node-card animate-slide-up" style={{ minHeight: '600px', padding: '2.5rem' }}>
+                <div className="nexus-glass-pills" style={{ marginBottom: '3rem' }}>
                     <button className={`nexus-pill ${activeTab === 'profile' ? 'active' : ''}`} onClick={() => setActiveTab('profile')}>
-                        <FaUser /> PROFILE
+                        <FaUser /> TARGET PROFILE
                     </button>
                     <button className={`nexus-pill ${activeTab === 'assignments' ? 'active' : ''}`} onClick={() => setActiveTab('assignments')}>
-                        <FaChalkboardTeacher /> TEACHING
+                        <FaChalkboardTeacher /> TEACHING PIPELINE
                     </button>
                     <button className={`nexus-pill ${activeTab === 'password' ? 'active' : ''}`} onClick={() => setActiveTab('password')}>
-                        <FaShieldAlt /> SECURITY
+                        <FaShieldAlt /> SECURITY CORE
                     </button>
                 </div>
 
                 <div className="f-settings-tab-content">
                     {activeTab === 'profile' && (
                         <form onSubmit={saveProfile} className="animate-fade-in">
-                            <div className="nexus-form-grid f-profile-grid">
-                                <div className="f-input-node">
-                                    <label><FaUser /> FULL NAME</label>
-                                    <input className="f-input-field" name="name" value={profile.name} onChange={handleProfileChange} disabled={loading} />
+                            <div className="nexus-form-grid" style={{ marginBottom: '2.5rem' }}>
+                                <div className="nexus-group">
+                                    <label className="f-form-label"><FaUser /> FULL NAME</label>
+                                    <input className="f-form-select" name="name" value={profile.name} onChange={handleProfileChange} disabled={loading} placeholder="Enter operational name..." />
                                 </div>
-                                <div className="f-input-node">
-                                    <label><FaIdCard /> FACULTY IDENTIFIER</label>
-                                    <input className="f-input-field" name="facultyId" value={profile.facultyId} disabled />
+                                <div className="nexus-group">
+                                    <label className="f-form-label"><FaIdCard /> IDENTIFIER</label>
+                                    <input className="f-form-select" name="facultyId" value={profile.facultyId} disabled style={{ background: '#f8fafc', color: '#94a3b8' }} />
                                 </div>
-                                <div className="f-input-node">
-                                    <label><FaEnvelope /> EMAIL ADDRESS</label>
-                                    <input className="f-input-field" name="email" value={profile.email} onChange={handleProfileChange} disabled={loading} />
+                                <div className="nexus-group">
+                                    <label className="f-form-label"><FaEnvelope /> COMMUNICATION EMAIL</label>
+                                    <input className="f-form-select" name="email" value={profile.email} onChange={handleProfileChange} disabled={loading} placeholder="faculty@nexus.core" />
                                 </div>
-                                <div className="f-input-node">
-                                    <label><FaBuilding /> DEPARTMENT</label>
-                                    <input className="f-input-field" name="department" value={profile.department} onChange={handleProfileChange} disabled={loading} />
+                                <div className="nexus-group">
+                                    <label className="f-form-label"><FaBuilding /> SECTOR / DEPARTMENT</label>
+                                    <input className="f-form-select" name="department" value={profile.department} onChange={handleProfileChange} disabled={loading} />
                                 </div>
-                                <div className="f-input-node">
-                                    <label><FaShieldAlt /> DESIGNATION</label>
-                                    <input className="f-input-field" name="designation" value={profile.designation} onChange={handleProfileChange} disabled={loading} />
+                                <div className="nexus-group">
+                                    <label className="f-form-label"><FaShieldAlt /> RANK / DESIGNATION</label>
+                                    <input className="f-form-select" name="designation" value={profile.designation} onChange={handleProfileChange} disabled={loading} />
                                 </div>
                             </div>
-                            <div className="f-settings-form-actions">
-                                <button type="submit" className="nexus-btn-primary f-profile-submit-btn" disabled={loading}>
-                                    {loading ? 'SAVING...' : <><FaSave /> SAVE CHANGES</>}
-                                </button>
-                            </div>
+                            <button type="submit" className="nexus-btn-primary" style={{ width: '100%', height: '56px' }} disabled={loading}>
+                                {loading ? 'SYNCHRONIZING...' : <><FaSave /> COMMIT PROFILE CHANGES</>}
+                            </button>
                         </form>
                     )}
 
                     {activeTab === 'assignments' && (
                         <div className="animate-fade-in">
-                            <div className="f-assignments-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
                                 {/* Add New Assignment Form */}
-                                <div className="f-add-assignment">
-                                    <h3>Add New Class</h3>
-                                    <div className="f-input-node">
-                                        <label>Year</label>
-                                        <select className="f-input-field" value={newAssign.year} onChange={e => setNewAssign({ ...newAssign, year: e.target.value })}>
-                                            <option value="1">Year 1</option>
-                                            <option value="2">Year 2</option>
-                                            <option value="3">Year 3</option>
-                                            <option value="4">Year 4</option>
-                                        </select>
+                                <div className="f-node-card shadow-sm" style={{ padding: '2rem', background: '#f8fafc' }}>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 950, color: '#1e293b', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                        <div style={{ background: 'var(--accent-primary)', color: 'white', padding: '0.4rem', borderRadius: '8px', fontSize: '1rem' }}><FaPlus /></div>
+                                        ADD CLASS NODE
+                                    </h3>
+                                    <div className="nexus-form-grid" style={{ gridTemplateColumns: '1fr' }}>
+                                        <div className="nexus-group">
+                                            <label className="f-form-label">Academic Year</label>
+                                            <select className="f-form-select" value={newAssign.year} onChange={e => setNewAssign({ ...newAssign, year: e.target.value })}>
+                                                <option value="1">Year 1</option>
+                                                <option value="2">Year 2</option>
+                                                <option value="3">Year 3</option>
+                                                <option value="4">Year 4</option>
+                                            </select>
+                                        </div>
+                                        <div className="nexus-group">
+                                            <label className="f-form-label">Branch Sector</label>
+                                            <select className="f-form-select" value={newAssign.branch} onChange={e => setNewAssign({ ...newAssign, branch: e.target.value })}>
+                                                <option value="CSE">CSE</option>
+                                                <option value="IT">IT</option>
+                                                <option value="ECE">ECE</option>
+                                                <option value="EEE">EEE</option>
+                                            </select>
+                                        </div>
+                                        <div className="nexus-group">
+                                            <label className="f-form-label">Target Section</label>
+                                            <select className="f-form-select" value={newAssign.section} onChange={e => setNewAssign({ ...newAssign, section: e.target.value })}>
+                                                {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(s => <option key={s} value={s}>Section {s}</option>)}
+                                                {[...Array(10)].map((_, i) => (
+                                                    <option key={i + 1} value={String(i + 1)}>Section {i + 1}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="nexus-group">
+                                            <label className="f-form-label">Subject Designation</label>
+                                            <input className="f-form-select" value={newAssign.subject} onChange={e => setNewAssign({ ...newAssign, subject: e.target.value })} placeholder="e.g. Advanced Meta Systems" />
+                                        </div>
                                     </div>
-                                    <div className="f-input-node">
-                                        <label>Branch</label>
-                                        <select className="f-input-field" value={newAssign.branch} onChange={e => setNewAssign({ ...newAssign, branch: e.target.value })}>
-                                            <option value="CSE">CSE</option>
-                                            <option value="IT">IT</option>
-                                            <option value="ECE\">ECE</option>
-                                            <option value="EEE">EEE</option>
-                                        </select>
-                                    </div>
-                                    <div className="f-input-node">
-                                        <label>Section</label>
-                                        <select className="f-input-field" value={newAssign.section} onChange={e => setNewAssign({ ...newAssign, section: e.target.value })}>
-                                            {[...Array(20)].map((_, i) => (
-                                                <option key={i + 1} value={String(i + 1)}>Section {i + 1}</option>
-                                            ))}
-                                            {['A', 'B', 'C', 'D', 'E', 'F', 'G'].map(s => <option key={s} value={s}>Section {s}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="f-input-node">
-                                        <label>Subject Name</label>
-                                        <input className="f-input-field" value={newAssign.subject} onChange={e => setNewAssign({ ...newAssign, subject: e.target.value })} placeholder="e.g. Data Structures" />
-                                    </div>
-                                    <button className="nexus-btn-primary" onClick={addAssignment} style={{ marginTop: '1rem' }}><FaPlus /> Add Class</button>
+                                    <button className="nexus-pill active" onClick={addAssignment} style={{ width: '100%', marginTop: '2rem', height: '50px' }}><FaPlus /> APPEND TO PIPELINE</button>
                                 </div>
 
                                 {/* List Existing Assignments */}
-                                <div className="f-current-assignments">
-                                    <h3>Current Teaching Load</h3>
-                                    <div className="f-assign-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '400px', overflowY: 'auto' }}>
-                                        {profile.assignments.length === 0 && <p className="sub-text-slate">No classes assigned.</p>}
+                                <div>
+                                    <h3 style={{ fontSize: '1.2rem', fontWeight: 950, color: '#1e293b', marginBottom: '2rem' }}>ACTIVE TEACHING LOAD</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '420px', overflowY: 'auto', paddingRight: '0.5rem' }}>
+                                        {profile.assignments.length === 0 && (
+                                            <div className="f-center-empty" style={{ padding: '4rem' }}>
+                                                <p style={{ fontWeight: 850, color: '#cbd5e1' }}>NO ACTIVE PIPELINES</p>
+                                            </div>
+                                        )}
                                         {profile.assignments.map((assign, i) => (
-                                            <div key={i} className="f-assign-card" style={{ background: '#f8fafc', padding: '1rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div key={i} className="f-node-card shadow-sm" style={{ padding: '1.25rem', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <div>
-                                                    <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{assign.subject}</div>
-                                                    <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{assign.branch} • Year {assign.year} • Sec {assign.section}</div>
+                                                    <div style={{ fontWeight: 950, color: '#1e293b', fontSize: '0.95rem' }}>{assign.subject}</div>
+                                                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 850, marginTop: '0.2rem', textTransform: 'uppercase' }}>
+                                                        {assign.branch} • Year {assign.year} • Sec {assign.section}
+                                                    </div>
                                                 </div>
-                                                <button onClick={() => removeAssignment(i)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem' }}>
+                                                <button onClick={() => removeAssignment(i)} className="f-quick-btn shadow delete" style={{ width: '36px', height: '36px' }}>
                                                     <FaTrash />
                                                 </button>
                                             </div>
                                         ))}
                                     </div>
-                                    <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '1rem' }}>
-                                        <button className="nexus-btn-primary" onClick={saveProfile} disabled={loading}>
-                                            {loading ? 'SAVING...' : <><FaSave /> SAVE ALL CHANGES</>}
+                                    <div style={{ marginTop: '2.5rem', borderTop: '2px solid #f1f5f9', paddingTop: '2rem' }}>
+                                        <button className="nexus-btn-primary" style={{ width: '100%', height: '56px' }} onClick={saveProfile} disabled={loading}>
+                                            {loading ? 'SYNCHRONIZING...' : <><FaSave /> DEPLOY LOAD UPDATES</>}
                                         </button>
                                     </div>
                                 </div>
@@ -247,17 +256,17 @@ const FacultySettings = ({ facultyData, onProfileUpdate }) => {
                     )}
 
                     {activeTab === 'password' && (
-                        <form onSubmit={changePassword} className="f-security-wrap animate-fade-in">
-                            <div className="f-input-node">
-                                <label><FaLock /> NEW PASSWORD</label>
-                                <input type="password" name="new" className="f-input-field" value={passwords.new} onChange={handlePassChange} placeholder="Enter new password" disabled={loading} />
+                        <form onSubmit={changePassword} className="animate-fade-in" style={{ maxWidth: '500px', margin: '0 auto' }}>
+                            <div className="nexus-group" style={{ marginBottom: '1.5rem' }}>
+                                <label className="f-form-label"><FaLock /> NEW SECURITY KEY</label>
+                                <input type="password" name="new" className="f-form-select" value={passwords.new} onChange={handlePassChange} placeholder="Define new access key..." disabled={loading} />
                             </div>
-                            <div className="f-input-node">
-                                <label><FaCheck /> CONFIRM PASSWORD</label>
-                                <input type="password" name="confirm" className="f-input-field" value={passwords.confirm} onChange={handlePassChange} placeholder="Confirm new password" disabled={loading} />
+                            <div className="nexus-group" style={{ marginBottom: '2.5rem' }}>
+                                <label className="f-form-label"><FaCheck /> VALIDATE KEY</label>
+                                <input type="password" name="confirm" className="f-form-select" value={passwords.confirm} onChange={handlePassChange} placeholder="Re-enter for validation..." disabled={loading} />
                             </div>
-                            <button type="submit" className="nexus-btn-primary f-settings-btn-full" disabled={loading}>
-                                {loading ? 'UPDATING...' : 'UPDATE PASSWORD'}
+                            <button type="submit" className="nexus-btn-primary" style={{ width: '100%', height: '56px' }} disabled={loading}>
+                                {loading ? 'ENCRYPTING...' : 'INITIALIZE KEY ROTATION'}
                             </button>
                         </form>
                     )}

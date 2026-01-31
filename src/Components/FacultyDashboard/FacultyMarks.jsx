@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FaEdit, FaSave, FaTimes, FaUserGraduate, FaBook, FaCheck, FaFilter, FaUsers, FaExclamationTriangle, FaFileDownload, FaFileUpload, FaCalculator } from 'react-icons/fa';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { FaEdit, FaSave, FaTimes, FaCheck, FaFilter, FaFileDownload, FaFileUpload, FaCalculator } from 'react-icons/fa';
 import { apiGet, apiPost } from '../../utils/apiClient';
 import './FacultyMarks.css';
 
@@ -41,7 +41,33 @@ const FacultyMarks = ({ facultyData }) => {
         ]
     };
 
-    const initializeData = async () => {
+    const fetchStudents = useCallback(async () => {
+        if (!facultyData?.facultyId) return;
+        try {
+            const data = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
+            setAllStudents(data || []);
+            // Initially, we might not have a selected section yet, or we might filter later
+        } catch (error) {
+            console.error('Error fetching students:', error);
+            setAllStudents([]);
+        }
+    }, [facultyData?.facultyId]);
+
+    const filterStudentsBySection = (studentList, section) => {
+        if (!section.year || !section.section) {
+            setStudents([]);
+            return;
+        }
+        const filtered = studentList.filter(student => {
+            const studentYear = student.year || student.Year || student.currentYear;
+            const studentSection = student.section || student.Section || student.class;
+            return String(studentYear) === String(section.year) &&
+                String(studentSection).toUpperCase().trim() === String(section.section).toUpperCase().trim();
+        });
+        setStudents(filtered);
+    };
+
+    const initializeData = useCallback(async () => {
         try {
             setLoading(true);
             let sections = extractSectionsFromData(facultyData);
@@ -66,7 +92,7 @@ const FacultyMarks = ({ facultyData }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [facultyData, fetchStudents]);
 
     const extractSectionsFromData = (data) => {
         if (!data) return [];
@@ -88,39 +114,13 @@ const FacultyMarks = ({ facultyData }) => {
         return [];
     };
 
-    const fetchStudents = async () => {
-        if (!facultyData?.facultyId) return;
-        try {
-            const data = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
-            setAllStudents(data || []);
-            filterStudentsBySection(data || [], selectedSection);
-        } catch (error) {
-            console.error('Error fetching students:', error);
-            setAllStudents([]);
-        }
-    };
-
-    const filterStudentsBySection = (studentList, section) => {
-        if (!section.year || !section.section) {
-            setStudents([]);
-            return;
-        }
-        const filtered = studentList.filter(student => {
-            const studentYear = student.year || student.Year || student.currentYear;
-            const studentSection = student.section || student.Section || student.class;
-            return String(studentYear) === String(section.year) &&
-                String(studentSection).toUpperCase().trim() === String(section.section).toUpperCase().trim();
-        });
-        setStudents(filtered);
-    };
-
     const handleSectionChange = (newSection) => {
         setSelectedSection(newSection);
         filterStudentsBySection(allStudents, newSection);
         setEditMode(false);
     };
 
-    const fetchMarks = async () => {
+    const fetchMarks = useCallback(async () => {
         if (!selectedSection.subject || students.length === 0) return;
         try {
             const subject = selectedSection.subject;
@@ -147,7 +147,7 @@ const FacultyMarks = ({ facultyData }) => {
         } catch (error) {
             console.error('Error fetching marks:', error);
         }
-    };
+    }, [selectedSection.subject, students]);
 
     const handleMarkChange = (studentId, assessmentId, value) => {
         if (value === '') {
@@ -225,7 +225,6 @@ const FacultyMarks = ({ facultyData }) => {
         reader.onload = (evt) => {
             const text = evt.target.result;
             const rows = text.split('\n').map(r => r.split(','));
-            const headers = rows[0].map(h => h.trim().toLowerCase());
             const newMarks = JSON.parse(JSON.stringify(marksData));
 
             for (let i = 1; i < rows.length; i++) {
@@ -273,8 +272,8 @@ const FacultyMarks = ({ facultyData }) => {
         a.click();
     };
 
-    useEffect(() => { initializeData(); }, [facultyData]);
-    useEffect(() => { if (selectedSection.year) fetchMarks(); }, [selectedSection, students]);
+    useEffect(() => { initializeData(); }, [initializeData]);
+    useEffect(() => { if (selectedSection.year) fetchMarks(); }, [selectedSection.year, fetchMarks]);
 
     if (loading) return <div className="faculty-marks-container"><div className="spinner"></div><p>Syncing Registry...</p></div>;
 

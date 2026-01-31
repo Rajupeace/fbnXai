@@ -1,0 +1,38 @@
+
+index.js:589:    //   const fileMaterials = materialsDB.read() || [];
+index.js:741:    // materialsDB.write(all);
+index.js:871:    // const all = materialsDB.read();
+index.js:920:    // materialsDB.write(all);
+index.js:955:      // const all = materialsDB.read();
+index.js:974:      // materialsDB.write(newAll);
+index.js:1304://   res.json(studentsDB.read());
+index.js:1341:    //   const fileStudents = studentsDB.read() || [];
+index.js:1373:        //   const fileStudents = studentsDB.read() || [];
+index.js:1377:        //     studentsDB.write(fileStudents);
+index.js:1404:    // studentsDB.write(students);
+index.js:1439:      // const students = studentsDB.read() || [];
+index.js:1442:      //   studentsDB.write(newStudents);
+index.js:1469:    // const arr = studentsDB.read();
+index.js:1475:    // studentsDB.write(arr);
+index.js:2096:          // const allMsgs = messagesDB.read() || [];
+index.js:2098:          // messagesDB.write(allMsgs);
+index.js:2219:  const all = materialsDB.read();
+index.js:2238:  const all = materialsDB.read();
+index.js:2255:  const admin = adminDB.read() || {};
+index.js:2256:  const faculty = facultyDB.read() || [];
+index.js:2307:  // const all = materialsDB.read();
+index.js:2352:  // materialsDB.write(all);
+index.js:2394:    // const all = materialsDB.read();
+index.js:2424:    // materialsDB.write(next);
+index.js:2499:  // const all = messagesDB.read();
+index.js:2501:  // messagesDB.write(all);
+index.js:2529:  // const all = messagesDB.read();
+index.js:2531:  // messagesDB.write(all);
+index.js:2566:    // const all = messagesDB.read();
+index.js:2568:    // messagesDB.write(all);
+index.js:2584:  // const all = messagesDB.read();
+index.js:2585:  // messagesDB.write(all.filter(m => m.id !== id));
+index.js:2867:      // const arr = coursesDB.read();
+index.js:2946:    // const arr = coursesDB.read();
+index.js:2947:    // coursesDB.write(arr.filter(c => c.id !== id));
+

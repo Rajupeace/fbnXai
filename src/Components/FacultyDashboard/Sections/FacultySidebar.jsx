@@ -2,7 +2,8 @@ import React from 'react';
 import {
     FaGraduationCap, FaEnvelope, FaSignOutAlt,
     FaLayerGroup, FaBolt, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt, FaUserGraduate,
-    FaRobot, FaClipboardList, FaPencilAlt, FaTimes
+    FaRobot, FaClipboardList, FaPencilAlt, FaTimes, FaBookOpen, FaCalendarAlt,
+    FaThLarge, FaBook, FaCog
 } from 'react-icons/fa';
 
 /**
@@ -25,18 +26,19 @@ const FacultySidebar = ({
     };
 
     const navItems = [
-        { id: 'overview', label: 'Dashboard', icon: <FaChartLine /> },
-        { id: 'materials', label: 'Materials', icon: <FaLayerGroup /> },
+        { id: 'overview', label: 'Dashboard', icon: <FaThLarge /> },
+        { id: 'analytics', label: 'Analytics', icon: <FaChartLine /> },
+        { id: 'materials', label: 'Materials', icon: <FaBook /> },
         { id: 'assignments', label: 'Assignments', icon: <FaClipboardList /> },
         { id: 'marks', label: 'Marks', icon: <FaPencilAlt /> },
         { id: 'attendance', label: 'Attendance', icon: <FaUserCheck /> },
         { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
-        { id: 'schedule', label: 'Schedule', icon: <FaBolt /> },
+        { id: 'schedule', label: 'Schedule', icon: <FaCalendarAlt /> },
         { id: 'students', label: 'Students', icon: <FaUserGraduate /> },
         { id: 'curriculum', label: 'Curriculum', icon: <FaLayerGroup /> },
         { id: 'broadcast', label: 'Announcements', icon: <FaBullhorn /> },
         { id: 'messages', label: 'Messages', icon: <FaEnvelope /> },
-        { id: 'settings', label: 'Settings', icon: <FaGraduationCap /> }
+        { id: 'settings', label: 'Settings', icon: <FaCog /> }
     ];
 
     return (

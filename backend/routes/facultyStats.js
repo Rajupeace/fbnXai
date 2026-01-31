@@ -81,7 +81,12 @@ router.get('/:facultyId/materials-downloads', requireAuthMongo, async (req, res)
             return res.status(503).json({ error: 'MongoDB not connected. Material stats unavailable.' });
         }
 
-        materials = await Material.find({ uploaderId: facultyId });
+        const faculty = await Faculty.findOne({ facultyId });
+        if (!faculty) {
+            return res.json([]);
+        }
+
+        materials = await Material.find({ uploadedBy: faculty._id });
 
         const result = materials.map(m => ({
             id: m.id || m._id,

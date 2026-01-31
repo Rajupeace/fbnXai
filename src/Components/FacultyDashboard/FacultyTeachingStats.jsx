@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '../../utils/apiClient';
-import { FaChalkboardTeacher, FaUserGraduate, FaBookOpen } from 'react-icons/fa';
+import { FaChalkboardTeacher, FaUserGraduate, FaBookOpen, FaUsers, FaThLarge, FaBookmark, FaCalendarAlt, FaSatellite } from 'react-icons/fa';
 
 const FacultyTeachingStats = ({ facultyId }) => {
     const [stats, setStats] = useState({
@@ -11,67 +11,40 @@ const FacultyTeachingStats = ({ facultyId }) => {
     });
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchTeachingStats();
-        const interval = setInterval(fetchTeachingStats, 15000); // Auto-refresh every 15s
-        return () => clearInterval(interval);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [facultyId]);
-
-    const fetchTeachingStats = async () => {
-        setLoading(true);
+    const fetchTeachingStats = useCallback(async () => {
         try {
-            // Fetch faculty's teaching assignments
             const facultyData = await apiGet(`/api/faculty/${facultyId}`);
             const assignments = facultyData.assignments || [];
-
-            // Fetch all students
             const allStudents = await apiGet('/api/students');
 
-            // Calculate statistics
             const studentsBySubject = {};
             const studentsBySection = {};
             let totalStudents = new Set();
 
             assignments.forEach(assignment => {
-                // Normalize assignment fields (some data uses numbers/strings/case variants)
-                const year = String(assignment.year || assignment.y || '').trim();
-                const section = String((assignment.section || assignment.sec || '')).trim().toUpperCase();
+                const year = String(assignment.year || '').trim();
+                const section = String((assignment.section || '')).trim().toUpperCase();
                 const subject = assignment.subject || assignment.name || 'Unknown';
 
-                // Find students matching this assignment (normalize student fields too)
                 const matchingStudents = allStudents.filter(student =>
                     String(student.year).trim() === year &&
                     String((student.section || '')).trim().toUpperCase() === section
                 );
 
-                // Track by subject
                 if (!studentsBySubject[subject]) {
-                    studentsBySubject[subject] = {
-                        subject,
-                        year,
-                        section,
-                        count: 0,
-                        students: []
-                    };
+                    studentsBySubject[subject] = { subject, year, section, count: 0 };
                 }
                 studentsBySubject[subject].count += matchingStudents.length;
-                studentsBySubject[subject].students.push(...matchingStudents);
 
-                // Track by section
-                const sectionKey = `Year ${year} - Section ${section}`;
+                const sectionKey = `Year ${year}-Section ${section}`;
                 if (!studentsBySection[sectionKey]) {
-                    studentsBySection[sectionKey] = {
-                        year,
-                        section,
-                        count: 0,
-                        subjects: []
-                    };
+                    studentsBySection[sectionKey] = { year, section, count: 0, subjects: [] };
                 }
                 studentsBySection[sectionKey].count += matchingStudents.length;
-                studentsBySection[sectionKey].subjects.push(subject);
+                if (!studentsBySection[sectionKey].subjects.includes(subject)) {
+                    studentsBySection[sectionKey].subjects.push(subject);
+                }
 
-                // Add to total unique students
                 matchingStudents.forEach(s => totalStudents.add(s.sid));
             });
 
@@ -81,129 +54,123 @@ const FacultyTeachingStats = ({ facultyId }) => {
                 bySection: Object.values(studentsBySection),
                 totalClasses: assignments.length
             });
-
         } catch (error) {
             console.error("Failed to fetch teaching stats", error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [facultyId]);
+
+    useEffect(() => {
+        fetchTeachingStats();
+    }, [fetchTeachingStats]);
 
     if (loading && stats.totalStudents === 0) {
-        return <div className="f-loader-wrap">Loading statistics...</div>;
+        return (
+            <div className="f-node-card f-center-empty">
+                <div className="spinner"></div>
+                <p style={{ marginTop: '1rem', fontWeight: 850 }}>Synchronizing Telemetry...</p>
+            </div>
+        );
     }
 
     return (
-        <div className="f-stats-wrap animate-fade-in">
-            <div className="f-stats-header-row">
-                <h3 className="f-stats-title">
-                    <div className="f-icon-box">
-                        <FaChalkboardTeacher />
+        <div className="operational-overview animate-fade-in">
+            <header className="f-view-header">
+                <div>
+                    <h2>TEACHING <span>OVERVIEW</span></h2>
+                    <p className="nexus-subtitle">Live telemetry of your academic footprint</p>
+                </div>
+            </header>
+
+            <div className="f-stats-grid" style={{ marginBottom: '3rem' }}>
+                <div className="f-stats-card animate-slide-up" style={{ borderLeft: '4px solid #6366f1' }}>
+                    <div className="f-stats-header">
+                        <div>
+                            <div className="f-stats-label" style={{ letterSpacing: '0.05em', fontWeight: 900, color: '#94a3b8' }}>TOTAL STUDENTS</div>
+                            <div className="f-stats-value" style={{ fontSize: '2rem', fontWeight: 950, color: '#1e293b' }}>{stats.totalStudents}</div>
+                        </div>
+                        <div className="f-stats-icon-box" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <FaUsers style={{ fontSize: '1.4rem' }} />
+                        </div>
                     </div>
-                    TEACHING ANALYTICS
-                </h3>
-                <div className="f-tag-badge">
-                    LIVE DATA • AUTO-REFRESH
+                </div>
+
+                <div className="f-stats-card animate-slide-up" style={{ borderLeft: '4px solid #10b981', animationDelay: '0.1s' }}>
+                    <div className="f-stats-header">
+                        <div>
+                            <div className="f-stats-label" style={{ letterSpacing: '0.05em', fontWeight: 900, color: '#94a3b8' }}>SUBJECT NODES</div>
+                            <div className="f-stats-value" style={{ fontSize: '2rem', fontWeight: 950, color: '#1e293b' }}>{stats.bySubject.length}</div>
+                        </div>
+                        <div className="f-stats-icon-box" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <FaBookOpen style={{ fontSize: '1.4rem' }} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="f-stats-card animate-slide-up" style={{ borderLeft: '4px solid #f59e0b', animationDelay: '0.2s' }}>
+                    <div className="f-stats-header">
+                        <div>
+                            <div className="f-stats-label" style={{ letterSpacing: '0.05em', fontWeight: 900, color: '#94a3b8' }}>ACTIVE PIPELINES</div>
+                            <div className="f-stats-value" style={{ fontSize: '2rem', fontWeight: 950, color: '#1e293b' }}>{stats.bySection.length}</div>
+                        </div>
+                        <div className="f-stats-icon-box" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                            <FaThLarge style={{ fontSize: '1.4rem' }} />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Overview Cards with Animations */}
-            <div className="f-stats-overview-grid">
-                <div className="f-stat-overview-card" style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)' }}>
-                    <FaUserGraduate className="bg-icon" />
-                    <FaUserGraduate className="main-icon" />
-                    <div className="val">{stats.totalStudents}</div>
-                    <div className="label">Total Students</div>
-                </div>
-
-                <div className="f-stat-overview-card" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)' }}>
-                    <FaBookOpen className="bg-icon" />
-                    <FaBookOpen className="main-icon" />
-                    <div className="val">{stats.bySubject.length}</div>
-                    <div className="label">Subjects Teaching</div>
-                </div>
-
-                <div className="f-stat-overview-card" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)' }}>
-                    <div className="bg-icon" style={{ fontSize: '6rem' }}>📚</div>
-                    <div className="main-icon">📚</div>
-                    <div className="val">{stats.bySection.length}</div>
-                    <div className="label">Classes Teaching</div>
-                </div>
-            </div>
-
-            {/* Subject-wise Breakdown */}
-            <div style={{ marginBottom: '3rem' }}>
-                <h4 className="f-section-title">
-                    <div className="f-section-bar" style={{ background: 'linear-gradient(to bottom, #6366f1, #a855f7)' }}></div>
-                    Subject Distribution
-                </h4>
-                <div className="f-dist-grid">
-                    {stats.bySubject.map((item, index) => {
-                        const maxStudents = Math.max(...stats.bySubject.map(s => s.count));
-                        const percentage = maxStudents > 0 ? (item.count / maxStudents) * 100 : 0;
-
-                        return (
-                            <div key={index} className="f-dist-card">
-                                <div className="f-dist-header">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+                <div className="f-node-card animate-slide-up" style={{ padding: '2.5rem', animationDelay: '0.3s' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 950, color: '#1e293b', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ background: 'rgba(99, 102, 241, 0.1)', color: 'var(--accent-primary)', padding: '0.5rem', borderRadius: '10px' }}><FaCalendarAlt /></div>
+                        SECTION ANALYSIS
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {stats.bySection.length === 0 ? (
+                            <p style={{ color: '#94a3b8', fontWeight: 850 }}>No section telemetry available.</p>
+                        ) : (
+                            stats.bySection.map((sec, idx) => (
+                                <div key={idx} className="f-modal-list-item" style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f1f5f9' }}>
                                     <div>
-                                        <div className="f-dist-subject">{item.subject}</div>
-                                        <div className="f-dist-meta">
-                                            <span>Year {item.year}</span>
-                                            <span style={{ color: '#cbd5e1' }}>•</span>
-                                            <span>Section {item.section}</span>
-                                        </div>
+                                        <div style={{ fontWeight: 950, color: '#1e293b' }}>Section {sec.section}</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 850, marginTop: '0.2rem' }}>YEAR {sec.year} • {sec.subjects.length} SUBJECTS</div>
                                     </div>
-                                    <div className="f-dist-count">
-                                        {item.count}
-                                        <span>students</span>
+                                    <div style={{ background: 'white', padding: '0.5rem 1rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', fontWeight: 950, fontSize: '0.85rem', color: 'var(--accent-primary)' }}>
+                                        {sec.count} NODES
                                     </div>
                                 </div>
+                            ))
+                        )}
+                    </div>
+                </div>
 
-                                {/* Progress Bar */}
-                                <div className="f-dist-progress-wrap">
-                                    <div className="f-dist-progress" style={{
-                                        width: `${percentage}%`,
-                                        background: 'linear-gradient(90deg, #6366f1, #a855f7)'
-                                    }}></div>
+                <div className="f-node-card animate-slide-up" style={{ padding: '2.5rem', animationDelay: '0.4s' }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 950, color: '#1e293b', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '0.5rem', borderRadius: '10px' }}><FaBookmark /></div>
+                        SUBJECT INVENTORY
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {stats.bySubject.length === 0 ? (
+                            <p style={{ color: '#94a3b8', fontWeight: 850 }}>No subject data recorded.</p>
+                        ) : (
+                            stats.bySubject.map((sub, idx) => (
+                                <div key={idx} className="f-modal-list-item" style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f1f5f9' }}>
+                                    <div>
+                                        <div style={{ fontWeight: 950, color: '#1e293b' }}>{sub.subject}</div>
+                                        <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 850, marginTop: '0.2rem' }}>ACTIVE SUBJECT CLUSTER</div>
+                                    </div>
+                                    <div style={{ background: 'white', padding: '0.5rem 1rem', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', fontWeight: 950, fontSize: '0.85rem', color: '#10b981' }}>
+                                        {sub.count} STUDENTS
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
-                    {stats.bySubject.length === 0 && (
-                        <div className="f-center-empty">
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }}>📚</div>
-                            <div>No teaching assignments yet</div>
-                        </div>
-                    )}
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
-
-            {/* Section Summary Cards */}
-            <div>
-                <h4 className="f-section-title">
-                    <div className="f-section-bar" style={{ background: 'linear-gradient(to bottom, #10b981, #14b8a6)' }}></div>
-                    Section Overview
-                </h4>
-                <div className="f-section-grid">
-                    {stats.bySection.map((item, index) => (
-                        <div key={index} className="f-section-card">
-                            <div className="f-section-header">
-                                Year {item.year} - Section {item.section}
-                            </div>
-                            <div className="f-section-val">
-                                {item.count}
-                            </div>
-                            <div className="f-section-sub">
-                                students enrolled
-                            </div>
-                            <div className="f-section-footer">
-                                {item.subjects.length} subject{item.subjects.length > 1 ? 's' : ''} teaching
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div >
+        </div>
     );
 };
 

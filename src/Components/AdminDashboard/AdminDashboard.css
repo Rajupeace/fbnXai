@@ -124,9 +124,10 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  transition: width 0.4s var(--admin-ease);
+  transition: width 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   z-index: 50;
   flex-shrink: 0;
+  will-change: width;
 }
 
 .admin-sidebar.collapsed {
@@ -539,33 +540,76 @@ body {
   letter-spacing: 0.1em;
 }
 
-/* --- MODALS & OVERLAYS --- */
-
-.admin-modal-overlay {
+/* --- MODAL REFACTOR (Sticky Header/Footer, Scrollable Body) --- */
+.modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.7);
-  /* Darker backdrop */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(8px);
   z-index: 2000;
   display: flex;
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.3s ease-out;
+  padding: 1rem;
+  /* Prevent touching edges on mobile */
 }
 
 .admin-modal-content {
   background: white;
   width: 90%;
-  max-width: 650px;
-  border-radius: 24px;
-  padding: 3rem;
+  max-width: 700px;
+  /* Slightly wider */
+  max-height: 90vh;
+  /* Viewport constrained */
+  border-radius: 20px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: modalSlideUp 0.4s var(--admin-ease-bounce);
-  max-height: 90vh;
+  display: flex;
+  /* Flex layout for sticky header/footer */
+  flex-direction: column;
   overflow-y: auto;
+  /* Restore scroll */
+  overflow-x: hidden;
   position: relative;
 }
+
+/* Modal Parts structure inside JSX needs to align */
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  /* flex-shrink: 0; */
+}
+
+.modal-body {
+  padding: 2rem;
+  /* overflow-y: auto; */
+  /* Remove scroll */
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-modal-actions,
+.modal-footer {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid var(--admin-border);
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  /* flex-shrink: 0; */
+  /* Remove rigid */
+  margin-top: 0 !important;
+}
+
 
 @keyframes modalSlideUp {
   from {
@@ -589,36 +633,41 @@ body {
   font-weight: 800;
   color: var(--admin-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   margin-bottom: 0.5rem;
 }
 
 .admin-form-input {
   width: 100%;
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
   border: 1px solid var(--admin-border);
   background: #f8fafc;
   color: var(--admin-secondary);
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   transition: all 0.2s;
 }
 
 .admin-form-input:focus {
   background: white;
   border-color: var(--admin-primary);
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
   outline: none;
 }
 
-.admin-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--admin-border);
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--admin-text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--admin-danger);
 }
 
 .admin-grid-2 {
@@ -1049,3 +1098,42 @@ body {
 .admin-grid-span-2 {
   grid-column: span 2;
 }
+
+/* --- SENTINEL UI ENHANCEMENTS --- */
+
+@keyframes nodePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+  }
+
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 10px rgba(79, 70, 229, 0);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+  }
+}
+
+.sentinel-node-active {
+  animation: nodePulse 2s infinite;
+}
+
+.sentinel-glass-card {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.sentinel-grid-pattern {
+  background-image:
+    linear-gradient(var(--admin-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--admin-border) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* --- END SENTINEL ADMIN SYSTEM --- */

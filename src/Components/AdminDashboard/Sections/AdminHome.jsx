@@ -3,6 +3,9 @@ import {
     FaUserGraduate, FaChalkboardTeacher, FaBook, FaLayerGroup,
     FaCreditCard, FaRobot, FaCheckCircle, FaExclamationTriangle
 } from 'react-icons/fa';
+import SystemTelemetry from '../SystemTelemetry';
+import SystemIntelligence from '../SystemIntelligence';
+import SystemNodeMap from '../SystemNodeMap';
 import './AdminHome.css';
 
 /**
@@ -41,6 +44,19 @@ const AdminHome = ({
                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </div>
             </header>
+
+            {/* 🛡️ Nexus Oversight: Live Telemetry */}
+            <section className="nexus-oversight animate-slide-up" style={{ animationDelay: '0.2s', marginTop: '2.5rem' }}>
+                <div className="section-header-minimal">
+                    <h3>SYSTEM PULSE <span>LIVE INFRASTRUCTURE</span></h3>
+                </div>
+                <SystemTelemetry />
+                <SystemNodeMap
+                    studentsCount={students.length}
+                    facultyCount={faculty.length}
+                    materialsCount={materials.length}
+                />
+            </section>
 
             <div className="admin-bento-grid">
                 {/* 📊 High Level Stats */}
@@ -154,6 +170,14 @@ const AdminHome = ({
                     </div>
                 </div>
             </div>
+
+            {/* 🧠 Intelligence Layer: Auto-Analytics */}
+            <section className="nexus-oversight animate-slide-up" style={{ animationDelay: '0.8s', marginTop: '4rem' }}>
+                <div className="section-header-minimal">
+                    <h3>NEXUS INTELLIGENCE <span>LEARNING ANALYTICS</span></h3>
+                </div>
+                <SystemIntelligence />
+            </section>
         </div>
     );
 };
