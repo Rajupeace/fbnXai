@@ -233,40 +233,49 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
-    user_msg = req.message or req.prompt
-    if not user_msg: return ChatResponse(response="?")
-    
-    # 1. Fast Patterns (Simple Logic handled by Node layer, but good check here too)
-    
-    # 2. RAG Execution
-    if qa_chain:
-        try:
-            # We inject a persona into the query to keep the style
-            # But RetrievalQA is rigid. We rely on the LLM's system prompt capability if possible, 
-            # Or prepending to the query.
-            
-            # Simple wrapper to enforce style
-            style_instruction = " (Answer concisely as a friendly university assistant in < 50 words)"
-            
-            # Run in thread
-            res = await asyncio.to_thread(qa_chain.invoke, user_msg + style_instruction)
-            answer = res.get('result', "I'm not sure.")
-            
-            return ChatResponse(response=answer)
-        except Exception as e:
-            print(f"[!] RAG Query Error: {e}")
-            # Fallback
-            pass
-            
-    # 3. Fallback (Direct LLM)
-    if llm:
-        try:
-            resp = await llm.ainvoke([HumanMessage(content=user_msg)])
-            return ChatResponse(response=resp.content)
-        except:
-            return ChatResponse(response="System is busy. Please try again.")
-            
-    return ChatResponse(response="AI Service Offline. Please check server logs.")
+    try:
+        user_msg = req.message or req.prompt
+        if not user_msg: 
+            return ChatResponse(response="Please ask me something!")
+        
+        print(f"[CHAT] Received: {user_msg[:50]}...")
+        
+        # 2. Try RAG if available
+        if qa_chain:
+            try:
+                print("[CHAT] Using RAG...")
+                style_instruction = " (Answer concisely as a friendly university assistant in < 50 words)"
+                
+                # Run in executor for sync code
+                loop = asyncio.get_event_loop()
+                res = await loop.run_in_executor(None, qa_chain.invoke, user_msg + style_instruction)
+                answer = res.get('result', "I'm not sure.")
+                
+                print(f"[CHAT] RAG response: {answer[:50]}...")
+                return ChatResponse(response=answer)
+            except Exception as e:
+                print(f"[!] RAG Error: {e}")
+                # Fall through to LLM fallback
+                
+        # 3. Direct LLM fallback
+        if llm:
+            try:
+                print("[CHAT] Using direct LLM...")
+                resp = await llm.ainvoke([HumanMessage(content=user_msg)])
+                answer = resp.content if hasattr(resp, 'content') else str(resp)
+                print(f"[CHAT] LLM response: {answer[:50]}...")
+                return ChatResponse(response=answer)
+            except Exception as e:
+                print(f"[!] LLM Error: {e}")
+                return ChatResponse(response="I'm having trouble connecting right now. Please try again in a moment!")
+                
+        return ChatResponse(response="AI Service is warming up. Please try again in a moment.")
+        
+    except Exception as e:
+        print(f"[X] CRITICAL Chat Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return ChatResponse(response=f"An error occurred. Please check the server logs.")
 
 # --- AUTH (Simplified for performance file) ---
 @app.post("/login")
