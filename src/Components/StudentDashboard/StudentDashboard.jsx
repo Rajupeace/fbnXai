@@ -796,6 +796,8 @@ export default function StudentDashboard({ studentData, onLogout }) {
                     )}
 
 
+
+
                     {view === 'attendance' && (
                         <motion.div
                             key="attendance"

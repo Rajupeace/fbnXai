@@ -3170,6 +3170,11 @@ app.delete('/api/subjects/:id', requireAdmin, async (req, res) => {
 // This block was removed to avoid route conflicts and ensure MongoDB is the single source of truth.
 
 // --------------------------------------------------------------------------------
+// MARKS ROUTES
+// --------------------------------------------------------------------------------
+app.use('/api', require('./routes/marksRoutes'));
+
+// --------------------------------------------------------------------------------
 // ROADMAP ROUTES
 // --------------------------------------------------------------------------------
 app.use('/api/roadmaps', require('./routes/roadmapRoutes'));
