@@ -601,12 +601,62 @@ router.post('/', async (req, res) => {
         }
 
         // 6. ATTENDANCE / NAV (Local Logic) - Run if LLM failed or explicitly handled
-        if (!reply && role === 'faculty' && (userMessage.includes('absent') || userMessage.includes('attendance'))) {
-            // ... (Insert existing attendance logic here) ...
-            // For brevity in this edit, I'm noting to keep logic.
-            const AttendanceModel = require('../models/Attendance');
-            // ... (Logic) ...
-            reply = "Processing attendance request..."; // Placeholder if logic complex, normally full logic.
+        if (!reply && role === 'faculty' && (userMessage.includes('absent') || userMessage.includes('present') || userMessage.includes('attendance'))) {
+            try {
+                const AttendanceModel = require('../models/Attendance');
+                const StudentModel = require('../models/Student');
+
+                // Extract numbers (Student IDs)
+                const absentIds = (userMessage.match(/\d+/g) || []).map(num => String(num));
+
+                if (absentIds.length > 0 || userMessage.toLowerCase().includes('all present')) {
+                    // Infer context (Mocking class context if missing)
+                    const targetYear = context.year || '4';
+                    const targetSec = context.section || 'A';
+                    const targetBranch = context.branch || 'CSE';
+                    const targetSubject = (context.subject || 'Project');
+
+                    const students = await StudentModel.find({
+                        year: Number(targetYear),
+                        section: targetSec,
+                        branch: targetBranch
+                    });
+
+                    if (students.length > 0) {
+                        const dateStr = new Date().toISOString().split('T')[0];
+                        const ops = students.map(stu => {
+                            const isAbsent = absentIds.some(id => String(stu.sid).endsWith(id));
+                            return {
+                                updateOne: {
+                                    filter: { date: dateStr, studentId: stu.sid, subject: targetSubject },
+                                    update: {
+                                        $set: {
+                                            status: isAbsent ? 'Absent' : 'Present',
+                                            studentName: stu.studentName,
+                                            year: String(targetYear),
+                                            branch: targetBranch,
+                                            section: targetSec,
+                                            facultyId: userId,
+                                            facultyName: context.name || 'Faculty',
+                                            subject: targetSubject,
+                                            markedAt: new Date()
+                                        }
+                                    },
+                                    upsert: true
+                                }
+                            };
+                        });
+
+                        await AttendanceModel.bulkWrite(ops);
+                        reply = `✅ **Attendance Recorded Successfully!**\n\n- **Class:** ${targetBranch} - ${targetYear}${targetSec}\n- **Absent:** ${absentIds.length > 0 ? absentIds.join(', ') : 'None'}\n- **Present:** ${students.length - absentIds.length}`;
+                    } else {
+                        reply = "I couldn't find any students for your current class context.";
+                    }
+                }
+            } catch (attErr) {
+                console.error("Attendance Error:", attErr);
+                reply = "I tried to process attendance but encountered a database error.";
+            }
         }
 
         // 7. FALLBACK SEARCh
