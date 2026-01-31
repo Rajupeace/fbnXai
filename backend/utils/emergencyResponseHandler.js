@@ -36,10 +36,10 @@ class EmergencyResponseHandler {
     // Get emergency response - ALWAYS returns something
     getEmergencyResponse(message, context = {}) {
         const now = Date.now();
-        this.lastResponse = { timestamp: now, message };
+        this.lastResponse = { timestamp: now, message: message || '' };
         
         // Check cache first
-        const cacheKey = message.toLowerCase().trim();
+        const cacheKey = (message || '').toLowerCase().trim();
         if (this.responseCache.has(cacheKey)) {
             const cached = this.responseCache.get(cacheKey);
             console.log('⚡ Emergency cache hit');
@@ -53,7 +53,7 @@ class EmergencyResponseHandler {
         }
 
         // Get emergency fast response
-        const emergencyResponse = this.emergencyFastResponse.getUltraFastResponse(message, context);
+        const emergencyResponse = this.emergencyFastResponse.getUltraFastResponse(message || '', context);
         
         // Cache the response
         this.responseCache.set(cacheKey, emergencyResponse);

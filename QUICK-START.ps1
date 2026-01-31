@@ -49,8 +49,27 @@ try {
     exit 1
 }
 
-# STEP 3: Start Frontend
-Write-Host "`nSTEP 3/3: Starting Frontend..." -ForegroundColor Yellow
+# STEP 3: Start AI Agent (Python)
+Write-Host "`nSTEP 3/4: Starting AI Agent..." -ForegroundColor Yellow
+Start-Job -Name "AIAgent" -ScriptBlock {
+    cd $using:PWD/backend/ai_agent
+    python main.py 2>&1 | Out-Null
+} | Out-Null
+
+# Wait for AI Agent
+Write-Host "  Waiting for AI Agent..." -NoNewline
+for ($i=0; $i -lt 15; $i++) {
+    Start-Sleep -Seconds 1
+    $check = netstat -ano | Select-String ":8000.*LISTENING"
+    if ($check) {
+        Write-Host " ✓" -ForegroundColor Green
+        break
+    }
+    Write-Host "." -NoNewline -ForegroundColor Gray
+}
+
+# STEP 4: Start Frontend
+Write-Host "`nSTEP 4/4: Starting Frontend..." -ForegroundColor Yellow
 Start-Job -Name "Frontend" -ScriptBlock {
     cd $using:PWD
     $env:BROWSER = "none"
@@ -68,6 +87,7 @@ Write-Host @"
 📍 ACCESS URLS:
    🌐 Frontend:  http://localhost:3000 (wait ~60s)
    ⚙️  Backend:   http://localhost:5000 ✓ READY
+   🤖 AI Agent:  http://localhost:8000 ✓ READY
 
 ⚡ ULTRA-FAST RESPONSE: Active
    Backend responds in ~200ms
@@ -85,10 +105,12 @@ try {
     while ($true) {
         Start-Sleep -Seconds 10
         $backend = netstat -ano | Select-String ":5000.*LISTENING"
+        $agent = netstat -ano | Select-String ":8000.*LISTENING"
         $frontend = netstat -ano | Select-String ":3000.*LISTENING"
         
         $status = ""
         if ($backend) { $status += "✓ Backend " } else { $status += "✗ Backend " }
+        if ($agent) { $status += "✓ Agent " } else { $status += "✗ Agent " }
         if ($frontend) { $status += "✓ Frontend" } else { $status += "⏳ Frontend" }
         
         Write-Host "[$(Get-Date -Format 'HH:mm:ss')] $status" -ForegroundColor Cyan

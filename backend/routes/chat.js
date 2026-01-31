@@ -569,11 +569,11 @@ router.post('/', async (req, res) => {
             reply = await generateLeetCodeSolution(userMessage, role, context);
         }
 
-        // 4. PYTHON AGENT CHECK (Timeout Reduced to 3s)
+        // 4. PYTHON AGENT CHECK (Timeout Reduced to 500ms - ULTRA FAST FALLBACK)
         if (!reply) {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s max wait
+                const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms max - if Python agent not ready, skip it
                 const response = await fetch('http://localhost:8000/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -588,9 +588,14 @@ router.post('/', async (req, res) => {
                 clearTimeout(timeoutId);
                 if (response.ok) {
                     const pythonData = await response.json();
-                    if (pythonData?.response) reply = pythonData.response;
+                    if (pythonData?.response) {
+                        reply = pythonData.response;
+                        console.log('[VuAiAgent] Python Agent responded');
+                    }
                 }
-            } catch (err) { /* ignore python offline */ }
+            } catch (err) {
+                console.log('[VuAiAgent] Python Agent skipped (offline or slow)');
+            }
         }
 
         // 5. CLOUD LLM (Main Intelligence)
