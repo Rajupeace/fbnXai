@@ -37,19 +37,29 @@ export async function apiGet(path) {
 }
 
 export async function apiPost(path, body) {
-    const res = await fetch(`${API_URL.replace(/\/$/, '')}${path}`, {
-        method: 'POST',
-        headers: { ...headersJson, ...getAuthHeaders() },
-        body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-        const err = new Error(data.details || data.error || `POST ${path} failed: ${res.status}`);
-        err.status = res.status;
-        err.details = data;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s frontend timeout
+
+    try {
+        const res = await fetch(`${API_URL.replace(/\/$/, '')}${path}`, {
+            method: 'POST',
+            headers: { ...headersJson, ...getAuthHeaders() },
+            body: JSON.stringify(body),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            const err = new Error(data.details || data.error || `POST ${path} failed: ${res.status}`);
+            err.status = res.status;
+            err.details = data;
+            throw err;
+        }
+        return data;
+    } catch (err) {
+        clearTimeout(timeoutId);
         throw err;
     }
-    return data;
 }
 
 export async function apiPut(path, body) {

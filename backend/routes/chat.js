@@ -480,6 +480,16 @@ router.get('/history', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
+    // Force timeout for the entire request after 15 seconds
+    const globalTimeout = setTimeout(() => {
+        if (!res.headersSent) {
+            console.log('[VuAiAgent] Global Request Timeout triggered');
+            res.status(504).json({ error: 'Request timeout. Please try again.' });
+        }
+    }, 15000);
+
+    res.on('finish', () => clearTimeout(globalTimeout));
+    res.on('close', () => clearTimeout(globalTimeout));
 
     // START TIMING
     const startTime = Date.now();
@@ -599,6 +609,7 @@ router.post('/', async (req, res) => {
         }
 
         // 5. CLOUD LLM (Main Intelligence)
+        console.log('[VuAiAgent] Attempting Cloud LLM...');
         if (!reply && (process.env.OPENAI_API_KEY || process.env.GOOGLE_API_KEY)) {
             try {
                 // Construct prompts (omitted detailed strings for brevity, reusing logic)
@@ -618,6 +629,10 @@ router.post('/', async (req, res) => {
 
                 if (process.env.OPENAI_API_KEY) {
                     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+                    // Add AbortController for OpenAI fetch (reusing the one from Python check or new)
+                    const aiController = new AbortController();
+                    const aiTimeoutId = setTimeout(() => aiController.abort(), 8000); // 8s max for LLM
+
                     const completion = await openai.chat.completions.create({
                         messages: [
                             { role: "system", content: systemContext },
@@ -627,15 +642,26 @@ router.post('/', async (req, res) => {
                         model: "gpt-4o-mini",
                         max_tokens: 500,
                         temperature: 0.7
-                    });
+                    }, { signal: aiController.signal });
+                    clearTimeout(aiTimeoutId);
                     reply = completion.choices[0].message.content;
                 } else if (!reply && process.env.GOOGLE_API_KEY) {
                     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
                     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-                    const result = await model.generateContent(`${systemContext}\n${studentContext}\nUser: ${userMessage}`);
+
+                    // Google AI doesn't support signal in generateContent easily in older versions, 
+                    // so we use Promise.race
+                    const generatePromise = model.generateContent(`${systemContext}\n${studentContext}\nUser: ${userMessage}`);
+                    const result = await Promise.race([
+                        generatePromise,
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Google AI Timeout')), 8000))
+                    ]);
                     reply = result.response.text();
                 }
-            } catch (e) { console.error("LLM Error:", e.message); }
+            } catch (e) {
+                console.error("LLM Error Hub:", e.message);
+                // Don't set reply here, let fallback handle it
+            }
         }
 
         // 6. ATTENDANCE / NAV (Local Logic) - Run if LLM failed or explicitly handled
