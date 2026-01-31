@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaPaperPlane, FaRobot, FaRegCopy, FaCheck } from 'react-icons/fa';
+import { FaPaperPlane, FaRobot, FaRegCopy, FaCheck, FaRegFileAlt } from 'react-icons/fa';
 import { apiPost, apiGet } from '../../utils/apiClient';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './VuAiAgent.css';
 import { FaSyncAlt } from 'react-icons/fa';
 
-const VuAiAgent = ({ onNavigate, initialMessage }) => {
+const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
     const defaultBotMessage = {
         id: 'vuai-greeting',
         sender: 'bot',
@@ -192,7 +192,11 @@ const VuAiAgent = ({ onNavigate, initialMessage }) => {
             user_id: userProfile.userId || 'guest',
             message: userText,
             role: userProfile.role || 'student',
-            user_name: (userProfile.context && userProfile.context.name) || 'User'
+            user_name: (userProfile.context && userProfile.context.name) || 'User',
+            context: {
+                ...(userProfile.context || {}),
+                document: documentContext
+            }
         };
 
         const MAX_RETRIES = 3;
@@ -320,6 +324,17 @@ const VuAiAgent = ({ onNavigate, initialMessage }) => {
                     </div>
                 </div>
             </header>
+
+            {/* Document Context Banner */}
+            {documentContext && (
+                <div style={{
+                    background: '#eff6ff', borderBottom: '1px solid #dbeafe', padding: '0.5rem 1rem',
+                    fontSize: '0.8rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}>
+                    <FaRegFileAlt />
+                    <span>Analyzing: <strong>{documentContext.title || 'Document'}</strong></span>
+                </div>
+            )}
 
             {/* Messages Area */}
             <div className="vu-messages">

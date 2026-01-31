@@ -82,6 +82,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
     // Modals & UI Flags
     const [showAiModal, setShowAiModal] = useState(false);
     const [aiInitialPrompt, setAiInitialPrompt] = useState('');
+    const [aiDocumentContext, setAiDocumentContext] = useState(null);
     const [isNavigating, setIsNavigating] = useState(false);
     const [navTarget, setNavTarget] = useState('');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -92,6 +93,12 @@ export default function StudentDashboard({ studentData, onLogout }) {
     const openAiWithPrompt = (prompt) => {
         setAiInitialPrompt(prompt);
         setShowAiModal(true);
+    };
+
+    const openAiWithDoc = (title, url) => {
+        setAiDocumentContext({ title, url });
+        setAiInitialPrompt(`I have questions about this document: ${title}`);
+        setView('ai-agent');
     };
 
     const toggleAiModal = () => {
@@ -746,6 +753,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                                 branch={userData.branch}
                                 assignedFaculty={assignedFaculty}
                                 onRefresh={fetchData}
+                                openAiWithDoc={openAiWithDoc}
                             />
                         </motion.div>
                     )}
@@ -948,7 +956,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             style={{ padding: '0 2rem', height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}
                         >
                             <div style={{ flex: 1, height: '100%', paddingBottom: '2rem', position: 'relative', zIndex: 10 }}>
-                                <VuAiAgent onNavigate={handleAiNavigate} initialMessage={aiInitialPrompt} />
+                                <VuAiAgent onNavigate={handleAiNavigate} initialMessage={aiInitialPrompt} documentContext={aiDocumentContext} />
                             </div>
                         </motion.div>
                     )}

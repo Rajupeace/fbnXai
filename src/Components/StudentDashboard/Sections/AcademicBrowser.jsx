@@ -7,7 +7,7 @@ import { apiPost } from '../../../utils/apiClient';
  * PREMIUM NEXUS ACADEMIC BROWSER
  * A high-end, multi-level file browser experience for educational content.
  */
-const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, setView, branch, onRefresh, assignedFaculty = [] }) => {
+const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, setView, branch, onRefresh, assignedFaculty = [], openAiWithDoc }) => {
     const [navPath, setNavPath] = useState([]);
 
     const currentViewData = useMemo(() => {
@@ -338,7 +338,10 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                     </div>
                                     <div className="res-actions">
                                         <a href={n.url} target="_blank" rel="noreferrer" className="dl-btn"><FaDownload /></a>
-                                        <button className="ai-ask-btn" onClick={() => setView('ai-assistant')}>ASK AI</button>
+                                        <button className="ai-ask-btn" onClick={() => {
+                                            if (openAiWithDoc) openAiWithDoc(n.name || n.title, n.url);
+                                            else setView('ai-assistant');
+                                        }}>ASK AI</button>
                                     </div>
                                 </div>
                             ))}

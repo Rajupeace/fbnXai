@@ -590,7 +590,12 @@ Key Approach:
                 }
 
                 // Enhanced student context for better personalization
-                const studentContext = `Student Profile: Name ${context.name || 'Student'}, Year ${context.year || 'N/A'}, Branch ${context.branch || 'Engineering'}.\n\nConversation Tips:\n- Address the student by name occasionally\n- Reference their year/branch when relevant\n- Adapt explanations to their academic level\n- Be encouraging and supportive\n- Ask questions to understand their specific needs better`;
+                let studentContext = `Student Profile: Name ${context.name || 'Student'}, Year ${context.year || 'N/A'}, Branch ${context.branch || 'Engineering'}.\n\nConversation Tips:\n- Address the student by name occasionally\n- Reference their year/branch when relevant\n- Adapt explanations to their academic level\n- Be encouraging and supportive\n- Ask questions to understand their specific needs better`;
+
+                // Add document context if available
+                if (context && context.document) {
+                    studentContext += `\n\n**ACTIVE DOCUMENT CONTEXT**\nThe student is currently viewing: "${context.document.title}"\nURL: ${context.document.url}\n\nINSTRUCTION: The user is asking questions about this specific document. If the URL is accessible to you, use its content. If not, ask the student to copy relevant parts. Assume their questions are related to this document unless specified otherwise.`;
+                }
 
                 if (process.env.OPENAI_API_KEY) {
                     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
