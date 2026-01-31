@@ -626,6 +626,111 @@ Key Approach:
             }
         }
 
+        // 2. Special Action Handling (Attendance & Navigation)
+
+        // Faculty Attendance Automation
+        if (role === 'faculty') {
+            const lowerMsg = userMessage.toLowerCase();
+            // Pattern: "submit absent 501 502" or "take attendance absent 12, 14"
+            if ((lowerMsg.includes('attendance') || lowerMsg.includes('submit') || lowerMsg.includes('record')) &&
+                (lowerMsg.includes('absent') || lowerMsg.includes('present'))) {
+
+                try {
+                    const AttendanceModel = require('../models/Attendance');
+                    const StudentModel = require('../models/Student');
+
+                    // Extract numbers (Student IDs)
+                    const absentIds = (userMessage.match(/\d+/g) || []).map(num => String(num));
+
+                    // In a real scenario, we'd need exact Year/Sec. 
+                    // For this intelligent agent, we'll infer from context or default to their primary class.
+                    // For safety, we only process if we found numbers or explicit 'all present'
+                    if (absentIds.length > 0 || lowerMsg.includes('all present')) {
+                        console.log(`[VuAiAgent] Processing Attendance Command. Absent: ${absentIds.join(', ')}`);
+
+                        // Infer context (Mocking class context if missing, assuming Faculty context has it)
+                        const targetYear = context.year || '4';
+                        const targetSec = context.section || 'A';
+                        const targetBranch = context.branch || 'CSE';
+                        const targetSubject = (context.subject || 'Project'); // Default if not set
+
+                        // Fetch all students for this class
+                        const students = await StudentModel.find({
+                            year: Number(targetYear),
+                            section: targetSec,
+                            branch: targetBranch
+                        });
+
+                        if (students.length > 0) {
+                            const dateStr = new Date().toISOString().split('T')[0];
+                            const ops = students.map(stu => {
+                                // Simple logic: if ID is in the absent list (substring match usually safe for last digits), mark absent
+                                // e.g., if user says "501", match student ID ending in "501"
+                                const isAbsent = absentIds.some(id => String(stu.sid).endsWith(id));
+                                return {
+                                    updateOne: {
+                                        filter: {
+                                            date: dateStr,
+                                            studentId: stu.sid,
+                                            subject: targetSubject
+                                        },
+                                        update: {
+                                            $set: {
+                                                status: isAbsent ? 'Absent' : 'Present',
+                                                studentName: stu.studentName,
+                                                year: String(targetYear),
+                                                branch: targetBranch,
+                                                section: targetSec,
+                                                facultyId: userId,
+                                                facultyName: context.name || 'Faculty',
+                                                subject: targetSubject,
+                                                markedAt: new Date()
+                                            }
+                                        },
+                                        upsert: true
+                                    }
+                                };
+                            });
+
+                            await AttendanceModel.bulkWrite(ops);
+
+                            reply = `✅ **Attendance Recorded Successfully!**\n\n- **Class:** ${targetBranch} - ${targetYear}${targetSec}\n- **Subject:** ${targetSubject}\n- **Date:** ${dateStr}\n- **Absent:** ${absentIds.length > 0 ? absentIds.join(', ') : 'None'}\n- **Present:** ${students.length - absentIds.length}\n\nI've updated the database. Anything else?`;
+                        } else {
+                            reply = "I couldn't find any students for your current assigned class context. Please ensure your profile has a valid class assignment.";
+                        }
+                    }
+                } catch (attErr) {
+                    console.error("Attendance Automation Error:", attErr);
+                    reply = "I tried to process the attendance but encountered a database error. Please try standard manual entry.";
+                }
+            }
+        }
+
+        // Student Navigation & Specific Section Knowledge
+        if (role === 'student' && !reply) {
+            const lowerMsg = userMessage.toLowerCase();
+            // Simple intent mapping for navigation
+            const navMap = {
+                'exam': 'exams', 'schedule': 'schedule', 'timetable': 'schedule',
+                'mark': 'marks', 'result': 'marks', 'grade': 'marks',
+                'note': 'semester', 'material': 'semester', 'unit': 'semester',
+                'fee': 'fees', 'payment': 'fees',
+                'profile': 'settings', 'setting': 'settings',
+                'announce': 'announcements', 'news': 'announcements',
+                'roadmap': 'roadmaps', 'career': 'roadmaps',
+                'placement': 'placement', 'job': 'placement',
+                'task': 'tasks', 'todo': 'tasks',
+                'dashboard': 'overview', 'home': 'overview'
+            };
+
+            for (const [key, section] of Object.entries(navMap)) {
+                if (lowerMsg.includes(key) && (lowerMsg.includes('go') || lowerMsg.includes('open') || lowerMsg.includes('show') || lowerMsg.includes('navigate'))) {
+                    reply = `Sure! requesting navigation to ${key}... {{NAVIGATE: ${section}}}`;
+                    break;
+                }
+            }
+        }
+
         // 2. Fallback: Use role-specific knowledge base ONLY if LLMs failed
         if (!reply) {
             console.log('[VuAiAgent] LLMs failed, falling back to local knowledge base.');
