@@ -309,6 +309,26 @@ class SelfLearningAgent {
         }
     }
 
+    // Fast response path (no DB calls) — returns a concise immediate reply
+    generateFastResponse(query, category) {
+        try {
+            if (!query || typeof query !== 'string') return 'Quick answer: Could you rephrase that?';
+
+            // Prefer the first sentence or a short excerpt
+            const firstSentence = (query.split(/(?<=[.?!])\s+/) || [query])[0];
+            const excerpt = firstSentence.length > 200 ? firstSentence.slice(0, 197) + '...' : firstSentence;
+
+            let prefix = 'Quick answer:';
+            if (category) {
+                prefix += ` (${category})`;
+            }
+
+            return `${prefix} ${excerpt}`;
+        } catch (err) {
+            return 'Quick answer: Sorry, I could not produce a fast response.';
+        }
+    }
+
     // Extract keywords from query
     extractKeywords(query) {
         // Simple keyword extraction - can be enhanced with NLP

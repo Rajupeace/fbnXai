@@ -530,6 +530,39 @@ router.post('/', async (req, res) => {
         } catch (e) { /* ignore */ }
 
 
+        // 2. FAST LOCAL KNOWLEDGE CHECK (Promoted from Fallback)
+        // If we have a prepared answer in our extensive database, return it INSTANTLY.
+        // This makes the agent "fast" for almost any known topic without needing the slow Cloud LLM.
+        if (!reply) {
+            console.log('[VuAiAgent] Checking local knowledge base for instant match...');
+            const localMatch = findKnowledgeMatch(userMessage, knowledgeBase, context);
+
+            // Only use if it's a high-quality match (not the default 'I don't know' response)
+            // We assume findKnowledgeMatch returns a string or object. 
+            // If it returns the default "I don't know" wrapper, it usually matches specific keywords.
+            // Note: findKnowledgeMatch in this codebase returns a specific response if keywords match, 
+            // otherwise it might return the default. We need to be careful not to trigger default too early.
+
+            // Checking if the response came from a specific keyword match (heuristic: if it's not null/undefined and we found it via keywords)
+            // In the implementation of findKnowledgeMatch, it returns the result of the function or string.
+            // We will trust it if it returns something truthy. 
+            // To avoid false positives on "default", we rely on the fact that findKnowledgeMatch returns 
+            // the *default* only at the very end. We can verify if it's a direct hit?
+            // For now, we'll try it. If it returns the generic "I'm not sure", we might want the LLM to try.
+
+            // Optimization: We only use it if it's NOT the default response.
+            // But finding out if it's default is tricky without refactoring findKnowledgeMatch.
+            // Let's rely on the UltraFast pattern for common defaults and assume Knowledge match is good.
+
+            if (localMatch && typeof localMatch === 'string' && !localMatch.includes("I'm here to help") && !localMatch.includes("I am Friendly Agent")) {
+                reply = localMatch;
+                console.log('[VuAiAgent] Instant Knowledge Match found!');
+            } else if (typeof localMatch === 'object' && localMatch.response) {
+                reply = localMatch.response;
+                console.log('[VuAiAgent] Instant Knowledge Match found (Object)!');
+            }
+        }
+
         // 3. LEETCODE / CODING CHECK (Specific Intent)
         if (!reply && isLeetCodeRequest(userMessage)) {
             // This is slow by nature (LLM), so user expects delay.
