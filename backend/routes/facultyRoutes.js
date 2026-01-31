@@ -36,24 +36,24 @@ router.post('/', async (req, res) => {
     try {
         let { facultyId, name, email, password, department, designation, phone, assignments } = req.body;
 
-            // Defensive: normalize facultyId/name
-            facultyId = facultyId && String(facultyId).trim();
-            name = name && String(name).trim();
+        // Defensive: normalize facultyId/name
+        facultyId = facultyId && String(facultyId).trim();
+        name = name && String(name).trim();
 
-            // If email is missing, generate a default to avoid create failures from incomplete forms
-            if (!email || !String(email).trim()) {
-                if (facultyId) {
-                    email = `${facultyId}@example.com`;
-                    console.warn('[Faculty Create] email missing — auto-generated:', email);
-                } else {
-                    // facultyId also missing — reject with clear message
-                    return res.status(400).json({ error: 'Please provide required fields: facultyId, name, and password' });
-                }
-            }
-
-            if (!facultyId || !name || !password) {
+        // If email is missing, generate a default to avoid create failures from incomplete forms
+        if (!email || !String(email).trim()) {
+            if (facultyId) {
+                email = `${facultyId}@example.com`;
+                console.warn('[Faculty Create] email missing — auto-generated:', email);
+            } else {
+                // facultyId also missing — reject with clear message
                 return res.status(400).json({ error: 'Please provide required fields: facultyId, name, and password' });
             }
+        }
+
+        if (!facultyId || !name || !password) {
+            return res.status(400).json({ error: 'Please provide required fields: facultyId, name, and password' });
+        }
 
         const existing = await Faculty.findOne({ $or: [{ facultyId }, { email }] });
         if (existing) {
@@ -284,6 +284,62 @@ router.delete('/:id', async (req, res) => {
         res.json({ message: 'Faculty deleted successfully' });
     } catch (err) {
         console.error('Error deleting faculty:', err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// @route   POST /api/faculty/login
+// @desc    Auth faculty & get token
+router.post('/login', async (req, res) => {
+    try {
+        const { facultyId, password } = req.body;
+
+        if (!facultyId || !password) {
+            return res.status(400).json({ error: 'Please provide ID and password' });
+        }
+
+        // Check for faculty
+        const faculty = await Faculty.findOne({ facultyId });
+        if (!faculty) {
+            return res.status(400).json({ error: 'Invalid Faculty ID' });
+        }
+
+        // Validate password
+        const isMatch = await bcrypt.compare(password, faculty.password);
+        if (!isMatch) {
+            return res.status(400).json({ error: 'Invalid Credentials' });
+        }
+
+        // Create token
+        const payload = {
+            id: faculty._id,
+            facultyId: faculty.facultyId,
+            name: faculty.name,
+            role: 'faculty'
+        };
+
+        const token = jwt.sign(
+            payload,
+            process.env.JWT_SECRET || 'your_jwt_secret',
+            { expiresIn: '30d' }
+        );
+
+        res.json({
+            success: true,
+            token: token,
+            facultyData: {
+                id: faculty._id,
+                facultyId: faculty.facultyId,
+                name: faculty.name,
+                email: faculty.email,
+                department: faculty.department,
+                designation: faculty.designation,
+                assignments: faculty.assignments
+            }
+        });
+
+    } catch (err) {
+        console.error('Faculty login error:', err);
         res.status(500).json({ error: 'Server error' });
     }
 });

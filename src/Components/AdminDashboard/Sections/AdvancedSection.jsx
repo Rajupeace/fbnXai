@@ -42,10 +42,10 @@ const AdvancedSection = ({ topics, materials, openModal }) => {
                             </div>
 
                             <div style={{ marginTop: '2rem', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                                <button className="admin-btn admin-btn-outline" onClick={() => openModal('syllabus-view', { name: topic, isAdvanced: true })} style={{ padding: '0.6rem 1.25rem', fontSize: '0.7rem' }}>
+                                <button className="admin-btn admin-btn-outline" onClick={() => openModal('syllabus-view', { name: topic, isAdvanced: true })}>
                                     <FaEye /> VIEW
                                 </button>
-                                <button className="admin-btn admin-btn-primary" onClick={() => openModal('material', { subject: topic, isAdvanced: true })} style={{ padding: '0.6rem 1.25rem', fontSize: '0.7rem' }}>
+                                <button className="admin-btn admin-btn-primary" onClick={() => openModal('material', { subject: topic, isAdvanced: true })}>
                                     <FaPlus /> ADD
                                 </button>
                             </div>

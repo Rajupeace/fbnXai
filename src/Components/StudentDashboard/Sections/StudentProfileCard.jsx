@@ -1,5 +1,6 @@
 import React from 'react';
 import { FaUserCircle, FaIdBadge, FaUniversity, FaLayerGroup, FaPen } from 'react-icons/fa';
+import './StudentProfileCard.css';
 
 /**
  * Student Profile Card
@@ -10,13 +11,19 @@ const StudentProfileCard = ({ userData, setShowProfilePhotoModal, setView }) => 
         <div className="profile-card">
             <div className="profile-avatar-container" onClick={() => setView('settings')}>
                 <div className="profile-avatar">
-                    {userData.profilePic ? (
+                    {userData?.profilePic ? (
                         <img
-                            src={userData.profilePic.startsWith('data:') || userData.profilePic.startsWith('http') ? userData.profilePic : `http://localhost:5000${userData.profilePic.startsWith('/') ? '' : '/'}${userData.profilePic}`}
+                            src={userData.profilePic.startsWith('data:') || userData.profilePic.startsWith('http')
+                                ? userData.profilePic
+                                : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${userData.profilePic.startsWith('/') ? '' : '/'}${userData.profilePic}`}
                             alt="Profile"
-                            onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.studentName || 'Student'}`; }}
+                            onError={(e) => {
+                                console.warn("Profile image load failed, falling back to avatar.");
+                                e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.studentName || 'Student'}`;
+                            }}
+                            className="profile-img"
                         />
-                    ) : userData.avatar ? (
+                    ) : userData?.avatar ? (
                         <img src={userData.avatar.includes('http') ? userData.avatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.avatar}`} alt="Avatar" />
                     ) : (
                         <div className="profile-avatar-fallback">
@@ -28,21 +35,21 @@ const StudentProfileCard = ({ userData, setShowProfilePhotoModal, setView }) => 
             </div>
 
             <div className="profile-info">
-                <h3>{userData.studentName || 'Student'}</h3>
+                <h3>{userData?.studentName || 'Vignan Student'}</h3>
                 <div className="profile-id">
-                    <FaIdBadge /> {userData.sid ? userData.sid.toUpperCase() : 'ID'}
+                    <FaIdBadge /> {userData?.sid ? userData.sid.toUpperCase() : 'ID'}
                 </div>
             </div>
 
             <div className="profile-info-grid">
                 <div className="nexus-info-pill">
                     <span className="pill-label">BRANCH</span>
-                    <span className="pill-value">{userData.branch || 'General'}</span>
+                    <span className="pill-value">{userData?.branch || 'General'}</span>
                     <FaUniversity className="pill-icon" />
                 </div>
                 <div className="nexus-info-pill">
                     <span className="pill-label">YEAR</span>
-                    <span className="pill-value">Year {userData.year || '1'}</span>
+                    <span className="pill-value">Year {userData?.year || '1'}</span>
                     <FaLayerGroup className="pill-icon" />
                 </div>
             </div>

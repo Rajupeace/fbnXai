@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     FaPlus, FaBook, FaEdit, FaTrash,
     FaThLarge, FaColumns, FaChartPie, FaListUl,
-    FaSearch, FaCheckCircle, FaExclamationCircle, FaUserGraduate, FaFileUpload
+    FaSearch, FaCheckCircle, FaExclamationCircle, FaUserGraduate, FaFileUpload, FaRobot
 } from 'react-icons/fa';
 import { getYearData } from '../../StudentDashboard/branchData';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
  * Unified Academic Hub
  * Combines Courses (Syllabus), Sections (Telemetry), and Semester Subjects (Management).
  */
-const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCourse, initialSection, onSectionChange }) => {
+const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCourse, initialSection, onSectionChange, openAiWithPrompt }) => {
     // Core Hub State
     const [hubView, setHubView] = useState('syllabus'); // 'syllabus', 'sections', 'management'
 
@@ -72,34 +72,36 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
         const semesters = Array.from({ length: 2 }, (_, i) => (year - 1) * 2 + i + 1);
 
         return (
-            <div key={year} className="hub-year-block">
-                {gridMode === 'all-years' && <h3 className="hub-year-title">YEAR {year}</h3>}
-                <div className="hub-sem-grid">
+            <React.Fragment key={year}>
+                <div className="hub-year-title" style={{ marginTop: '2.5rem', marginBottom: '1.5rem', fontSize: '1.8rem', fontWeight: 800, color: 'var(--admin-secondary)', borderLeft: '6px solid var(--admin-primary)', paddingLeft: '1rem' }}>
+                    {gridMode === 'all-years' && <h3>YEAR {year}</h3>}
+                </div>
+                <div className="hub-sem-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
                     {semesters.map(sem => {
                         const semCourses = allCourses.filter(c => String(c.semester) === String(sem));
                         return (
                             <div key={sem} className="admin-card hub-sem-card">
-                                <div className="hub-sem-header">
-                                    <span className="hub-sem-badge">SEMESTER {sem}</span>
-                                    <button className="hub-add-btn" onClick={() => openModal('course', { year, semester: sem, branch: selectedBranchFilter, section: selectedSectionFilter })}>
+                                <div className="hub-sem-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid var(--admin-border)' }}>
+                                    <span className="admin-badge primary">SEMESTER {sem}</span>
+                                    <button className="admin-btn admin-btn-outline" style={{ padding: '0.4rem 0.8rem', height: 'auto', fontSize: '0.8rem' }} onClick={() => openModal('course', { year, semester: sem, branch: selectedBranchFilter, section: selectedSectionFilter })}>
                                         <FaPlus /> ADD
                                     </button>
                                 </div>
-                                <div className="hub-subjects-list">
+                                <div className="hub-subjects-list" style={{ display: 'grid', gap: '1rem' }}>
                                     {semCourses.map(c => {
                                         return (
-                                            <div key={c.id || c.code} className={`hub-subject-item ${c.isStatic ? 'static' : ''}`}>
+                                            <div key={c.id || c.code} className="admin-list-item" style={c.isStatic ? { borderStyle: 'dashed', background: 'white' } : {}}>
                                                 <div className="hub-subject-info">
-                                                    <span className="hub-subject-code">{c.code}</span>
-                                                    <h4 className="hub-subject-name">{c.name}</h4>
-                                                    <div className="hub-subject-meta">
+                                                    <span className="admin-badge accent" style={{ fontSize: '0.65rem' }}>{c.code}</span>
+                                                    <h4 style={{ margin: '0.5rem 0', fontSize: '0.95rem', fontWeight: 700, color: 'var(--admin-secondary)' }}>{c.name}</h4>
+                                                    <div className="hub-subject-meta" style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 600 }}>
                                                         <span>{c.branch || 'Common'}</span> • <span>Sec {c.section || 'All'}</span>
                                                     </div>
                                                 </div>
-                                                <div className="hub-subject-actions">
-                                                    <button onClick={() => openModal('material', { subject: c.name, year: c.year, semester: c.semester, branch: c.branch || selectedBranchFilter })} className="hub-icon-btn upload" title="Upload Resources"><FaFileUpload /></button>
-                                                    <button onClick={() => openModal('course', c)} className="hub-icon-btn" title="Edit Subject"><FaEdit /></button>
-                                                    <button onClick={() => handleDeleteCourse(c)} className="hub-icon-btn delete" title="Delete Subject"><FaTrash /></button>
+                                                <div className="hub-subject-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+                                                    <button onClick={() => openModal('material', { subject: c.name, year: c.year, semester: c.semester, branch: c.branch || selectedBranchFilter })} className="admin-action-btn" title="Upload Resources"><FaFileUpload /></button>
+                                                    <button onClick={() => openModal('course', c)} className="admin-action-btn secondary" title="Edit Subject"><FaEdit /></button>
+                                                    <button onClick={() => handleDeleteCourse(c)} className="admin-action-btn danger" title="Delete Subject"><FaTrash /></button>
                                                 </div>
                                             </div>
                                         );
@@ -109,12 +111,30 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                         );
                     })}
                 </div>
-            </div>
+            </React.Fragment>
         );
     };
 
     const renderSectionsAnalytics = () => (
         <div className="hub-sections-analytics animate-slide-up">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h3 style={{ margin: 0, color: 'var(--admin-secondary)', fontSize: '1.2rem', fontWeight: 900 }}>SECTION TELEMETRY</h3>
+                <button
+                    className="admin-btn admin-btn-primary"
+                    style={{ gap: '0.75rem', background: 'var(--admin-primary)', boxShadow: '0 4px 15px rgba(79, 70, 229, 0.3)' }}
+                    onClick={() => {
+                        const activeSections = SECTION_OPTIONS.filter(sec =>
+                            ['A', 'B', 'C', 'D'].includes(sec) ||
+                            students.some(s => s.section === sec) ||
+                            courses.some(c => c.section === sec)
+                        );
+                        const prompt = `Can you provide a detailed academic performance and resource allocation report for the following active sections: ${activeSections.join(', ')}? Analyze student distribution (Total: ${students.length}) and subject coverage.`;
+                        openAiWithPrompt(prompt);
+                    }}
+                >
+                    <FaRobot /> AI PERFORMANCE REPORT
+                </button>
+            </div>
             <div className="section-stats-grid">
                 {SECTION_OPTIONS.filter(sec =>
                     ['A', 'B', 'C', 'D'].includes(sec) ||
@@ -124,10 +144,10 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                     const sCount = students.filter(s => s.section === sec).length;
                     const cCount = courses.filter(c => c.section === sec || c.section === 'All').length;
                     return (
-                        <div key={sec} className="section-card" onClick={() => { setHubView('management'); setActiveYearTab(1); setSearchTerm(`Sec ${sec}`); }}>
-                            <div className="label">SECTION {sec}</div>
-                            <div className="count">{sec}</div>
-                            <div className="stats-row">
+                        <div key={sec} className="admin-card hover-effect" onClick={() => { setHubView('management'); setActiveYearTab(1); setSearchTerm(`Sec ${sec}`); }} style={{ cursor: 'pointer', textAlign: 'center' }}>
+                            <div className="label" style={{ fontWeight: 800, color: 'var(--admin-text-muted)', fontSize: '0.75rem', letterSpacing: '0.05em' }}>SECTION</div>
+                            <div className="count" style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--admin-secondary)', margin: '0.5rem 0' }}>{sec}</div>
+                            <div className="stats-row" style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '1rem', color: 'var(--admin-primary)', fontSize: '0.85rem', fontWeight: 700 }}>
                                 <span title="Students"><FaUserGraduate /> {sCount}</span>
                                 <span title="Subjects"><FaBook /> {cCount}</span>
                             </div>
@@ -171,23 +191,23 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                                 {filtered.map(c => (
                                     <tr key={c.id}>
                                         <td>
-                                            <div style={{ fontWeight: 950 }}>{c.name}</div>
-                                            <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{c.branch || 'Common'}</div>
+                                            <div style={{ fontWeight: 700 }}>{c.name}</div>
+                                            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{c.branch || 'Common'}</div>
                                         </td>
                                         <td><span className="admin-badge primary">{c.code}</span></td>
                                         <td>Y{c.year} • S{c.semester}</td>
                                         <td><span className="admin-badge accent">SEC {c.section || 'All'}</span></td>
                                         <td>
                                             {materials.some(m => m.subject === c.name) ?
-                                                <span style={{ color: '#10b981', fontWeight: 800 }}><FaCheckCircle /> READY</span> :
-                                                <span style={{ color: '#94a3b8' }}><FaExclamationCircle /> EMPTY</span>
+                                                <span style={{ color: 'var(--admin-success)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}><FaCheckCircle /> READY</span> :
+                                                <span style={{ color: 'var(--admin-text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><FaExclamationCircle /> EMPTY</span>
                                             }
                                         </td>
                                         <td>
-                                            <div className="hub-table-actions">
-                                                <button onClick={() => openModal('material', { subject: c.name, year: c.year, semester: c.semester, branch: c.branch })} className="hub-icon-btn upload" title="Upload Resources"><FaFileUpload /></button>
-                                                <button onClick={() => openModal('course', c)} className="hub-icon-btn"><FaEdit /></button>
-                                                <button onClick={() => handleDeleteCourse(c._id || c.id)} className="hub-icon-btn delete"><FaTrash /></button>
+                                            <div className="hub-table-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button onClick={() => openModal('material', { subject: c.name, year: c.year, semester: c.semester, branch: c.branch })} className="admin-action-btn" title="Upload Resources"><FaFileUpload /></button>
+                                                <button onClick={() => openModal('course', c)} className="admin-action-btn secondary"><FaEdit /></button>
+                                                <button onClick={() => handleDeleteCourse(c._id || c.id)} className="admin-action-btn danger"><FaTrash /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -201,67 +221,59 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
     };
 
     return (
-        <div className="academic-hub-v2">
-            <header className="hub-main-header">
-                <div className="hub-title-section">
+        <div className="academic-hub-v2 animate-fade-in">
+            <header className="admin-page-header">
+                <div className="admin-page-title">
                     <h1>ACADEMIC <span>HUB</span></h1>
-                    <p>Manage curriculum, section analysis, and subject assignments from a single interface.</p>
+                    <p>Manage curriculum, section analysis, and subject assignments.</p>
                 </div>
 
-                <div className="hub-nav-controls">
-                    <div className="hub-view-switcher">
-                        <motion.button
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={hubView === 'syllabus' ? 'active' : ''}
+                <div className="hub-nav-controls" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="admin-segmented-control">
+                        <button
+                            className={`admin-segment-btn ${hubView === 'syllabus' ? 'active' : ''}`}
                             onClick={() => setHubView('syllabus')}
                         >
                             <FaColumns /> SYLLABUS
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={hubView === 'sections' ? 'active' : ''}
+                        </button>
+                        <button
+                            className={`admin-segment-btn ${hubView === 'sections' ? 'active' : ''}`}
                             onClick={() => setHubView('sections')}
                         >
                             <FaChartPie /> ANALYSIS
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                            className={hubView === 'management' ? 'active' : ''}
+                        </button>
+                        <button
+                            className={`admin-segment-btn ${hubView === 'management' ? 'active' : ''}`}
                             onClick={() => setHubView('management')}
                         >
                             <FaListUl /> SUBJECTS
-                        </motion.button>
-                    </div>
-
-                    <div className="hub-filter-strip">
-                        <select value={selectedBranchFilter} onChange={e => setSelectedBranchFilter(e.target.value)}>
-                            <option value="All">All Branches</option>
-                            {['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil', 'IT', 'AIML'].map(b => <option key={b} value={b}>{b}</option>)}
-                        </select>
-                        <select value={selectedSectionFilter} onChange={e => handleSectionChangeInternal(e.target.value)}>
-                            <option value="All">All Sections</option>
-                            {SECTION_OPTIONS.map(s => <option key={s} value={s}>Sec {s}</option>)}
-                        </select>
-                        {hubView === 'management' && (
-                            <div className="hub-search">
-                                <FaSearch />
-                                <input placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                            </div>
-                        )}
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="admin-btn admin-btn-primary hub-global-add"
-                            onClick={() => openModal('course')}
-                        >
-                            <FaPlus /> ADD SUBJECT
-                        </motion.button>
+                        </button>
                     </div>
                 </div>
             </header>
+
+            <div className="admin-filter-bar">
+                <select className="admin-filter-select" value={selectedBranchFilter} onChange={e => setSelectedBranchFilter(e.target.value)}>
+                    <option value="All">All Branches</option>
+                    {['CSE', 'ECE', 'EEE', 'Mechanical', 'Civil', 'IT', 'AIML'].map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+                <select className="admin-filter-select" value={selectedSectionFilter} onChange={e => handleSectionChangeInternal(e.target.value)}>
+                    <option value="All">All Sections</option>
+                    {SECTION_OPTIONS.map(s => <option key={s} value={s}>Sec {s}</option>)}
+                </select>
+                {hubView === 'management' && (
+                    <div className="admin-search-wrapper" style={{ flex: 1 }}>
+                        <FaSearch className="search-icon" />
+                        <input className="admin-search-input" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                    </div>
+                )}
+                <button
+                    className="admin-btn admin-btn-primary"
+                    onClick={() => openModal('course')}
+                >
+                    <FaPlus /> ADD SUBJECT
+                </button>
+            </div>
 
             <AnimatePresence mode="wait">
                 <motion.div
@@ -274,14 +286,14 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                 >
                     {hubView === 'syllabus' && (
                         <div className="hub-syllabus-wrap">
-                            <div className="hub-sub-nav">
+                            <div className="admin-tabs">
                                 {[1, 2, 3, 4].map(y => (
-                                    <button key={y} className={activeYearTab === y ? 'active' : ''} onClick={() => setActiveYearTab(y)}>
+                                    <button key={y} className={`admin-tab ${activeYearTab === y ? 'active' : ''}`} onClick={() => setActiveYearTab(y)}>
                                         YEAR {y}
                                     </button>
                                 ))}
-                                <div className="spacer" />
-                                <button className={`mode-toggle ${gridMode === 'all-years' ? 'active' : ''}`} onClick={() => setGridMode(gridMode === 'tabs' ? 'all-years' : 'tabs')}>
+                                <div className="spacer" style={{ flex: 1 }} />
+                                <button className="admin-btn admin-btn-outline" style={{ height: 'auto', padding: '0.5rem 1rem' }} onClick={() => setGridMode(gridMode === 'tabs' ? 'all-years' : 'tabs')}>
                                     <FaThLarge /> {gridMode === 'tabs' ? 'SHOW ALL YEARS' : 'SHOW TABS'}
                                 </button>
                             </div>
@@ -293,263 +305,6 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                     {hubView === 'management' && renderManagementTable()}
                 </motion.div>
             </AnimatePresence>
-
-            <style jsx>{`
-                .academic-hub-v2 {
-                    width: 100%;
-                }
-                .hub-main-header {
-                    margin-bottom: 2.5rem;
-                }
-                .hub-title-section h1 {
-                    font-size: 2.4rem;
-                    font-weight: 950;
-                    margin: 0;
-                    letter-spacing: -1px;
-                }
-                .hub-title-section h1 span {
-                    color: var(--admin-primary);
-                    opacity: 0.8;
-                }
-                .hub-title-section p {
-                    color: var(--admin-text-muted);
-                    font-weight: 850;
-                    margin: 0.5rem 0 0;
-                }
-                .hub-nav-controls {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-top: 2rem;
-                    gap: 1.5rem;
-                    background: white;
-                    padding: 1rem;
-                    border-radius: 20px;
-                    border: 1px solid var(--admin-border);
-                }
-                .hub-view-switcher {
-                    display: flex;
-                    background: #f1f5f9;
-                    padding: 0.4rem;
-                    border-radius: 14px;
-                    gap: 0.4rem;
-                }
-                .hub-view-switcher button {
-                    border: none;
-                    background: transparent;
-                    padding: 0.6rem 1.2rem;
-                    border-radius: 10px;
-                    font-weight: 900;
-                    font-size: 0.75rem;
-                    color: #94a3b8;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    transition: all 0.2s;
-                }
-                .hub-view-switcher button.active {
-                    background: white;
-                    color: var(--admin-primary);
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                }
-                .hub-filter-strip {
-                    display: flex;
-                    gap: 0.75rem;
-                    align-items: center;
-                }
-                .hub-filter-strip select {
-                    padding: 0.6rem 1rem;
-                    border-radius: 12px;
-                    border: 1px solid #e2e8f0;
-                    font-weight: 850;
-                    font-size: 0.8rem;
-                    color: var(--admin-secondary);
-                    outline: none;
-                }
-                .hub-search {
-                    position: relative;
-                    display: flex;
-                    align-items: center;
-                }
-                .hub-search input {
-                    padding: 0.6rem 1rem 0.6rem 2.5rem;
-                    border-radius: 12px;
-                    border: 1px solid #e2e8f0;
-                    font-weight: 850;
-                    width: 200px;
-                }
-                .hub-search svg {
-                    position: absolute;
-                    left: 1rem;
-                    color: #94a3b8;
-                }
-
-                .hub-sub-nav {
-                    display: flex;
-                    gap: 0.5rem;
-                    margin-bottom: 2rem;
-                    border-bottom: 2px solid #f1f5f9;
-                    padding-bottom: 0.5rem;
-                }
-                .hub-sub-nav button {
-                    background: transparent;
-                    border: none;
-                    padding: 0.8rem 1.5rem;
-                    font-weight: 950;
-                    color: #94a3b8;
-                    cursor: pointer;
-                    border-bottom: 3px solid transparent;
-                    transition: all 0.2s;
-                }
-                .hub-sub-nav button.active {
-                    color: var(--admin-secondary);
-                    border-bottom-color: var(--admin-primary);
-                }
-                .hub-sub-nav .mode-toggle {
-                    font-size: 0.7rem;
-                    background: #f8fafc;
-                    border-radius: 10px;
-                    border: 1px solid #e2e8f0;
-                    margin-left: auto;
-                }
-
-                .hub-year-title {
-                    margin: 4rem 0 2rem;
-                    font-size: 1.8rem;
-                    font-weight: 950;
-                    color: var(--admin-secondary);
-                    border-left: 6px solid var(--admin-primary);
-                    padding-left: 1rem;
-                }
-                .hub-sem-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-                    gap: 2rem;
-                    margin-bottom: 3rem;
-                }
-                .hub-sem-card {
-                    padding: 1.5rem;
-                    background: white;
-                }
-                .hub-sem-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 1.5rem;
-                    padding-bottom: 1rem;
-                    border-bottom: 1px solid #f1f5f9;
-                }
-                .hub-sem-badge {
-                    background: var(--admin-primary);
-                    color: white;
-                    padding: 0.4rem 1rem;
-                    border-radius: 8px;
-                    font-weight: 950;
-                    font-size: 0.8rem;
-                }
-                .hub-add-btn {
-                    background: transparent;
-                    border: 1px dashed var(--admin-primary);
-                    color: var(--admin-primary);
-                    padding: 0.4rem 0.8rem;
-                    border-radius: 8px;
-                    font-weight: 850;
-                    cursor: pointer;
-                }
-
-                .hub-subjects-list {
-                    display: grid;
-                    gap: 1rem;
-                }
-                .hub-subject-item {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 1rem;
-                    border-radius: 12px;
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
-                }
-                .hub-subject-item.static {
-                    background: #fff;
-                    border-style: dashed;
-                    opacity: 0.8;
-                }
-                .hub-subject-code {
-                    font-size: 0.65rem;
-                    font-weight: 950;
-                    color: var(--admin-primary);
-                    background: rgba(99,102,241,0.1);
-                    padding: 0.2rem 0.5rem;
-                    border-radius: 4px;
-                }
-                .hub-subject-name {
-                    margin: 0.3rem 0;
-                    font-size: 0.95rem;
-                    font-weight: 900;
-                    color: var(--admin-secondary);
-                }
-                .hub-subject-meta {
-                    font-size: 0.7rem;
-                    font-weight: 850;
-                    color: #94a3b8;
-                }
-                .hub-subject-actions {
-                    display: flex;
-                    gap: 0.4rem;
-                }
-                .hub-icon-btn {
-                    width: 32px;
-                    height: 32px;
-                    border-radius: 8px;
-                    border: 1px solid #e2e8f0;
-                    background: white;
-                    color: #64748b;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-                .hub-icon-btn:hover {
-                    color: var(--admin-primary);
-                    border-color: var(--admin-primary);
-                }
-                .hub-icon-btn.delete:hover {
-                    color: #ef4444;
-                    border-color: #ef4444;
-                }
-
-                .section-card {
-                    cursor: pointer;
-                    transition: all 0.3s;
-                }
-                .section-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-                    border-color: var(--admin-primary);
-                }
-                .stats-row {
-                    display: flex;
-                    justify-content: center;
-                    gap: 1rem;
-                    margin-top: 1rem;
-                    color: var(--admin-primary);
-                    font-size: 0.75rem;
-                    font-weight: 950;
-                }
-
-                @media (max-width: 768px) {
-                    .hub-nav-controls {
-                        flex-direction: column;
-                        align-items: stretch;
-                    }
-                    .hub-sem-grid {
-                        grid-template-columns: 1fr;
-                    }
-                }
-            `}</style>
         </div>
     );
 };

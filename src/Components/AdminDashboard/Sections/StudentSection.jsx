@@ -7,12 +7,12 @@ import { FaPlus, FaFileUpload, FaSearch, FaEye, FaEdit, FaTrash, FaUserGraduate,
  * Student Management
  * Comprehensive student registry and controls.
  */
-const StudentSection = ({ students, openModal, handleDeleteStudent }) => {
+const StudentSection = ({ students = [], openModal, handleDeleteStudent }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
-    const filteredStudents = students.filter(s =>
-        s.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.sid?.toLowerCase().includes(searchTerm.toLowerCase())
+    const filteredStudents = (students || []).filter(s =>
+        (s.studentName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.sid || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -22,14 +22,14 @@ const StudentSection = ({ students, openModal, handleDeleteStudent }) => {
                     <h1>STUDENT <span>REGISTRY</span></h1>
                     <p>Total Students: {students.length}</p>
                 </div>
-                <div className="admin-action-bar" style={{ margin: 0 }}>
+                <div className="admin-action-bar compact" style={{ margin: 0, padding: '0.5rem 1.5rem' }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('student')}>
                         <FaPlus /> ADD NEW STUDENT
                     </button>
                     <button className="admin-btn admin-btn-outline" onClick={() => openModal('bulk-student')}>
                         <FaFileUpload /> BATCH UPLOAD
                     </button>
-                    <div className="admin-search-wrapper" style={{ width: '300px' }}>
+                    <div className="admin-search-wrapper" style={{ width: 'auto', minWidth: '300px', margin: 0 }}>
                         <FaSearch />
                         <input
                             className="admin-search-input"
@@ -65,10 +65,10 @@ const StudentSection = ({ students, openModal, handleDeleteStudent }) => {
                                     >
                                         <td>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <div className="summary-icon-box" style={{ width: '32px', height: '32px', fontSize: '0.8rem', background: '#f8fafc' }}>
-                                                    <FaUserGraduate />
+                                                <div className="summary-icon-box" style={{ width: '36px', height: '36px', minWidth: '36px', fontSize: '0.9rem', background: '#f1f5f9', borderRadius: '10px' }}>
+                                                    <FaUserGraduate style={{ color: 'var(--admin-secondary)' }} />
                                                 </div>
-                                                <span style={{ fontWeight: 600 }}>{s.studentName}</span>
+                                                <span style={{ fontWeight: 600, color: 'var(--admin-secondary)' }}>{s.studentName}</span>
                                             </div>
                                         </td>
                                         <td><span className="admin-badge primary">{s.sid}</span></td>
@@ -77,10 +77,10 @@ const StudentSection = ({ students, openModal, handleDeleteStudent }) => {
                                         <td>SEC {s.section || '---'}</td>
                                         <td>
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: 'var(--admin-primary)' }} title="View Profile" onClick={() => openModal('student-view', s)}><FaEye /></motion.button>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: '#f5f3ff', color: '#8b5cf6' }} title="View Curriculum" onClick={() => openModal('student-curriculum', s)}><FaBook /></motion.button>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: 'var(--admin-secondary)' }} title="Edit" onClick={() => openModal('student', s)}><FaEdit /></motion.button>
-                                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete" onClick={() => handleDeleteStudent(s.sid)}><FaTrash /></motion.button>
+                                                <button className="admin-action-btn" title="View Profile" onClick={() => openModal('student-view', s)}><FaEye /></button>
+                                                <button className="admin-action-btn secondary" title="View Curriculum" onClick={() => openModal('student-curriculum', s)}><FaBook /></button>
+                                                <button className="admin-action-btn secondary" title="Edit" onClick={() => openModal('student', s)}><FaEdit /></button>
+                                                <button className="admin-action-btn danger" title="Delete" onClick={() => handleDeleteStudent(s.sid)}><FaTrash /></button>
                                             </div>
                                         </td>
                                     </motion.tr>

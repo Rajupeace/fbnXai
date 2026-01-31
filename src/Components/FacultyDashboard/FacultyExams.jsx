@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaTrash, FaClipboardList, FaArrowLeft, FaShieldAlt, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaClipboardList, FaArrowLeft, FaShieldAlt, FaEdit, FaFilter } from 'react-icons/fa';
+import './FacultyDashboard.css';
 import { apiPost, apiGet, apiDelete, apiPut } from '../../utils/apiClient';
 
 /**
@@ -11,11 +12,12 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
     const [loading, setLoading] = useState(false);
     const [showCreate, setShowCreate] = useState(false);
     const [editId, setEditId] = useState(null);
+    const [selectedSectionFilter, setSelectedSectionFilter] = useState('All');
 
     const [formData, setFormData] = useState({
         title: '', topic: '', week: 'Week 1',
         durationMinutes: 20, totalMarks: 10,
-        section: '', branch: branch || 'CSE',
+        section: sections && sections.length > 0 ? sections[0] : '', branch: branch || 'CSE',
         questions: []
     });
 
@@ -312,38 +314,54 @@ const FacultyExams = ({ subject, year, sections, facultyId, branch }) => {
                     </button>
                 </div>
             ) : (
-                <div className="f-exam-grid">
-                    {exams.map(exam => (
-                        <div key={exam._id} className="f-exam-card animate-slide-up">
-                            <div style={{ position: 'absolute', top: '2rem', right: '2rem', display: 'flex', gap: '0.5rem' }}>
-                                <button onClick={() => handleEditExam(exam)} className="f-node-btn" title="Edit" style={{ color: '#3b82f6' }}><FaEdit /></button>
-                                <button onClick={() => handleDeleteExam(exam._id)} className="f-node-btn delete" title="Delete"><FaTrash /></button>
-                            </div>
-                            <div className="f-exam-topic">{exam.topic || 'General Knowledge'}</div>
-                            <h3 style={{ fontSize: '1.3rem', fontWeight: 950, color: '#1e293b', margin: '0 0 0.5rem' }}>{exam.title}</h3>
-                            <div className="f-meta-badge type">{exam.week}</div>
-
-                            <div className="f-exam-stats">
-                                <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Questions:</span>
-                                    <span className="f-exam-stat-value">{exam.questions.length}</span>
-                                </div>
-                                <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Duration:</span>
-                                    <span className="f-exam-stat-value">{exam.durationMinutes} Minutes</span>
-                                </div>
-                                <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Total Marks:</span>
-                                    <span className="f-exam-stat-value">{exam.totalMarks || exam.questions.length}</span>
-                                </div>
-                                <div className="f-exam-stat-row">
-                                    <span className="f-exam-stat-label">Section:</span>
-                                    <span className="f-exam-stat-value">{exam.section ? `SECTION ${exam.section}` : 'GLOBAL'}</span>
-                                </div>
+                <>
+                    <div className="section-filter-bar" style={{ marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                            <FaFilter style={{ color: '#6366f1' }} />
+                            <div className="section-buttons">
+                                <button className={`section-btn ${selectedSectionFilter === 'All' ? 'active' : ''}`} onClick={() => setSelectedSectionFilter('All')}>ALL EXAMS</button>
+                                {sections && sections.map((sec, idx) => (
+                                    <button key={idx} className={`section-btn ${selectedSectionFilter === sec ? 'active' : ''}`} onClick={() => setSelectedSectionFilter(sec)}>
+                                        SEC {sec}
+                                    </button>
+                                ))}
                             </div>
                         </div>
-                    ))}
-                </div>
+                    </div>
+
+                    <div className="f-exam-grid">
+                        {exams.filter(exam => selectedSectionFilter === 'All' || exam.section === selectedSectionFilter).map(exam => (
+                            <div key={exam._id} className="f-exam-card animate-slide-up">
+                                <div style={{ position: 'absolute', top: '2rem', right: '2rem', display: 'flex', gap: '0.5rem' }}>
+                                    <button onClick={() => handleEditExam(exam)} className="f-node-btn" title="Edit" style={{ color: '#3b82f6' }}><FaEdit /></button>
+                                    <button onClick={() => handleDeleteExam(exam._id)} className="f-node-btn delete" title="Delete"><FaTrash /></button>
+                                </div>
+                                <div className="f-exam-topic">{exam.topic || 'General Knowledge'}</div>
+                                <h3 style={{ fontSize: '1.3rem', fontWeight: 950, color: '#1e293b', margin: '0 0 0.5rem' }}>{exam.title}</h3>
+                                <div className="f-meta-badge type">{exam.week}</div>
+
+                                <div className="f-exam-stats">
+                                    <div className="f-exam-stat-row">
+                                        <span className="f-exam-stat-label">Questions:</span>
+                                        <span className="f-exam-stat-value">{exam.questions.length}</span>
+                                    </div>
+                                    <div className="f-exam-stat-row">
+                                        <span className="f-exam-stat-label">Duration:</span>
+                                        <span className="f-exam-stat-value">{exam.durationMinutes} Minutes</span>
+                                    </div>
+                                    <div className="f-exam-stat-row">
+                                        <span className="f-exam-stat-label">Total Marks:</span>
+                                        <span className="f-exam-stat-value">{exam.totalMarks || exam.questions.length}</span>
+                                    </div>
+                                    <div className="f-exam-stat-row">
+                                        <span className="f-exam-stat-label">Section:</span>
+                                        <span className="f-exam-stat-value">{exam.section ? `SECTION ${exam.section}` : 'GLOBAL'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );

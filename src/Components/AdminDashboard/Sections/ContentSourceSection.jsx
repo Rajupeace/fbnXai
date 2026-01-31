@@ -52,7 +52,7 @@ const ContentSourceSection = ({ contentSource, getFileUrl }) => {
 
                                                     <div className="admin-list-container" style={{ gap: '0.6rem' }}>
                                                         {chapter.files.map(file => (
-                                                            <div key={file.name} className="admin-todo-item" style={{ padding: '0.75rem 1rem' }}>
+                                                            <div key={file.name} className="admin-list-item">
                                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, overflow: 'hidden' }}>
                                                                     <FaFileAlt style={{ color: 'var(--admin-primary)', flexShrink: 0 }} />
                                                                     <div style={{ overflow: 'hidden' }}>
@@ -62,10 +62,10 @@ const ContentSourceSection = ({ contentSource, getFileUrl }) => {
                                                                 </div>
 
                                                                 <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                                                    <a href={getFileUrl(file.url)} target="_blank" rel="noreferrer" className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View">
+                                                                    <a href={getFileUrl(file.url)} target="_blank" rel="noreferrer" className="admin-action-btn" title="View">
                                                                         <FaEye size={12} />
                                                                     </a>
-                                                                    <a href={getFileUrl(file.url)} download className="f-exam-card" style={{ padding: '0.5rem', background: 'var(--admin-primary)', color: 'white' }} title="Download">
+                                                                    <a href={getFileUrl(file.url)} download className="admin-action-btn" style={{ background: 'var(--admin-primary)', color: 'white', borderColor: 'var(--admin-primary)' }} title="Download">
                                                                         <FaDownload size={12} />
                                                                     </a>
                                                                 </div>

@@ -2,13 +2,11 @@ import React from 'react';
 import {
     FaGraduationCap, FaEnvelope, FaSignOutAlt,
     FaLayerGroup, FaBolt, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt, FaUserGraduate,
-    FaRobot, FaClipboardList, FaPencilAlt
+    FaRobot, FaClipboardList, FaPencilAlt, FaTimes
 } from 'react-icons/fa';
-import '../../StudentDashboard/StudentDashboard.css';
 
 /**
  * PREMIUM NEXUS SIDEBAR (FACULTY)
- * Collapsible sidebar for faculty command.
  */
 const FacultySidebar = ({
     facultyData,
@@ -16,19 +14,14 @@ const FacultySidebar = ({
     setView,
     collapsed,
     setCollapsed,
-    onLogout
+    onLogout,
+    onNavigate
 }) => {
+    facultyData = facultyData || { facultyName: 'Faculty', department: 'Academic' };
 
-    const localHandleLogout = (e) => {
-        e.preventDefault();
-        if (window.confirm('Terminate faculty session and logout?')) {
-            if (onLogout) {
-                onLogout();
-            } else {
-                localStorage.clear();
-                window.location.reload();
-            }
-        }
+    const handleItemClick = (id) => {
+        setView(id);
+        if (onNavigate) onNavigate();
     };
 
     const navItems = [
@@ -43,25 +36,22 @@ const FacultySidebar = ({
         { id: 'curriculum', label: 'Curriculum', icon: <FaLayerGroup /> },
         { id: 'broadcast', label: 'Announcements', icon: <FaBullhorn /> },
         { id: 'messages', label: 'Messages', icon: <FaEnvelope /> },
-        { id: 'ai-agent', label: 'AI Assistant', icon: <FaRobot /> },
         { id: 'settings', label: 'Settings', icon: <FaGraduationCap /> }
     ];
 
     return (
         <aside className={`nexus-sidebar ${collapsed ? 'collapsed' : ''}`}>
+            <button className="mobile-close-btn" onClick={onNavigate}><FaTimes /></button>
+
             <div className="sidebar-header">
-                <div
-                    className="brand-toggle"
-                    onClick={() => setCollapsed(!collapsed)}
-                    title={collapsed ? "Expand" : "Collapse"}
-                >
+                <div className="brand-box" onClick={() => setCollapsed(!collapsed)}>
                     <div className="brand-icon-box">
                         <FaGraduationCap />
                     </div>
                     {!collapsed && (
-                        <div className="brand-text fade-in">
-                            <h1>Friendly Notebook</h1>
-                            <span>Faculty Dashboard</span>
+                        <div className="brand-text">
+                            <h1>FACULTY</h1>
+                            <span>SENTINEL NODE</span>
                         </div>
                     )}
                 </div>
@@ -71,28 +61,33 @@ const FacultySidebar = ({
                 {navItems.map(item => (
                     <button
                         key={item.id}
-                        onClick={() => setView(item.id)}
+                        onClick={() => handleItemClick(item.id)}
                         className={`nav-item ${view === item.id ? 'active' : ''}`}
                         title={collapsed ? item.label : ''}
                     >
                         <span className="nav-icon">{item.icon}</span>
-                        {!collapsed && <span className="nav-label fade-in">{item.label}</span>}
-                        {view === item.id && <div className="active-indicator"></div>}
+                        {!collapsed && <span className="nav-label">{item.label}</span>}
+                        {view === item.id && <div className="active-dot"></div>}
                     </button>
                 ))}
             </nav>
 
             <div className="sidebar-footer">
                 {!collapsed && (
-                    <div className="user-profile-mini fade-in">
-                        <div className="u-name">{facultyData.name}</div>
+                    <div className="user-profile-mini">
+                        <div className="u-name">{(facultyData.facultyName || 'Faculty')}</div>
                         <div className="u-meta">{facultyData.department || 'ACADEMIC'}</div>
                     </div>
                 )}
-
-                <button onClick={localHandleLogout} className="logout-btn" title="Logout">
+                <button
+                    onClick={() => {
+                        if (window.confirm('Terminate faculty session?')) onLogout();
+                    }}
+                    className="logout-btn"
+                    title="Logout"
+                >
                     <FaSignOutAlt />
-                    {!collapsed && <span className="fade-in">LOGOUT</span>}
+                    {!collapsed && <span>LOGOUT</span>}
                 </button>
             </div>
         </aside>

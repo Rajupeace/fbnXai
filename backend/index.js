@@ -13,7 +13,7 @@ const dbFile = require('./dbHelper');
 const { v4: uuidv4 } = require('uuid');
 const mongoose = require('mongoose');
 const multer = require('multer');
-const connectDB = require('./config/db');
+const { connectDB, connectDBWithMonitoring, disconnectDB } = require('./config/database');
 const jwt = require('jsonwebtoken');
 
 // Import Mongoose Models
@@ -310,6 +310,7 @@ app.delete('/api/todos/:id', async (req, res) => {
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const scheduleRoutes = require('./routes/scheduleRoutes');
 const chatRoutes = require('./routes/chat');
+const agentRoutes = require('./routes/agentRoutes');
 const examRoutes = require('./routes/examRoutes');
 
 // Import Student Dashboard Routes
@@ -340,6 +341,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/agent', agentRoutes);
 
 // Register Student Dashboard API Routes
 app.use('/api/academic-pulse', academicPulseRoutes);

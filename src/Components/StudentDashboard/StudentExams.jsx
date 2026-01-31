@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { FaClock, FaListAlt, FaArrowLeft, FaRocket, FaShieldAlt, FaHistory, FaChevronRight } from 'react-icons/fa';
 import { apiGet, apiPost } from '../../utils/apiClient';
+import './StudentExams.css';
 
 /**
  * EXAM DASHBOARD (Student Exams)
  * A premium interface for exams, quizzes, and academic assessments.
  */
-const StudentExams = ({ studentData }) => {
+const StudentExams = ({ studentData, preloadedData }) => {
     const [view, setView] = useState('list'); // 'list', 'taking', 'result', 'history'
     const [exams, setExams] = useState([]);
     const [results, setResults] = useState([]);
@@ -73,10 +74,17 @@ const StudentExams = ({ studentData }) => {
     };
 
     useEffect(() => {
-        if (view === 'list') fetchExams();
+        if (view === 'list') {
+            if (preloadedData) {
+                setExams(preloadedData);
+                setLoading(false);
+            } else {
+                fetchExams();
+            }
+        }
         if (view === 'history') fetchHistory();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [view]);
+    }, [view, preloadedData]);
 
     useEffect(() => {
         let timer;

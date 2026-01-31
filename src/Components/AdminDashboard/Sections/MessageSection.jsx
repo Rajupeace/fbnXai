@@ -22,35 +22,32 @@ const MessageSection = ({ messages, openModal }) => {
 
             <div className="admin-list-container">
                 {messages.map((msg, i) => (
-                    <div key={msg.id || i} className="admin-msg-card animate-slide-up" style={{ animationDelay: `${i * 0.1}s` }}>
-                        <div className="admin-msg-meta">
+                    <div key={msg.id || i} className="admin-card animate-slide-up" style={{ animationDelay: `${i * 0.05}s`, marginBottom: '1rem', borderLeft: msg.type === 'urgent' ? '4px solid var(--admin-danger)' : '1px solid var(--admin-border)' }}>
+                        <div className="admin-msg-meta" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                             <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                                <span className={`admin-msg-badge ${msg.target === 'all' ? 'success' : ''}`} style={{
-                                    background: msg.target === 'all' ? '#dcfce7' : msg.target === 'faculty' ? '#fee2e2' : '#dbeafe',
-                                    color: msg.target === 'all' ? '#166534' : msg.target === 'faculty' ? '#991b1b' : '#1e40af'
-                                }}>
+                                <span className={`admin-badge ${msg.target === 'all' ? 'success' : 'primary'}`}>
                                     {(msg.target || 'ANNOUNCEMENT').toUpperCase()}
                                 </span>
                                 {msg.type === 'urgent' && (
-                                    <span className="admin-msg-badge" style={{ background: '#fecdd3', color: '#be123c' }}>URGENT</span>
+                                    <span className="admin-badge accent" style={{ background: '#fecdd3', color: '#be123c' }}>URGENT</span>
                                 )}
-                                {msg.targetYear && <span className="admin-msg-badge">YEAR {msg.targetYear}</span>}
+                                {msg.targetYear && <span className="admin-badge secondary">YEAR {msg.targetYear}</span>}
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--admin-text-muted)', fontWeight: 600 }}>
                                 <FaClock /> {new Date(msg.createdAt || msg.date).toLocaleString()}
                             </div>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                            <div className="summary-icon-box" style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--admin-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--admin-primary)', fontSize: '0.9rem' }}>
                                 <FaUserShield />
                             </div>
-                            <div style={{ fontWeight: 950, fontSize: '0.9rem', color: 'var(--admin-secondary)' }}>
+                            <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--admin-secondary)' }}>
                                 {msg.facultyId ? `Faculty: ${msg.sender || msg.facultyId}` : 'Admin'}
                             </div>
                         </div>
 
-                        <div className="admin-msg-body">
+                        <div className="admin-msg-body" style={{ color: 'var(--admin-text)', fontSize: '0.95rem', lineHeight: '1.6', fontWeight: 500 }}>
                             {msg.message || msg.text}
                         </div>
                     </div>

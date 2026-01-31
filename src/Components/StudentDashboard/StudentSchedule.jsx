@@ -2,16 +2,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { FaMapMarkerAlt, FaChalkboardTeacher, FaBook, FaBolt, FaHistory, FaChevronRight, FaPlayCircle, FaCheckCircle, FaFlask } from 'react-icons/fa';
 import { apiGet } from '../../utils/apiClient';
 import StudentLabsSchedule from './StudentLabsSchedule';
+import './StudentSchedule.css';
 
 /**
 /**
  * Daily Schedule (Student Schedule)
  * A daily schedule interface for tracking classes and labs.
  */
-const StudentSchedule = ({ studentData }) => {
+const StudentSchedule = ({ studentData, preloadedData }) => {
+    // Safety check for studentData
+    studentData = studentData || {};
     const [subView, setSubView] = useState('theory'); // 'theory' or 'labs'
-    const [schedule, setSchedule] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [schedule, setSchedule] = useState(preloadedData || []);
+    const [loading, setLoading] = useState(!preloadedData);
     const [selectedDay, setSelectedDay] = useState(new Date().getDay() || 1); // Monday if Sunday
 
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -21,9 +24,9 @@ const StudentSchedule = ({ studentData }) => {
         setLoading(true);
         try {
             const queryParams = new URLSearchParams({
-                year: studentData.year,
-                section: studentData.section,
-                branch: studentData.branch
+                year: studentData?.year || 1,
+                section: studentData?.section || 'A',
+                branch: studentData?.branch || 'CSE'
             });
             const response = await apiGet(`/api/schedule?${queryParams.toString()}`);
             if (response && response.length > 0) {
@@ -40,12 +43,18 @@ const StudentSchedule = ({ studentData }) => {
     }, [studentData]);
 
     useEffect(() => {
-        fetchSchedule();
-    }, [fetchSchedule]);
+        if (preloadedData) {
+            setSchedule(preloadedData);
+            setLoading(false);
+        } else {
+            fetchSchedule();
+        }
+    }, [fetchSchedule, preloadedData]);
 
     const isClassOngoing = (timeRange) => {
         if (!timeRange) return false;
         try {
+            if (!timeRange.includes(' - ')) return false;
             const [startStr, endStr] = timeRange.split(' - ');
             const now = new Date();
             const start = new Date();
@@ -66,6 +75,7 @@ const StudentSchedule = ({ studentData }) => {
     const isClassPast = (timeRange) => {
         if (!timeRange) return false;
         try {
+            if (!timeRange.includes(' - ')) return false;
             const [, endStr] = timeRange.split(' - ');
             const now = new Date();
             const end = new Date();
@@ -109,7 +119,7 @@ const StudentSchedule = ({ studentData }) => {
                     </div>
                     <div className="meta-item">
                         <span className="lab">SECTION</span>
-                        <span className="val">{studentData.section}</span>
+                        <span className="val">{studentData?.section || 'A'}</span>
                     </div>
                 </div>
             </div>

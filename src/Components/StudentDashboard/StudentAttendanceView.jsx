@@ -144,7 +144,7 @@ const StudentAttendanceView = ({ studentId }) => {
                 {reportCards.map((card, i) => (
                     <div key={i} className="nexus-subject-card">
                         <div className="subject-head">
-                            <div className="subject-icon">{card.subject.substring(0, 2).toUpperCase()}</div>
+                            <div className="subject-icon">{(card.subject || '??').substring(0, 2).toUpperCase()}</div>
                             <div className="subject-info">
                                 <h4>{card.subject}</h4>
                                 <span>OVERALL SCORE: {card.score}</span>

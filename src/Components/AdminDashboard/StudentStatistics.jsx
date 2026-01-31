@@ -41,23 +41,25 @@ const StudentStatistics = () => {
         const today = new Date().toDateString();
         let loggedInToday = 0;
 
-        data.forEach(student => {
-            const year = student.year || 'Unknown';
-            byYear[year] = (byYear[year] || 0) + 1;
+        if (Array.isArray(data)) {
+            data.forEach(student => {
+                const year = student.year || 'Unknown';
+                byYear[year] = (byYear[year] || 0) + 1;
 
-            const branch = student.branch || 'Unknown';
-            byBranch[branch] = (byBranch[branch] || 0) + 1;
+                const branch = student.branch || 'Unknown';
+                byBranch[branch] = (byBranch[branch] || 0) + 1;
 
-            const section = student.section || 'Unknown';
-            bySection[section] = (bySection[section] || 0) + 1;
+                const section = student.section || 'Unknown';
+                bySection[section] = (bySection[section] || 0) + 1;
 
-            if (student.lastLogin && new Date(student.lastLogin).toDateString() === today) {
-                loggedInToday++;
-            }
-        });
+                if (student.lastLogin && new Date(student.lastLogin).toDateString() === today) {
+                    loggedInToday++;
+                }
+            });
+        }
 
         setStats({
-            total: data.length,
+            total: Array.isArray(data) ? data.length : 0,
             byYear,
             byBranch,
             bySection,

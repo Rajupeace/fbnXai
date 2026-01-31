@@ -69,21 +69,27 @@ const CurriculumArchSection = () => {
   const sections = Object.keys(curriculumData).sort();
 
   return (
-    <div className="admin-section curriculum-arch-section">
-      <div className="section-header">
-        <h2>📚 CURRICULUM DESIGNER</h2>
-        <p>Structure your academic curriculum.</p>
-      </div>
+    <div className="animate-fade-in">
+      <header className="admin-page-header">
+        <div className="admin-page-title">
+          <h1>CURRICULUM <span>DESIGNER</span></h1>
+          <p>Structure your academic curriculum.</p>
+        </div>
+        <div className="admin-action-bar" style={{ margin: 0 }}>
+          {/* Actions can go here if needed */}
+        </div>
+      </header>
 
-      <div className="curriculum-layout">
+      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '2rem', marginBottom: '3rem' }}>
         {/* Section Navigation */}
-        <div className="section-nav">
-          <h3>Sections</h3>
-          <div className="section-buttons">
+        <div className="admin-card" style={{ padding: '1.5rem', height: 'fit-content', maxHeight: '80vh', overflowY: 'auto' }}>
+          <h3 style={{ margin: '0 0 1.25rem 0', color: 'var(--admin-secondary)', fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sections</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
             {sections.map(section => (
               <button
                 key={section}
-                className={`section-btn ${activeSection === section ? 'active' : ''}`}
+                className={`admin-btn ${activeSection === section ? 'admin-btn-primary' : 'admin-btn-outline'}`}
+                style={{ padding: '0.5rem', minWidth: 'auto' }}
                 onClick={() => setActiveSection(section)}
               >
                 {section}
@@ -93,53 +99,58 @@ const CurriculumArchSection = () => {
         </div>
 
         {/* Section Details */}
-        <div className="section-details">
-          <div className="section-header-form">
-            <div className="form-group">
-              <label>Section Name</label>
+        <div className="admin-card">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2.5rem', paddingBottom: '2rem', borderBottom: '1px solid var(--admin-border)' }}>
+            <div className="admin-form-group">
+              <label className="admin-form-label">Section Name</label>
               <input
                 type="text"
+                className="admin-form-input"
                 value={curriculumData[activeSection]?.name || ''}
                 onChange={(e) => updateSection(activeSection, 'name', e.target.value)}
                 placeholder="Section name"
               />
             </div>
-            <div className="form-group">
-              <label>Description</label>
+            <div className="admin-form-group">
+              <label className="admin-form-label">Description</label>
               <textarea
+                className="admin-form-input"
                 value={curriculumData[activeSection]?.description || ''}
                 onChange={(e) => updateSection(activeSection, 'description', e.target.value)}
                 placeholder="Section description"
-                rows="3"
+                rows="1"
               />
             </div>
           </div>
 
           {/* Subsections Table */}
-          <div className="subsections-container">
-            <h4>Topics (1-20) for Section {activeSection}</h4>
-            <div className="subsections-table-wrapper">
-              <table className="subsections-table">
+          <div>
+            <h4 style={{ margin: '0 0 1.5rem 0', color: 'var(--admin-secondary)', fontSize: '1.1rem', fontWeight: 800 }}>Topics (1-20) for Section {activeSection}</h4>
+            <div className="admin-table-wrap">
+              <table className="admin-grid-table">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th style={{ width: '60px' }}>#</th>
                     <th>Title</th>
                     <th>Content</th>
-                    <th>Credits</th>
+                    <th style={{ width: '100px' }}>Credits</th>
                     <th>Duration</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {curriculumData[activeSection]?.subsections.map((subsection) => (
-                    <tr key={subsection.id} className="subsection-row">
-                      <td className="subsection-id">{subsection.id}</td>
+                    <tr key={subsection.id}>
+                      <td>
+                        <span className="admin-badge primary">{subsection.id}</span>
+                      </td>
                       <td>
                         <input
                           type="text"
                           value={subsection.title}
                           onChange={(e) => updateSubsection(activeSection, subsection.id, 'title', e.target.value)}
-                          className="subsection-input"
+                          className="admin-form-input"
+                          style={{ padding: '0.5rem', fontSize: '0.85rem' }}
                         />
                       </td>
                       <td>
@@ -148,7 +159,8 @@ const CurriculumArchSection = () => {
                           value={subsection.content}
                           onChange={(e) => updateSubsection(activeSection, subsection.id, 'content', e.target.value)}
                           placeholder="Content description"
-                          className="subsection-input"
+                          className="admin-form-input"
+                          style={{ padding: '0.5rem', fontSize: '0.85rem' }}
                         />
                       </td>
                       <td>
@@ -156,7 +168,8 @@ const CurriculumArchSection = () => {
                           type="number"
                           value={subsection.credits}
                           onChange={(e) => updateSubsection(activeSection, subsection.id, 'credits', parseFloat(e.target.value))}
-                          className="subsection-input credits-input"
+                          className="admin-form-input"
+                          style={{ padding: '0.5rem', fontSize: '0.85rem', textAlign: 'center' }}
                           min="0"
                           max="10"
                         />
@@ -166,12 +179,13 @@ const CurriculumArchSection = () => {
                           type="text"
                           value={subsection.duration}
                           onChange={(e) => updateSubsection(activeSection, subsection.id, 'duration', e.target.value)}
-                          placeholder="e.g., 4 weeks"
-                          className="subsection-input"
+                          placeholder="e.g. 4 wks"
+                          className="admin-form-input"
+                          style={{ padding: '0.5rem', fontSize: '0.85rem' }}
                         />
                       </td>
                       <td>
-                        <button className="action-btn edit-btn" title="Edit">
+                        <button className="admin-action-btn secondary" title="Edit">
                           <FaEdit />
                         </button>
                       </td>
@@ -185,11 +199,8 @@ const CurriculumArchSection = () => {
       </div>
 
       {/* Save Button */}
-      <div className="section-actions">
-        <button className="btn btn-primary" onClick={handleSave}>
-          <FaSave /> Save Curriculum
-        </button>
-        <button className="btn btn-secondary" onClick={() => {
+      <div className="admin-modal-actions">
+        <button className="admin-btn admin-btn-outline" onClick={() => {
           if (window.confirm('Reset to defaults?')) {
             setCurriculumData(prev => {
               const reset = {};
@@ -214,298 +225,12 @@ const CurriculumArchSection = () => {
             });
           }
         }}>
-          Reset to Defaults
+          RESET DEFAULTS
+        </button>
+        <button className="admin-btn admin-btn-primary" onClick={handleSave}>
+          <FaSave /> SAVE CURRICULUM
         </button>
       </div>
-
-      <style jsx>{`
-        .curriculum-arch-section {
-          padding: 2rem;
-          background: #f8fafc;
-          border-radius: 12px;
-          margin: 1rem 0;
-        }
-
-        .section-header {
-          margin-bottom: 2rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #e2e8f0;
-        }
-
-        .section-header h2 {
-          margin: 0;
-          color: #1e293b;
-          font-size: 1.5rem;
-        }
-
-        .section-header p {
-          margin: 0.5rem 0 0 0;
-          color: #64748b;
-          font-size: 0.9rem;
-        }
-
-        .curriculum-layout {
-          display: grid;
-          grid-template-columns: 200px 1fr;
-          gap: 2rem;
-          margin-bottom: 2rem;
-        }
-
-        .section-nav {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 12px;
-          border: 1px solid #e2e8f0;
-          height: fit-content;
-          max-height: 80vh;
-          overflow-y: auto;
-        }
-
-        .section-nav h3 {
-          margin: 0 0 1rem 0;
-          color: #1e293b;
-          font-size: 1rem;
-        }
-
-        .section-buttons {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 0.5rem;
-        }
-
-        .section-btn {
-          padding: 0.5rem;
-          border: 2px solid #e2e8f0;
-          background: white;
-          color: #64748b;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.2s;
-        }
-
-        .section-btn:hover {
-          border-color: #3b82f6;
-          color: #3b82f6;
-        }
-
-        .section-btn.active {
-          background: #3b82f6;
-          color: white;
-          border-color: #3b82f6;
-        }
-
-        .section-details {
-          background: white;
-          padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .section-header-form {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-          margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-group label {
-          margin-bottom: 0.5rem;
-          font-weight: 600;
-          color: #1e293b;
-          font-size: 0.9rem;
-        }
-
-        .form-group input,
-        .form-group textarea {
-          padding: 0.75rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 6px;
-          font-family: inherit;
-          font-size: 0.9rem;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .subsections-container {
-          margin-top: 2rem;
-        }
-
-        .subsections-container h4 {
-          margin: 0 0 1rem 0;
-          color: #1e293b;
-          font-size: 1rem;
-        }
-
-        .subsections-table-wrapper {
-          overflow-x: auto;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
-        }
-
-        .subsections-table {
-          width: 100%;
-          border-collapse: collapse;
-          background: white;
-        }
-
-        .subsections-table thead tr {
-          background: #f1f5f9;
-          border-bottom: 2px solid #e2e8f0;
-        }
-
-        .subsections-table th {
-          padding: 1rem;
-          text-align: left;
-          font-weight: 600;
-          color: #1e293b;
-          font-size: 0.9rem;
-          white-space: nowrap;
-        }
-
-        .subsections-table td {
-          padding: 0.75rem 1rem;
-          border-bottom: 1px solid #e2e8f0;
-        }
-
-        .subsection-id {
-          font-weight: 600;
-          color: #3b82f6;
-          text-align: center;
-          width: 50px;
-        }
-
-        .subsection-input {
-          width: 100%;
-          padding: 0.5rem;
-          border: 1px solid #e2e8f0;
-          border-radius: 4px;
-          font-family: inherit;
-          font-size: 0.9rem;
-        }
-
-        .subsection-input:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-        }
-
-        .credits-input {
-          text-align: center;
-          max-width: 80px;
-        }
-
-        .action-btn {
-          padding: 0.5rem;
-          border: 1px solid #e2e8f0;
-          background: white;
-          color: #64748b;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .action-btn:hover {
-          border-color: #3b82f6;
-          color: #3b82f6;
-          background: #f0f9ff;
-        }
-
-        .edit-btn {
-          color: #3b82f6;
-        }
-
-        .section-actions {
-          display: flex;
-          gap: 1rem;
-          margin-top: 2rem;
-          padding-top: 2rem;
-          border-top: 1px solid #e2e8f0;
-        }
-
-        .btn {
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.2s;
-        }
-
-        .btn-primary {
-          background: #3b82f6;
-          color: white;
-        }
-
-        .btn-primary:hover {
-          background: #2563eb;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-secondary {
-          background: #e2e8f0;
-          color: #1e293b;
-        }
-
-        .btn-secondary:hover {
-          background: #cbd5e1;
-        }
-
-        @media (max-width: 1024px) {
-          .curriculum-layout {
-            grid-template-columns: 1fr;
-          }
-
-          .section-nav {
-            max-height: auto;
-          }
-
-          .section-buttons {
-            grid-template-columns: repeat(4, 1fr);
-          }
-
-          .section-header-form {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .curriculum-arch-section {
-            padding: 1rem;
-          }
-
-          .section-buttons {
-            grid-template-columns: repeat(3, 1fr);
-          }
-
-          .subsections-table {
-            font-size: 0.85rem;
-          }
-
-          .subsections-table th,
-          .subsections-table td {
-            padding: 0.5rem;
-          }
-        }
-      `}</style>
     </div>
   );
 };

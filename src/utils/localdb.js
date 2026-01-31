@@ -68,7 +68,7 @@ export const readMaterials = async (filters = {}) => {
     if (filters.subject) params.append('subject', filters.subject);
     if (filters.type) params.append('type', filters.type);
     if (filters.course) params.append('course', filters.course);
-    
+
     return api.apiGet(`/api/materials?${params.toString()}`);
   }
 
@@ -86,7 +86,7 @@ export const readMaterials = async (filters = {}) => {
 
   // Fallback to localStorage with filtering
   const materials = safeParse(localStorage.getItem(DB_KEYS.MATERIALS), {});
-  
+
   if (!Object.keys(filters).length) {
     return materials;
   }
@@ -95,19 +95,19 @@ export const readMaterials = async (filters = {}) => {
   const filtered = {};
   Object.entries(materials).forEach(([year, yearData]) => {
     if (filters.year && year !== filters.year) return;
-    
+
     filtered[year] = {};
     Object.entries(yearData).forEach(([section, sectionData]) => {
       if (filters.section && section !== filters.section) return;
-      
+
       filtered[year][section] = {};
       Object.entries(sectionData).forEach(([subject, subjectData]) => {
         if (filters.subject && subject !== filters.subject) return;
-        
+
         filtered[year][section][subject] = {};
         Object.entries(subjectData).forEach(([type, items]) => {
           if (filters.type && type !== filters.type) return;
-          
+
           filtered[year][section][subject][type] = items;
         });
       });
@@ -164,7 +164,7 @@ export const fileToDataUrl = (file, maxBytes = 1024 * 1024) => {
     }
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-  reader.onerror = () => reject(new Error('Failed to read file as data URL'));
+    reader.onerror = () => reject(new Error('Failed to read file as data URL'));
     reader.readAsDataURL(file);
   });
 };
@@ -184,7 +184,7 @@ export const upsertMaterial = async (year, section, subject, type, item) => {
     // Add course info if available
     if (item.courseId) formData.append('courseId', item.courseId);
     if (item.courseCode) formData.append('courseCode', item.courseCode);
-    
+
     // Add module and unit info if available
     if (item.moduleId) formData.append('moduleId', item.moduleId);
     if (item.unitId) formData.append('unitId', item.unitId);
@@ -212,7 +212,7 @@ export const upsertMaterial = async (year, section, subject, type, item) => {
     }
 
     const result = await api.apiUpload('/api/materials', formData);
-    
+
     // Update local cache if needed
     try {
       const mats = await readMaterials();
@@ -242,7 +242,7 @@ export const upsertMaterial = async (year, section, subject, type, item) => {
     if (!mats[year][section]) mats[year][section] = {};
     if (!mats[year][section][subject]) mats[year][section][subject] = { notes: [], videos: [], modelPapers: [], syllabus: [], assignments: [] };
     if (!mats[year][section][subject][type]) mats[year][section][subject][type] = [];
-    
+
     // Add metadata
     const enhancedItem = {
       ...item,
@@ -250,7 +250,7 @@ export const upsertMaterial = async (year, section, subject, type, item) => {
       uploadedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
-    
+
     mats[year][section][subject][type].push(enhancedItem);
     writeMaterials(mats);
     return enhancedItem;
@@ -296,6 +296,7 @@ const LocalDB = {
   readMessages,
   writeMessages,
   addMessage,
+
 };
 
 export default LocalDB;

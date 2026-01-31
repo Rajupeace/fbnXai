@@ -8,6 +8,8 @@ import { apiGet, apiPost } from '../../utils/apiClient';
  * Attendance tracking and management interface with section-based filtering.
  */
 const FacultyAttendanceManager = ({ facultyData }) => {
+    // Safety check
+    facultyData = facultyData || {};
     const [availableSections, setAvailableSections] = useState([]);
     const [selectedSection, setSelectedSection] = useState({ year: '', section: '' });
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -228,19 +230,35 @@ const FacultyAttendanceManager = ({ facultyData }) => {
                 <>
                     {/* Section Filter */}
                     <div className="section-filter-bar" style={{ marginBottom: '1.5rem' }}>
-                        <div className="filter-label">
-                            <FaFilter /> <strong>Select Section:</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                            <FaFilter style={{ color: '#6366f1' }} />
+                            <div className="section-buttons">
+                                {availableSections.map((sec, idx) => (
+                                    <button key={idx} className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section && selectedSection.subject === sec.subject ? 'active' : ''}`} onClick={() => handleSectionChange(sec)}>
+                                        YR {sec.year} ({sec.section}) - {sec.subject || 'All'}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="section-buttons">
-                            {availableSections.map((sec, index) => (
-                                <button
-                                    key={index}
-                                    className={`section-btn ${selectedSection.year === sec.year && selectedSection.section === sec.section && selectedSection.subject === sec.subject ? 'active' : ''}`}
-                                    onClick={() => handleSectionChange(sec)}
-                                >
-                                    <FaUsers /> Year {sec.year} - Sec {sec.section} ({sec.subject || 'All'})
-                                </button>
-                            ))}
+
+                        {/* Section Stats Ribbon */}
+                        <div className="f-stats-ribbon" style={{ display: 'flex', gap: '1.5rem', background: '#f8fafc', padding: '0.5rem 1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                            <div className="ribbon-item">
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>PRESENT</span>
+                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#10b981' }}>{stats.present}</span>
+                            </div>
+                            <div className="ribbon-item" style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>ABSENT</span>
+                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#ef4444' }}>{stats.absent}</span>
+                            </div>
+                            <div className="ribbon-item" style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>RATE</span>
+                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#4f46e5' }}>{stats.percentage}%</span>
+                            </div>
+                            <div className="ribbon-item" style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '1.5rem' }}>
+                                <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, display: 'block' }}>ROSTER</span>
+                                <span style={{ fontSize: '1rem', fontWeight: 900, color: '#f59e0b' }}>{students.length}</span>
+                            </div>
                         </div>
                     </div>
 

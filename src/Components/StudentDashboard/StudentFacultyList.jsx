@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { FaEnvelope, FaPhone, FaBook, FaUserTie, FaFilter, FaShieldAlt, FaLinkedin, FaGithub } from 'react-icons/fa';
+import { FaEnvelope, FaPhone, FaBook, FaUserTie, FaFilter, FaLinkedin, FaGithub } from 'react-icons/fa';
 import { apiGet } from '../../utils/apiClient';
+import './StudentFacultyList.css';
 
 /**
  * FACULTY DIRECTORY
  * An interface for students to connect with their academic faculty and mentors.
  */
 const StudentFacultyList = ({ studentData }) => {
+    // Safety check
+    studentData = studentData || {};
     const [facultyList, setFacultyList] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDepartment, setSelectedDepartment] = useState('all');

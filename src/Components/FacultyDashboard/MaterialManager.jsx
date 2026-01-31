@@ -7,6 +7,9 @@ import { apiUpload, apiPost, apiGet, apiDelete } from '../../utils/apiClient';
  * Central interface for orchestrating academic resources and tactical broadcasts.
  */
 const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess }) => {
+    // Proactive hardening
+    selectedSubject = selectedSubject || 'General - Year 1';
+    selectedSections = selectedSections || [];
     const [uploadType, setUploadType] = useState('notes');
     const [materials, setMaterials] = useState({
         notes: null, videos: null, modelPapers: null, syllabus: null, assignments: null, interviewQnA: null

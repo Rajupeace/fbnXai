@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { FaDownload, FaArrowLeft, FaChevronRight, FaRegFolder, FaRegFileAlt, FaVideo, FaLightbulb, FaFileAlt, FaCube, FaSync, FaFolderOpen } from 'react-icons/fa';
 import './AcademicBrowser.css';
+import { apiPost } from '../../../utils/apiClient';
 
 /**
  * PREMIUM NEXUS ACADEMIC BROWSER
  * A high-end, multi-level file browser experience for educational content.
  */
-const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, setView, branch, onRefresh }) => {
+const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, setView, branch, onRefresh, assignedFaculty = [] }) => {
     const [navPath, setNavPath] = useState([]);
 
     const currentViewData = useMemo(() => {
@@ -116,7 +117,13 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                         courseCode && (courseCode === nodeName || courseCode === subj)
                     );
 
-                return matchYear && matchSemester && matchSection && Boolean(matchSubject);
+                const uploaderName = m.uploadedBy?.name || m.uploadedBy || '';
+                const isAssignedFaculty = (assignedFaculty || []).some(f =>
+                    (f.name && uploaderName && f.name.toLowerCase().includes(uploaderName.toLowerCase())) ||
+                    (f.facultyId && m.uploadedBy === f.facultyId)
+                );
+
+                return matchYear && matchSemester && matchSection && Boolean(matchSubject) && (m.section !== 'All' ? true : isAssignedFaculty);
             });
 
             const notes = subjectResources.filter(m => m.type === 'notes');
@@ -181,7 +188,6 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                                         onClick={async (e) => {
                                                             e.stopPropagation();
                                                             try {
-                                                                const { apiPost } = await import('../../../utils/apiClient');
                                                                 await apiPost(`/api/materials/${v._id || v.id}/like`);
                                                                 if (onRefresh) onRefresh();
                                                                 else alert(`Liked ${v.title}!`);
@@ -300,7 +306,13 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                 const unitStr = m.unit ? String(m.unit).trim() : '';
                 const matchUnit = !unitStr || unitStr === currentUnit || unitStr === `Unit ${currentUnit}` || (unitObj && unitObj.name && unitObj.name.includes(unitStr));
 
-                return matchYear && matchSemester && matchSection && Boolean(matchSubject) && matchModule && matchUnit;
+                const uploaderName = m.uploadedBy?.name || m.uploadedBy || '';
+                const isAssignedFaculty = (assignedFaculty || []).some(f =>
+                    (f.name && uploaderName && f.name.toLowerCase().includes(uploaderName.toLowerCase())) ||
+                    (f.facultyId && m.uploadedBy === f.facultyId)
+                );
+
+                return matchYear && matchSemester && matchSection && Boolean(matchSubject) && matchModule && matchUnit && (m.section !== 'All' ? true : isAssignedFaculty);
             });
 
             const notes = [...(staticResources.notes || []), ...dynamicResources.filter(m => m.type === 'notes')];
@@ -317,7 +329,12 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                 <div key={i} className="res-card-v2">
                                     <div className="res-info">
                                         <FaRegFileAlt />
-                                        <span>{n.name || n.title}</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            <span>{n.name || n.title}</span>
+                                            <span style={{ fontSize: '0.65rem', color: 'var(--v-primary)', fontWeight: 700 }}>
+                                                BY {n.uploadedBy?.name || n.uploadedBy || 'INSTRUCTOR'}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div className="res-actions">
                                         <a href={n.url} target="_blank" rel="noreferrer" className="dl-btn"><FaDownload /></a>
@@ -336,7 +353,12 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                     <div key={i} className="res-card-v2 vid">
                                         <div className="res-info" style={{ cursor: 'pointer' }} onClick={() => window.open(v.url, '_blank')}>
                                             <FaVideo className="text-warning" />
-                                            <span>{v.name || v.title}</span>
+                                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                <span>{v.name || v.title}</span>
+                                                <span style={{ fontSize: '0.65rem', color: 'var(--v-primary)', fontWeight: 700 }}>
+                                                    BY {v.uploadedBy?.name || v.uploadedBy || 'INSTRUCTOR'}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div className="res-actions">
                                             <button
@@ -345,7 +367,6 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
                                                     try {
-                                                        const { apiPost } = await import('../../../utils/apiClient');
                                                         await apiPost(`/api/materials/${v._id || v.id}/like`);
                                                         if (onRefresh) onRefresh();
                                                     } catch (err) { console.error(err); }

@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn, FaUniversity
+    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn, FaUniversity, FaHeadset
 } from 'react-icons/fa';
+import './StudentSidebar.css';
 
 /**
  * Student Sidebar
@@ -44,7 +45,8 @@ const StudentSidebar = ({
             items: [
                 { id: 'semester', label: 'Classroom', icon: <FaBook /> },
                 { id: 'journal', label: 'My Notes', icon: <FaPen /> },
-                { id: 'marks', label: 'Grades & Intel', icon: <FaChartBar /> },
+                { id: 'marks', label: 'Grades & Results', icon: <FaChartBar /> },
+                { id: 'attendance', label: 'Attendance Intel', icon: <FaClipboardList /> },
                 { id: 'schedule', label: 'Daily Schedule', icon: <FaClipboardList /> },
                 { id: 'faculty', label: 'My Faculty', icon: <FaGraduationCap /> },
                 { id: 'exams', label: 'Exam Portal', icon: <FaShieldAlt /> },
@@ -68,6 +70,7 @@ const StudentSidebar = ({
             title: 'ACCOUNT',
             items: [
                 { id: 'settings', label: 'Settings', icon: <FaShieldAlt /> },
+                { id: 'support', label: 'Support', icon: <FaHeadset /> },
             ]
         }
     ];

@@ -25,6 +25,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
     padding: 1.5rem 2rem;
     margin-bottom: 2rem;
     background: white;
@@ -59,46 +61,55 @@
 .f-node-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1.25rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border-radius: 8px;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+    border-radius: 12px;
     border: 1px solid transparent;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    min-width: max-content;
 }
 
 .f-node-btn.primary {
-    background-color: #4f46e5;
-    /* Indigo 600 */
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
 .f-node-btn.primary:hover {
-    background-color: #4338ca;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
 }
 
 .f-node-btn.success {
-    background-color: #10b981;
-    /* Emerald 500 */
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .f-node-btn.success:hover {
-    background-color: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
 }
 
 .f-node-btn.secondary {
-    background-color: white;
-    border-color: #cbd5e1;
-    color: #475569;
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
 }
 
 .f-node-btn.secondary:hover {
-    background-color: #f1f5f9;
-    border-color: #94a3b8;
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1e293b;
+    transform: translateY(-1px);
 }
 
 /* ─────── Utility Bar ─────── */
@@ -148,36 +159,63 @@
 
 .section-btn {
     background: white;
-    border: 1px solid #cbd5e1;
+    border: 1px solid #e2e8f0;
     color: #64748b;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-weight: 500;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.8rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .section-btn:hover {
-    border-color: #94a3b8;
+    border-color: #6366f1;
     background-color: #f8fafc;
+    color: #4f46e5;
+    transform: translateY(-1px);
 }
 
 .section-btn.active {
-    background-color: #4f46e5;
-    border-color: #4f46e5;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-color: transparent;
     color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 /* ─────── Data Table ─────── */
 .marks-table-wrapper {
     background: white;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    height: 650px;
+    overflow: auto;
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+/* Custom Nexus Scrollbar */
+.marks-table-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.marks-table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.marks-table-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.marks-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .comprehensive-marks-table {
@@ -202,17 +240,25 @@
 .sticky-col {
     position: sticky;
     left: 0;
-    z-index: 20;
-    background: white;
+    z-index: 30;
+    background: white !important;
     border-right: 2px solid #e2e8f0 !important;
+    min-width: 80px;
+    width: 80px;
 }
 
 .sticky-col-2 {
     position: sticky;
-    left: 60px;
-    z-index: 20;
-    background: white;
+    left: 80px;
+    z-index: 30;
+    background: white !important;
     border-right: 2px solid #e2e8f0 !important;
+    min-width: 180px;
+}
+
+.comprehensive-marks-table thead tr:first-child th.sticky-col,
+.comprehensive-marks-table thead tr:first-child th.sticky-col-2 {
+    z-index: 40;
 }
 
 .comprehensive-marks-table tbody td {

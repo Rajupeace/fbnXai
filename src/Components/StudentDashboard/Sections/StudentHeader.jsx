@@ -1,86 +1,37 @@
-import React from 'react';
-import {
-    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaBullhorn, FaRobot
-} from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaChevronRight } from 'react-icons/fa';
+import './StudentHeader.css';
 
 /**
- * PREMIUM NEXUS HEADER
- * Glassmorphism, interactive navigation, and real-time alerts.
+ * STUDENT HEADER
+ * Top bar with breadcrumbs and time, matching the Sentinel theme.
  */
-const StudentHeader = ({
-    userData,
-    tasks,
-    view,
-    setView,
-    unreadCount,
-    onLogout
-}) => {
+const StudentHeader = ({ view }) => {
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-    const localHandleLogout = (e) => {
-        e.preventDefault();
-        if (window.confirm('Terminate current session and logout?')) {
-            if (onLogout) {
-                onLogout();
-            } else {
-                localStorage.clear();
-                window.location.reload();
-            }
-        }
-    };
-
-    const navItems = [
-        { id: 'overview', label: 'Dashboard', icon: <FaChartBar /> },
-        { id: 'semester', label: 'Classroom', icon: <FaBook /> },
-        { id: 'journal', label: 'My Notes', icon: <FaPen /> },
-        { id: 'marks', label: 'Grades', icon: <FaChartBar /> },
-        { id: 'schedule', label: 'Schedule', icon: <FaClipboardList /> },
-        { id: 'faculty', label: 'Faculty', icon: <FaGraduationCap /> },
-        { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
-        { id: 'ai-agent', label: 'AI Tutor', icon: <FaRobot /> },
-        { id: 'advanced', label: 'Advanced', icon: <FaRocket /> },
-        { id: 'settings', label: 'Settings', icon: <FaShieldAlt /> }
-    ];
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, []);
 
     return (
-        <header className="sd-header">
-            <div className="sd-header-left">
-                <div className="sd-brand-group">
-                    <FaGraduationCap className="sd-brand-icon" />
-                    <div>
-                        <h1 className="sd-brand-name brand-title">Friendly Notebook</h1>
-                        <span className="brand-subtitle">Student Dashboard</span>
-                    </div>
-                </div>
-
-                <div className="sd-nav-scroll-container">
-                    <nav className="sd-nav-bar">
-                        {navItems.map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => setView(item.id)}
-                                className={`sd-nav-btn ${view === item.id ? 'active' : ''}`}
-                            >
-                                <span className="nav-icon">{item.icon}</span>
-                                {item.label}
-                            </button>
-                        ))}
-                    </nav>
+        <header className="nexus-glass-header">
+            <div className="header-left">
+                <div className="breadcrumb-box">
+                    <span className="bc-main">DASHBOARD</span>
+                    <FaChevronRight className="bc-sep" />
+                    <span className="bc-active">{view ? view.toUpperCase() : 'OVERVIEW'}</span>
                 </div>
             </div>
-
-            <div className="sd-actions">
-                <div className="header-user-info">
-                    <div className="user-name">{userData.studentName}</div>
-                    <div className="user-meta">{userData.sid} • YEAR {userData.year}</div>
+            <div className="header-right">
+                <div className="header-time-box">
+                    <span className="time-val">
+                        {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    <span className="date-val">
+                        {currentTime.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
+                    </span>
                 </div>
-
-                <div className="header-icon-stack">
-                    {/* Buttons removed as modals are not implemented/used */}
-                </div>
-
-                <button onClick={localHandleLogout} className="nexus-logout-btn">
-                    <FaSignOutAlt /> <span>LOGOUT</span>
-                </button>
             </div>
         </header>
     );

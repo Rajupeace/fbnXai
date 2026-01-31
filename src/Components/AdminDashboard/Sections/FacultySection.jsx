@@ -39,7 +39,7 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                     <h1>FACULTY <span>DIRECTORY</span></h1>
                     <p>Total Faculty: {filteredFaculty.length}</p>
                 </div>
-                <div className="admin-action-bar" style={{ margin: 0, display: 'flex', gap: '0.75rem' }}>
+                <div className="admin-action-bar compact" style={{ margin: 0, padding: '0.5rem 1.5rem' }}>
                     <button className="admin-btn admin-btn-primary" onClick={() => openModal('faculty')}>
                         <FaPlus /> ADD NEW FACULTY
                     </button>
@@ -49,17 +49,17 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                 </div>
             </header>
 
-            <div className="admin-filter-bar" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
-                <div style={{ flex: 1 }}>
+            <div className="admin-filter-bar">
+                <div style={{ flex: 1, minWidth: '250px' }}>
                     <input
-                        className="admin-search-input"
+                        className="admin-form-input full-width"
                         placeholder="Search by name or ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{ width: '100%', marginBottom: 0 }}
                     />
                 </div>
-                <select className="admin-search-input" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ width: '250px', marginBottom: 0 }}>
+                <select className="admin-filter-select" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>
                     <option value="All">All Taught Subjects</option>
                     {allSubjects.map(s => <option key={s.code} value={s.name}>{s.name}</option>)}
                 </select>
@@ -135,9 +135,9 @@ const FacultySection = ({ faculty, students, openModal, handleDeleteFaculty, all
                                             </td>
                                             <td>
                                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View Profile" onClick={() => openModal('faculty-view', f)}><FaEye /></motion.button>
-                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Edit" onClick={() => openModal('faculty', f)}><FaEdit /></motion.button>
-                                                    <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete" onClick={() => handleDeleteFaculty(f.facultyId)}><FaTrash /></motion.button>
+                                                    <button className="admin-action-btn" title="View Profile" onClick={() => openModal('faculty-view', f)}><FaEye /></button>
+                                                    <button className="admin-action-btn secondary" title="Edit" onClick={() => openModal('faculty', f)}><FaEdit /></button>
+                                                    <button className="admin-action-btn danger" title="Delete" onClick={() => handleDeleteFaculty(f.facultyId)}><FaTrash /></button>
                                                 </div>
                                             </td>
                                         </motion.tr>

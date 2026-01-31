@@ -18,7 +18,8 @@ REM Upgrade pip and install dependencies if requirements.txt present
 python -m pip install --upgrade pip
 if exist requirements.txt (
   echo Installing Python dependencies from requirements.txt ...
-  pip install -r requirements.txt
+  echo Installing Python dependencies from requirements.txt ...
+  pip install -r requirements.txt --upgrade
 )
 
 REM Ensure a .env exists (copy example if not present)

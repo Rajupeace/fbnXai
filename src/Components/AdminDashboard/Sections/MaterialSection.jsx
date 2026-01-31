@@ -40,21 +40,21 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
                 </div>
             </header>
 
-            <div className="admin-filter-bar" style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', background: 'white', padding: '1rem', borderRadius: '16px', border: '1px solid var(--admin-border)' }}>
+            <div className="admin-filter-bar">
                 <div style={{ flex: 1 }}>
                     <input
-                        className="admin-search-input"
+                        className="admin-filter-select full-width"
                         placeholder="Search by title or topic..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{ width: '100%', marginBottom: 0 }}
+                        style={{ marginBottom: 0 }}
                     />
                 </div>
-                <select className="admin-search-input" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ width: '250px', marginBottom: 0 }}>
+                <select className="admin-filter-select" value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} style={{ width: '250px', marginBottom: 0 }}>
                     <option value="All">All Subjects</option>
                     {allSubjects.map(s => <option key={s.code} value={s.name}>{s.name}</option>)}
                 </select>
-                <select className="admin-search-input" value={sortKey} onChange={(e) => setSortKey(e.target.value)} style={{ width: '180px', marginBottom: 0 }}>
+                <select className="admin-filter-select" value={sortKey} onChange={(e) => setSortKey(e.target.value)} style={{ width: '180px', marginBottom: 0 }}>
                     <option value="date">Latest Uploads</option>
                     <option value="title">Alphabetical</option>
                 </select>
@@ -110,22 +110,20 @@ const MaterialSection = ({ materials, openModal, handleDeleteMaterial, getFileUr
                                     </td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} title="View" onClick={() => openModal('material-view', m)}><FaEye /></motion.button>
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-exam-card" style={{ padding: '0.5rem', background: 'white', color: '#1e40af' }} title="Edit" onClick={() => openModal('material', m)}><FaEdit /></motion.button>
-                                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} className="f-cancel-btn" style={{ padding: '0.5rem' }} title="Delete" onClick={() => handleDeleteMaterial(m._id || m.id)}><FaTrash /></motion.button>
+                                            <button className="admin-action-btn" title="View" onClick={() => openModal('material-view', m)}><FaEye /></button>
+                                            <button className="admin-action-btn secondary" title="Edit" onClick={() => openModal('material', m)}><FaEdit /></button>
+                                            <button className="admin-action-btn danger" title="Delete" onClick={() => handleDeleteMaterial(m._id || m.id)}><FaTrash /></button>
                                             {m.url && m.url !== '#' && (
-                                                <motion.a
-                                                    whileHover={{ scale: 1.1 }}
-                                                    whileTap={{ scale: 0.9 }}
+                                                <a
                                                     href={getFileUrl(m.url)}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="f-exam-card"
-                                                    style={{ padding: '0.5rem', background: 'var(--admin-primary)', color: 'white' }}
+                                                    className="admin-action-btn"
+                                                    style={{ background: 'var(--admin-primary)', color: 'white', borderColor: 'var(--admin-primary)' }}
                                                     title="Download"
                                                 >
                                                     <FaDownload />
-                                                </motion.a>
+                                                </a>
                                             )}
                                         </div>
                                     </td>

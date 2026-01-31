@@ -1,13 +1,14 @@
 // src/Components/FacultyDashboard/FacultyAssignments.jsx
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { FaPlus, FaSave, FaTrash, FaClipboardList, FaCalendarAlt, FaBook, FaUsers } from 'react-icons/fa';
+import { FaPlus, FaSave, FaTrash, FaClipboardList, FaCalendarAlt, FaBook, FaUsers, FaFilter } from 'react-icons/fa';
 import { apiGet, apiPost, apiDelete } from '../../utils/apiClient';
 import './FacultyAssignments.css';
 
 const FacultyAssignments = ({ facultyId }) => {
     const [assignments, setAssignments] = useState([]);
     const [showForm, setShowForm] = useState(false);
+    const [selectedSectionFilter, setSelectedSectionFilter] = useState('All');
     const [formData, setFormData] = useState({
         year: '',
         section: '',
@@ -15,6 +16,8 @@ const FacultyAssignments = ({ facultyId }) => {
         title: '',
         description: ''
     });
+
+    const uniqueSections = [...new Set(assignments.map(a => `${a.year}-${a.section}`))];
 
     const fetchAssignments = async () => {
         try {
@@ -171,40 +174,65 @@ const FacultyAssignments = ({ facultyId }) => {
                     <p>Create your first assignment to get started</p>
                 </div>
             ) : (
-                <div className="assignments-grid">
-                    {assignments.map(a => (
-                        <div key={a.id || a._id} className="assignment-card">
-                            <div className="assignment-card-header">
-                                <div>
-                                    <h4 className="assignment-title">{a.title}</h4>
-                                    <div className="assignment-meta">
-                                        <span className="assignment-badge year">
-                                            <FaCalendarAlt /> Year {a.year}
-                                        </span>
-                                        <span className="assignment-badge section">
-                                            <FaUsers /> Sec {a.section}
-                                        </span>
-                                        <span className="assignment-badge subject">
-                                            <FaBook /> {a.subject}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <p className="assignment-description">
-                                {a.description || 'No description provided.'}
-                            </p>
-                            <div className="assignment-actions">
+                <>
+                    <div className="section-filter-bar f-spacer-lg">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                            <FaFilter style={{ color: '#6366f1' }} />
+                            <div className="section-buttons">
                                 <button
-                                    onClick={() => handleDelete(a.id || a._id)}
-                                    className="assignment-delete-btn"
-                                    title="Delete Assignment"
+                                    className={`section-btn ${selectedSectionFilter === 'All' ? 'active' : ''}`}
+                                    onClick={() => setSelectedSectionFilter('All')}
                                 >
-                                    <FaTrash /> Delete
+                                    ALL WORK
                                 </button>
+                                {uniqueSections.map((sec, idx) => (
+                                    <button
+                                        key={idx}
+                                        className={`section-btn ${selectedSectionFilter === sec ? 'active' : ''}`}
+                                        onClick={() => setSelectedSectionFilter(sec)}
+                                    >
+                                        Y{sec.split('-')[0]} S{sec.split('-')[1]}
+                                    </button>
+                                ))}
                             </div>
                         </div>
-                    ))}
-                </div>
+                    </div>
+
+                    <div className="assignments-grid">
+                        {assignments.filter(a => selectedSectionFilter === 'All' || `${a.year}-${a.section}` === selectedSectionFilter).map(a => (
+                            <div key={a.id || a._id} className="assignment-card">
+                                <div className="assignment-card-header">
+                                    <div>
+                                        <h4 className="assignment-title">{a.title}</h4>
+                                        <div className="assignment-meta">
+                                            <span className="assignment-badge year">
+                                                <FaCalendarAlt /> Year {a.year}
+                                            </span>
+                                            <span className="assignment-badge section">
+                                                <FaUsers /> Sec {a.section}
+                                            </span>
+                                            <span className="assignment-badge subject">
+                                                <FaBook /> {a.subject}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p className="assignment-description">
+                                    {a.description || 'No description provided.'}
+                                </p>
+                                <div className="assignment-actions">
+                                    <button
+                                        onClick={() => handleDelete(a.id || a._id)}
+                                        className="assignment-delete-btn"
+                                        title="Delete Assignment"
+                                    >
+                                        <FaTrash /> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );

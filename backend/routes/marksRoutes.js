@@ -39,7 +39,7 @@ router.post('/marks/bulk-save', async (req, res) => {
         // Get max marks based on assessment type
         const getMaxMarks = (assessmentType) => {
             if (assessmentType.startsWith('cla')) return 20;
-            if (assessmentType.startsWith('m1t') || assessmentType.startsWith('m2t')) return 10;
+            if (assessmentType.startsWith('m1') || assessmentType.startsWith('m2')) return 10;
             return 100;
         };
 
@@ -110,17 +110,15 @@ router.get('/students/:studentId/marks-by-subject', async (req, res) => {
                     scored: mark.marks,
                     total: mark.maxMarks
                 });
-            } else if (mark.assessmentType.startsWith('m1t')) {
-                const targetNum = parseInt(mark.assessmentType.replace('m1t', ''));
+            } else if (mark.assessmentType.startsWith('m1')) {
                 subj.module1.push({
-                    target: targetNum,
+                    type: mark.assessmentType,
                     scored: mark.marks,
                     total: mark.maxMarks
                 });
-            } else if (mark.assessmentType.startsWith('m2t')) {
-                const targetNum = parseInt(mark.assessmentType.replace('m2t', ''));
+            } else if (mark.assessmentType.startsWith('m2')) {
                 subj.module2.push({
-                    target: targetNum,
+                    type: mark.assessmentType,
                     scored: mark.marks,
                     total: mark.maxMarks
                 });

@@ -14,11 +14,14 @@ import '../AdvancedLearning.css';
  * ADVANCED LEARNING HUB
  * A premium workstation for advanced programming and full-stack development.
  */
-const AdvancedLearning = ({ userData, overviewData }) => {
+const AdvancedLearning = ({ userData, overviewData, preloadedData }) => {
+    // Proactive hardening
+    overviewData = overviewData || { myFaculty: [] };
+    preloadedData = preloadedData || [];
     const [activeTab, setActiveTab] = useState('languages'); // 'languages' | 'fullstack' | 'faculty' | 'exams'
     const [selectedTech, setSelectedTech] = useState('Python');
-    const [materials, setMaterials] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [materials, setMaterials] = useState(preloadedData || []);
+    const [loading, setLoading] = useState(!preloadedData);
 
     // Dynamic Faculty Data from Synchronized Database
     const facultyMembers = overviewData?.myFaculty || [];
@@ -56,8 +59,12 @@ const AdvancedLearning = ({ userData, overviewData }) => {
     }, [selectedTech]);
 
     useEffect(() => {
+        // If preloadedData already contains materials for the default selection, skip fetching.
+        if (preloadedData && selectedTech === 'Python' && materials && materials.length > 0) {
+            return;
+        }
         fetchAdvancedMaterials();
-    }, [fetchAdvancedMaterials]);
+    }, [fetchAdvancedMaterials, preloadedData, selectedTech, materials]);
 
     const renderResources = (type) => {
         const filtered = materials.filter(m => m.type === type);
@@ -65,20 +72,29 @@ const AdvancedLearning = ({ userData, overviewData }) => {
             return <div className="empty-resource">NO {type.toUpperCase()} FOUND FOR {selectedTech.toUpperCase()}</div>;
         }
 
+        const API_BASE = (process.env.REACT_APP_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+
         return (
             <div className="resource-stack">
-                {filtered.map((m, i) => (
-                    <div key={i} className="resource-item" onClick={() => window.open(m.fileUrl || m.url, '_blank')}>
-                        <div className="res-icon">
-                            {type === 'videos' ? <FaVideo /> : type === 'interviewQnA' ? <FaQuestionCircle /> : <FaFileAlt />}
+                {filtered.map((m, i) => {
+                    const rawUrl = m.fileUrl || m.url || '#';
+                    const finalUrl = (rawUrl.startsWith('http') || rawUrl.startsWith('data:') || rawUrl.startsWith('blob:'))
+                        ? rawUrl
+                        : `${API_BASE}${rawUrl.startsWith('/') ? '' : '/'}${rawUrl}`;
+
+                    return (
+                        <div key={i} className="resource-item" onClick={() => window.open(finalUrl, '_blank')}>
+                            <div className="res-icon">
+                                {type === 'videos' ? <FaVideo /> : type === 'interviewQnA' ? <FaQuestionCircle /> : <FaFileAlt />}
+                            </div>
+                            <div className="res-text">
+                                <h4>{m.title}</h4>
+                                <span>{m.description || 'Advanced Tutorial'}</span>
+                            </div>
+                            <FaChevronRight className="arrow" />
                         </div>
-                        <div className="res-text">
-                            <h4>{m.title}</h4>
-                            <span>{m.description || 'Advanced Tutorial'}</span>
-                        </div>
-                        <FaChevronRight className="arrow" />
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         );
     };

@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { FaPencilAlt, FaTrash, FaStickyNote, FaBook, FaPlus, FaFileAlt, FaSync } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { apiGet, apiPost, apiPut, apiDelete } from '../../../utils/apiClient';
+import './SemesterNotes.css';
 
 /**
  * Student Journal
  * Subject-wise note taking interface.
  */
-const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMaterials = [] }) => {
+const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMaterials = [], assignedFaculty = [] }) => {
     const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(false);
 
@@ -155,77 +156,85 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
                 const code = String(selectedSubject || '').trim().toLowerCase();
                 const subjNameMatch = enrolledSubjects.find(s => s.code === selectedSubject)?.name?.toLowerCase() || '';
 
-                return matchYear && matchSection && (
-                    subj === code ||
+                const subjectMatch = subj === code ||
                     (subj && subj.includes(code)) ||
-                    (subjNameMatch && subj.includes(subjNameMatch))
+                    (subjNameMatch && subj.includes(subjNameMatch));
+
+                // Strict Faculty Match: Either the material matches section/year perfectly, 
+                // OR it matches the subject AND was uploaded by one of the student's assigned faculty
+                const uploaderName = m.uploadedBy?.name || m.uploadedBy || '';
+                const isAssignedFaculty = (assignedFaculty || []).some(f =>
+                    (f.name && uploaderName && f.name.toLowerCase().includes(uploaderName.toLowerCase())) ||
+                    (f.facultyId && m.uploadedBy === f.facultyId)
                 );
+
+                return matchYear && matchSection && subjectMatch && (m.section !== 'All' ? true : isAssignedFaculty);
             });
         } catch (e) { return []; }
     })();
 
     return (
-        <div className="nexus-journal-container" style={{ display: 'flex', gap: '2rem', height: 'calc(100vh - 140px)', paddingBottom: '2rem' }}>
-            <div className="journal-sidebar" style={{ width: '280px', background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                    <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <FaBook style={{ color: '#3b82f6' }} /> Notebooks
+        <div className="journal-container">
+            <div className="journal-sidebar">
+                <div className="js-header">
+                    <h3>
+                        <FaBook style={{ color: 'var(--v-primary)' }} /> Notebooks
                     </h3>
                 </div>
-                <div style={{ overflowY: 'auto', flex: 1, padding: '1rem' }}>
+                <div className="js-list">
                     {subjectsList.map(sub => (
                         <button
                             key={sub.code}
                             onClick={() => setSelectedSubject(sub.code)}
-                            style={{
-                                width: '100%', textAlign: 'left', padding: '1rem', marginBottom: '0.5rem', borderRadius: '12px',
-                                border: selectedSubject === sub.code ? '1px solid #3b82f6' : '1px solid transparent',
-                                background: selectedSubject === sub.code ? '#eff6ff' : 'transparent',
-                                color: selectedSubject === sub.code ? '#1d4ed8' : '#64748b', cursor: 'pointer', fontWeight: selectedSubject === sub.code ? 600 : 500, fontSize: '0.9rem'
-                            }}
+                            className={`subject-btn ${selectedSubject === sub.code ? 'active' : ''}`}
                         >
-                            <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub.name}</div>
+                            <div className="subject-btn-content">{sub.name}</div>
                         </button>
                     ))}
                 </div>
-                <button onClick={() => setSelectedSubject('General')} style={{ margin: '1rem', padding: '0.75rem', borderRadius: '8px', border: '1px dashed #cbd5e1', background: 'transparent', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <button onClick={() => setSelectedSubject('General')} className="general-notes-btn">
                     <FaStickyNote /> General Notes
                 </button>
             </div>
 
-            <div className="journal-main" style={{ flex: 1, background: 'white', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
+            <div className="journal-main">
+                <div className="jm-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1e293b' }}>{currentSubjectName}</h2>
-                            <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+                        <div className="jm-title">
+                            <h2>{currentSubjectName}</h2>
+                            <p className="jm-meta">
                                 {filteredNotes.length} notes • {saveStatus}
                             </p>
                         </div>
-                        {loading && <div className="spinner-mini" style={{ width: '16px', height: '16px', border: '2px solid #e2e8f0', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>}
+                        {loading && <div className="jm-loading-spinner"></div>}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="jm-actions">
                         <button onClick={fetchNotes} className="admin-btn admin-btn-outline" style={{ padding: '0.75rem', borderRadius: '8px' }} title="Sync Notes"><FaSync /></button>
                         <button onClick={() => setShowForm(true)} className="admin-btn admin-btn-primary" style={{ padding: '0.75rem 1.5rem', gap: '0.5rem' }}><FaPlus /> Add Note</button>
                     </div>
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', padding: '2rem', background: '#f8fafc' }}>
+                <div className="jm-content-area">
                     {publishedMaterials.length > 0 && (
-                        <div style={{ marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Published Resources</h4>
-                                <small style={{ color: '#94a3b8' }}>{publishedMaterials.length} items</small>
+                        <div className="published-resources">
+                            <div className="pr-header">
+                                <h4>Published Resources</h4>
+                                <small style={{ color: 'var(--v-text-muted)' }}>{publishedMaterials.length} items</small>
                             </div>
-                            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                            <div className="pr-grid">
                                 {publishedMaterials.map((m, i) => (
-                                    <a key={i} href={m.url} target="_blank" rel="noreferrer" className="res-card-v2" style={{ padding: '0.75rem 1rem', borderRadius: '12px', background: 'white', border: '1px solid #e2e8f0', display: 'flex', gap: '0.75rem', alignItems: 'center', textDecoration: 'none', transition: 'all 0.2s ease', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-                                        <div style={{ padding: '8px', background: '#f0f9ff', borderRadius: '8px', color: '#0ea5e9' }}>
+                                    <a key={i} href={m.url} target="_blank" rel="noreferrer" className="resource-item-v2">
+                                        <div className="ri-icon">
                                             <FaFileAlt />
                                         </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                            <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.9rem' }}>{m.title || m.name}</span>
-                                            <small style={{ color: '#94a3b8', fontSize: '0.75rem', textTransform: 'uppercase' }}>{m.type}</small>
+                                        <div className="ri-info">
+                                            <span className="ri-title">{m.title || m.name}</span>
+                                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                                <small className="ri-type">{m.type}</small>
+                                                <span style={{ fontSize: '0.65rem', color: 'var(--v-primary)', fontWeight: 700 }}>
+                                                    • {m.uploadedBy?.name || m.uploadedBy || 'Instructor'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </a>
                                 ))}
@@ -235,9 +244,9 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
 
                     <AnimatePresence>
                         {showForm && (
-                            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} style={{ marginBottom: '2rem', background: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                                <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder={`Write something about ${currentSubjectName}...`} style={{ width: '100%', minHeight: '120px', padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '8px', marginBottom: '1rem', fontSize: '1rem', fontFamily: 'inherit' }} autoFocus />
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="note-input-card">
+                                <textarea value={newNote} onChange={(e) => setNewNote(e.target.value)} placeholder={`Write something about ${currentSubjectName}...`} className="note-textarea" autoFocus />
+                                <div className="form-actions">
                                     <button onClick={() => setShowForm(false)} className="admin-btn admin-btn-outline" style={{ border: 'none' }}>Cancel</button>
                                     <button onClick={addNote} className="admin-btn admin-btn-primary">Save Note</button>
                                 </div>
@@ -246,22 +255,22 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
                     </AnimatePresence>
 
                     {loading && notes.length === 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#64748b' }}>
-                            <div className="spinner" style={{ width: '40px', height: '40px', border: '4px solid #f1f5f9', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '1rem' }}></div>
+                        <div className="notes-loading">
+                            <div className="jm-loading-spinner" style={{ width: '40px', height: '40px', marginBottom: '1rem' }}></div>
                             <p>Loading your journal...</p>
                         </div>
                     ) : filteredNotes.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#94a3b8' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
+                        <div className="notes-empty">
+                            <div className="empty-emoji">📝</div>
                             <p>No notes for this subject yet. Start by adding one!</p>
                         </div>
                     ) : (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                        <div className="notes-grid">
                             {filteredNotes.map(note => (
-                                <motion.div key={note._id || note.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ background: 'white', padding: '1.5rem', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', transition: 'box-shadow 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+                                <motion.div key={note._id || note.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="note-card">
                                     {editingId === (note._id || note.id) ? (
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                            <textarea value={editText} onChange={(e) => setEditText(e.target.value)} style={{ width: '100%', flex: 1, padding: '0.75rem', border: '1px solid #3b82f6', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.95rem', fontFamily: 'inherit' }} autoFocus />
+                                            <textarea value={editText} onChange={(e) => setEditText(e.target.value)} className="note-textarea" style={{ minHeight: '100px', flex: 1, marginBottom: '1rem' }} autoFocus />
                                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                                 <button onClick={() => saveEdit(note._id || note.id)} className="admin-btn admin-btn-primary">Save</button>
                                                 <button onClick={() => setEditingId(null)} className="admin-btn admin-btn-outline">Cancel</button>
@@ -269,14 +278,14 @@ const SemesterNotes = ({ semester, studentData, enrolledSubjects = [], serverMat
                                         </div>
                                     ) : (
                                         <>
-                                            <div style={{ flex: 1, marginBottom: '1rem' }}>
-                                                <p style={{ whiteSpace: 'pre-wrap', color: '#334155', margin: 0, fontSize: '0.95rem', lineHeight: '1.6' }}>{note.content}</p>
+                                            <div className="note-content">
+                                                <p className="note-text-display">{note.content}</p>
                                             </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-                                                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{new Date(note.updatedAt || note.createdAt || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                                                    <button onClick={() => startEdit(note._id || note.id, note.content)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '0.9rem' }} title="Edit"><FaPencilAlt /></button>
-                                                    <button onClick={() => deleteNote(note._id || note.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.9rem' }} title="Delete"><FaTrash /></button>
+                                            <div className="note-footer">
+                                                <span className="note-date">{new Date(note.updatedAt || note.createdAt || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                <div className="note-actions">
+                                                    <button onClick={() => startEdit(note._id || note.id, note.content)} className="icon-btn edit" title="Edit"><FaPencilAlt /></button>
+                                                    <button onClick={() => deleteNote(note._id || note.id)} className="icon-btn danger" title="Delete"><FaTrash /></button>
                                                 </div>
                                             </div>
                                         </>

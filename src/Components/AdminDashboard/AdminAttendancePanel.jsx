@@ -35,8 +35,9 @@ const AdminAttendancePanel = () => {
                 let total = 0;
                 let present = 0;
                 data.forEach(record => {
-                    total += record.records.length;
-                    present += record.records.filter(r => r.status === 'Present').length;
+                    const recs = record.records || [];
+                    total += recs.length;
+                    present += recs.filter(r => r.status === 'Present').length;
                 });
                 setStats({ total, present });
             } else {
@@ -74,12 +75,12 @@ const AdminAttendancePanel = () => {
             </header>
 
             {/* Strategic Filters */}
-            <div className="admin-card" style={{ marginBottom: '2.5rem' }}>
+            <div className="admin-card mb-lg">
                 <div className="admin-filter-bar">
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">ACADEMIC YEAR</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label block-label">ACADEMIC YEAR</label>
                         <select
-                            className="admin-filter-select"
+                            className="admin-filter-select full-width"
                             value={filters.year}
                             onChange={e => handleFilterChange('year', e.target.value)}
                         >
@@ -88,10 +89,10 @@ const AdminAttendancePanel = () => {
                         </select>
                     </div>
 
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">BRANCH</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label block-label">BRANCH</label>
                         <select
-                            className="admin-filter-select"
+                            className="admin-filter-select full-width"
                             value={filters.branch}
                             onChange={e => handleFilterChange('branch', e.target.value)}
                         >
@@ -100,10 +101,10 @@ const AdminAttendancePanel = () => {
                         </select>
                     </div>
 
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">SECTION</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label block-label">SECTION</label>
                         <select
-                            className="admin-filter-select"
+                            className="admin-filter-select full-width"
                             value={filters.section}
                             onChange={e => handleFilterChange('section', e.target.value)}
                         >
@@ -117,53 +118,53 @@ const AdminAttendancePanel = () => {
                         </select>
                     </div>
 
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">DATE</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label block-label">DATE</label>
                         <input
                             type="date"
-                            className="admin-filter-select"
+                            className="admin-filter-select full-width"
                             value={filters.date}
                             onChange={e => handleFilterChange('date', e.target.value)}
-                            style={{ minWidth: '160px' }}
                         />
                     </div>
 
-                    <button onClick={fetchAttendance} className="admin-btn admin-btn-primary" style={{ height: '42px', marginTop: '1.2rem' }}>
-                        <FaSearch size={14} /> LOAD DATA
-                    </button>
-                    <button onClick={async () => {
-                        // Fetch per-student attendance for current filters
-                        try {
-                            const resp = await apiGet(`/api/admin/class-attendance/${filters.year}/${filters.section}/${filters.branch}`);
-                            setClassStudents(Array.isArray(resp.students) ? resp.students : resp.students || []);
-                        } catch (e) {
-                            console.error('Failed to fetch class attendance', e);
-                        }
-                    }} className="admin-btn admin-btn-outline" style={{ height: '42px', marginTop: '1.2rem', marginLeft: '0.6rem' }}>
-                        <FaUsers size={14} /> CLASS REPORT
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                        <button onClick={fetchAttendance} className="admin-btn admin-btn-primary" style={{ height: '48px' }}>
+                            <FaSearch size={14} /> LOAD DATA
+                        </button>
+                        <button onClick={async () => {
+                            try {
+                                const resp = await apiGet(`/api/admin/class-attendance/${filters.year}/${filters.section}/${filters.branch}`);
+                                setClassStudents(Array.isArray(resp.students) ? resp.students : resp.students || []);
+                            } catch (e) {
+                                console.error('Failed to fetch class attendance', e);
+                            }
+                        }} className="admin-btn admin-btn-outline" style={{ height: '48px' }}>
+                            <FaUsers size={14} /> CLASS REPORT
+                        </button>
+                    </div>
                 </div>
             </div>
 
             {/* Real-time Stats */}
-            <div className="admin-stats-grid" style={{ marginBottom: '2.5rem' }}>
+            <div className="admin-stats-grid mb-lg">
                 <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#f0fdf4', color: '#15803d' }}><FaUserCheck /></div>
+                    <div className="summary-icon-box" style={{ background: '#dcfce7', color: 'var(--admin-success)' }}><FaUserCheck /></div>
                     <div className="value">{stats.present}</div>
                     <div className="label">PRESENT</div>
                 </div>
                 <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#fef2f2', color: '#b91c1c' }}><FaUserTimes /></div>
+                    <div className="summary-icon-box" style={{ background: '#fee2e2', color: 'var(--admin-danger)' }}><FaUserTimes /></div>
                     <div className="value">{stats.total - stats.present}</div>
                     <div className="label">ABSENT</div>
                 </div>
                 <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#eff6ff', color: '#1e40af' }}><FaChartPie /></div>
+                    <div className="summary-icon-box" style={{ background: '#eff6ff', color: 'var(--admin-primary)' }}><FaChartPie /></div>
                     <div className="value">{getPercentage()}%</div>
                     <div className="label">ATTENDANCE RATE</div>
                 </div>
                 <div className="admin-summary-card">
-                    <div className="summary-icon-box" style={{ background: '#f8fafc', color: '#64748b' }}><FaUsers /></div>
+                    <div className="summary-icon-box" style={{ background: '#f8fafc', color: 'var(--admin-text-muted)' }}><FaUsers /></div>
                     <div className="value">{stats.total}</div>
                     <div className="label">TOTAL STUDENTS</div>
                 </div>
@@ -185,8 +186,9 @@ const AdminAttendancePanel = () => {
                         </thead>
                         <tbody>
                             {attendanceData.map((record) => {
-                                const p = record.records.filter(r => r.status === 'Present').length;
-                                const t = record.records.length;
+                                const recs = record.records || [];
+                                const p = recs.filter(r => r.status === 'Present').length;
+                                const t = recs.length;
                                 return (
                                     <tr key={record._id || record.id}>
                                         <td>
@@ -202,7 +204,7 @@ const AdminAttendancePanel = () => {
                                         </td>
                                         <td>
                                             <div style={{ fontSize: '0.8rem', fontWeight: 850, color: 'var(--admin-text-muted)' }}>
-                                                {record.facultyName || record.facultyId}
+                                                {record.facultyName || record.facultyId || 'Unassigned'}
                                             </div>
                                         </td>
                                         <td>
@@ -211,7 +213,7 @@ const AdminAttendancePanel = () => {
                                                     width: '40px', height: '4px', background: 'var(--admin-border)', borderRadius: '2px', overflow: 'hidden'
                                                 }}>
                                                     <div style={{
-                                                        width: `${(p / t) * 100}%`, height: '100%', background: (p / t > 0.75) ? 'var(--admin-success)' : 'var(--admin-warning)'
+                                                        width: `${t > 0 ? (p / t) * 100 : 0}%`, height: '100%', background: (p / t > 0.75) ? 'var(--admin-success)' : 'var(--admin-warning)'
                                                     }}></div>
                                                 </div>
                                                 <span style={{ fontWeight: 950, color: (p / t > 0.75) ? 'var(--admin-success)' : 'var(--admin-warning)' }}>{p} / {t}</span>

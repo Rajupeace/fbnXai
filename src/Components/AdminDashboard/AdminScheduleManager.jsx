@@ -146,7 +146,7 @@ const AdminScheduleManager = () => {
                     <h1>SCHEDULE <span>MANAGER</span></h1>
                     <p>Academic schedule and resource management</p>
                 </div>
-                <div className="admin-action-bar" style={{ margin: 0 }}>
+                <div className="admin-action-bar compact" style={{ padding: '0.5rem 1.5rem' }}>
                     <button
                         onClick={() => { resetForm(); setEditingSchedule(null); setShowModal(true); }}
                         className="admin-btn admin-btn-primary"
@@ -159,10 +159,11 @@ const AdminScheduleManager = () => {
             {/* Filters */}
             <div className="admin-card" style={{ marginBottom: '2.5rem' }}>
                 <div className="admin-filter-bar">
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">ACADEMIC YEAR</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label" style={{ marginBottom: '0.4rem', display: 'block' }}>ACADEMIC YEAR</label>
                         <select
                             className="admin-filter-select"
+                            style={{ width: '100%' }}
                             value={filters.year}
                             onChange={e => setFilters({ ...filters, year: e.target.value })}
                         >
@@ -170,10 +171,11 @@ const AdminScheduleManager = () => {
                             {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
                         </select>
                     </div>
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">SECTION</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label" style={{ marginBottom: '0.4rem', display: 'block' }}>SECTION</label>
                         <select
                             className="admin-filter-select"
+                            style={{ width: '100%' }}
                             value={filters.section}
                             onChange={e => setFilters({ ...filters, section: e.target.value })}
                         >
@@ -181,10 +183,11 @@ const AdminScheduleManager = () => {
                             {sections.map(s => <option key={s} value={s}>Section {s}</option>)}
                         </select>
                     </div>
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">BRANCH</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label" style={{ marginBottom: '0.4rem', display: 'block' }}>BRANCH</label>
                         <select
                             className="admin-filter-select"
+                            style={{ width: '100%' }}
                             value={filters.branch}
                             onChange={e => setFilters({ ...filters, branch: e.target.value })}
                         >
@@ -192,10 +195,11 @@ const AdminScheduleManager = () => {
                             {branches.map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
                     </div>
-                    <div className="admin-search-wrapper">
-                        <label className="admin-detail-label">DAY OF WEEK</label>
+                    <div className="admin-search-wrapper" style={{ minWidth: 'auto', flex: 1 }}>
+                        <label className="admin-detail-label" style={{ marginBottom: '0.4rem', display: 'block' }}>DAY OF WEEK</label>
                         <select
                             className="admin-filter-select"
+                            style={{ width: '100%' }}
                             value={filters.day}
                             onChange={e => setFilters({ ...filters, day: e.target.value })}
                         >
@@ -208,62 +212,64 @@ const AdminScheduleManager = () => {
 
             {/* Schedule List */}
             {loading ? (
-                <div style={{ padding: '6rem', textAlign: 'center' }}>
-                    <div className="f-empty-text">LOADING SCHEDULES...</div>
+                <div className="loading-state">
+                    <div className="spinner"></div>
+                    <p className="admin-text-muted">LOADING SCHEDULES...</p>
                 </div>
             ) : Object.keys(groupedSchedules).length > 0 ? (
                 Object.entries(groupedSchedules).map(([key, classSchedules]) => {
                     const [year, section, branch] = key.split('-');
                     return (
-                        <div key={key} className="f-node-card" style={{ marginBottom: '3.5rem' }}>
-                            <div className="f-node-head" style={{ borderBottom: '1px solid var(--admin-border)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-                                <h2 className="f-node-title" style={{ fontSize: '1.3rem' }}>
+                        <div key={key} className="admin-card" style={{ marginBottom: '2.5rem', padding: '0' }}>
+                            <div className="f-node-head" style={{ padding: '1.5rem', margin: 0 }}>
+                                <h2 className="f-node-title" style={{ fontSize: '1.1rem' }}>
                                     YEAR {year} <span>•</span> SECTION {section} <span>•</span> {branch}
                                 </h2>
                                 <span className="admin-badge primary">{classSchedules.length} ENTRIES</span>
                             </div>
 
-                            <div className="admin-card-grid">
+                            <div className="admin-grid" style={{ padding: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
                                 {classSchedules.map((schedule, idx) => (
-                                    <div key={schedule._id || idx} className="admin-summary-card sentinel-animate" style={{ padding: '1.75rem', animationDelay: `${idx * 0.05}s` }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                                    <div key={schedule._id || idx} className="admin-summary-card sentinel-animate" style={{ padding: '1.5rem', animationDelay: `${idx * 0.05}s` }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem' }}>
                                             <div className="summary-icon-box" style={{
-                                                width: '50px', height: '50px', borderRadius: '14px',
+                                                width: '48px', height: '48px', borderRadius: '12px',
                                                 background: schedule.type === 'Lab' ? '#ecfdf5' : '#eff6ff',
-                                                color: schedule.type === 'Lab' ? 'var(--admin-success)' : 'var(--admin-primary)'
+                                                color: schedule.type === 'Lab' ? 'var(--admin-success)' : 'var(--admin-primary)',
+                                                fontSize: '1.1rem'
                                             }}>
-                                                <FaClock style={{ fontSize: '1.2rem' }} />
+                                                <FaClock />
                                             </div>
                                             <div>
-                                                <div style={{ fontSize: '0.75rem', fontWeight: 950, color: 'var(--admin-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{schedule.day}</div>
-                                                <div style={{ fontSize: '1.15rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{schedule.time}</div>
+                                                <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--admin-text-light)', textTransform: 'uppercase' }}>{schedule.day}</div>
+                                                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--admin-secondary)' }}>{schedule.time}</div>
                                             </div>
                                         </div>
 
-                                        <div style={{ marginBottom: '1.5rem' }}>
-                                            <h3 style={{ fontSize: '1.2rem', fontWeight: 950, color: 'var(--admin-secondary)', marginBottom: '1rem', lineHeight: 1.2 }}>
+                                        <div style={{ marginBottom: '1rem', flex: 1 }}>
+                                            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--admin-secondary)', marginBottom: '0.8rem', lineHeight: 1.3 }}>
                                                 {schedule.subject}
                                             </h3>
 
-                                            <div style={{ display: 'grid', gap: '0.75rem' }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', fontWeight: 850, color: 'var(--admin-text-muted)' }}>
+                                            <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-text-muted)' }}>
                                                     <FaChalkboardTeacher style={{ color: 'var(--admin-accent)' }} /> {schedule.faculty}
                                                 </div>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.85rem', fontWeight: 850, color: 'var(--admin-text-muted)' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.85rem', fontWeight: 600, color: 'var(--admin-text-muted)' }}>
                                                     <FaMapMarkerAlt style={{ color: 'var(--admin-success)' }} /> {schedule.room}
                                                 </div>
                                             </div>
 
-                                            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '1rem', flexWrap: 'wrap' }}>
                                                 <span className={`admin-badge ${schedule.type === 'Lab' ? 'success' : 'primary'}`} style={{ fontSize: '0.65rem' }}>{schedule.type.toUpperCase()}</span>
                                                 {schedule.batch && <span className="admin-badge warning" style={{ fontSize: '0.65rem' }}>BATCH {schedule.batch}</span>}
-                                                {schedule.courseCode && <span className="admin-badge primary" style={{ fontSize: '0.65rem', background: '#f1f5f9', color: '#64748b' }}>{schedule.courseCode}</span>}
+                                                {schedule.courseCode && <span className="admin-badge" style={{ fontSize: '0.65rem', background: '#f1f5f9', color: '#64748b' }}>{schedule.courseCode}</span>}
                                             </div>
                                         </div>
 
-                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem', borderTop: '1px solid var(--admin-border)', paddingTop: '1.25rem' }}>
-                                            <button className="f-exam-card" style={{ padding: '0.5rem', background: 'white' }} onClick={() => handleEdit(schedule)} title="Edit"><FaEdit /></button>
-                                            <button className="f-cancel-btn" style={{ padding: '0.5rem' }} onClick={() => handleDelete(schedule._id)} title="Delete"><FaTrash /></button>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid var(--admin-border)', paddingTop: '1rem', marginTop: 'auto' }}>
+                                            <button className="admin-action-btn secondary" onClick={() => handleEdit(schedule)} title="Edit"><FaEdit /></button>
+                                            <button className="admin-action-btn danger" onClick={() => handleDelete(schedule._id)} title="Delete"><FaTrash /></button>
                                         </div>
                                     </div>
                                 ))}
@@ -272,10 +278,10 @@ const AdminScheduleManager = () => {
                     );
                 })
             ) : (
-                <div className="admin-card" style={{ textAlign: 'center', padding: '6rem' }}>
-                    <FaCalendarAlt style={{ fontSize: '4rem', color: 'var(--admin-border)', marginBottom: '1.5rem' }} />
-                    <h2 style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>NO SCHEDULES FOUND</h2>
-                    <p style={{ color: 'var(--admin-text-muted)', fontWeight: 850 }}>No schedule entries found for current parameters. Create a new schedule entry.</p>
+                <div className="admin-empty-state">
+                    <FaCalendarAlt className="admin-empty-icon" />
+                    <h2 className="admin-empty-title">NO SCHEDULES FOUND</h2>
+                    <p className="admin-empty-text">No schedule entries found for current parameters. Create a new schedule entry.</p>
                 </div>
             )}
 
@@ -283,72 +289,72 @@ const AdminScheduleManager = () => {
             {showModal && (
                 <div className="admin-modal-overlay">
                     <div className="admin-modal-content">
-                        <div className="f-node-head" style={{ marginBottom: '2rem' }}>
-                            <h2 style={{ fontWeight: 950, fontSize: '1.5rem', margin: 0 }}>
+                        <div className="f-node-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--admin-border)', paddingBottom: '1rem' }}>
+                            <h2 style={{ fontWeight: 800, fontSize: '1.5rem', margin: 0, color: 'var(--admin-secondary)' }}>
                                 {editingSchedule ? 'EDIT SCHEDULE' : 'CREATE SCHEDULE'}
                             </h2>
-                            <button onClick={() => { setShowModal(false); setEditingSchedule(null); }} className="f-node-btn" style={{ border: 'none' }}><FaTimes /></button>
+                            <button onClick={() => { setShowModal(false); setEditingSchedule(null); }} className="admin-btn-close" style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: 'var(--admin-text-muted)' }}><FaTimes /></button>
                         </div>
 
-                        <div className="admin-form-grid">
-                            <div className="admin-form-group full-width">
+                        <div className="admin-grid-2">
+                            <div className="admin-form-group admin-grid-span-2">
                                 <label className="admin-form-label">SUBJECT NAME *</label>
-                                <input className="admin-filter-select" style={{ width: '100%' }} value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} placeholder="Enter subject name..." required />
+                                <input className="admin-form-input" value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} placeholder="Enter subject name..." required />
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">DAY *</label>
-                                <select className="admin-filter-select" style={{ width: '100%' }} value={formData.day} onChange={e => setFormData({ ...formData, day: e.target.value })}>
+                                <select className="admin-form-input" style={{ width: '100%' }} value={formData.day} onChange={e => setFormData({ ...formData, day: e.target.value })}>
                                     {days.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">TIME SLOT *</label>
-                                <input className="admin-filter-select" style={{ width: '100%' }} value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} placeholder="e.g., 09:00 - 10:00" required />
+                                <input className="admin-form-input" style={{ width: '100%' }} value={formData.time} onChange={e => setFormData({ ...formData, time: e.target.value })} placeholder="e.g., 09:00 - 10:00" required />
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">FACULTY NAME *</label>
-                                <input className="admin-filter-select" style={{ width: '100%' }} value={formData.faculty} onChange={e => setFormData({ ...formData, faculty: e.target.value })} placeholder="Enter instructor name..." required />
+                                <input className="admin-form-input" style={{ width: '100%' }} value={formData.faculty} onChange={e => setFormData({ ...formData, faculty: e.target.value })} placeholder="Enter instructor name..." required />
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">ROOM / LOCATION *</label>
-                                <input className="admin-filter-select" style={{ width: '100%' }} value={formData.room} onChange={e => setFormData({ ...formData, room: e.target.value })} placeholder="e.g., Nexus 301" required />
+                                <input className="admin-form-input" style={{ width: '100%' }} value={formData.room} onChange={e => setFormData({ ...formData, room: e.target.value })} placeholder="e.g., Nexus 301" required />
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">TYPE *</label>
-                                <select className="admin-filter-select" style={{ width: '100%' }} value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
+                                <select className="admin-form-input" style={{ width: '100%' }} value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
                                     {types.map(t => <option key={t} value={t}>{t}</option>)}
                                 </select>
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">COHORT YEAR *</label>
-                                <select className="admin-filter-select" style={{ width: '100%' }} value={formData.year} onChange={e => setFormData({ ...formData, year: parseInt(e.target.value) })}>
+                                <select className="admin-form-input" style={{ width: '100%' }} value={formData.year} onChange={e => setFormData({ ...formData, year: parseInt(e.target.value) })}>
                                     {[1, 2, 3, 4].map(y => <option key={y} value={y}>Year {y}</option>)}
                                 </select>
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">SECTION *</label>
-                                <select className="admin-filter-select" style={{ width: '100%' }} value={formData.section} onChange={e => setFormData({ ...formData, section: e.target.value })}>
+                                <select className="admin-form-input" style={{ width: '100%' }} value={formData.section} onChange={e => setFormData({ ...formData, section: e.target.value })}>
                                     {sections.map(s => <option key={s} value={s}>Section {s}</option>)}
                                 </select>
                             </div>
 
                             <div className="admin-form-group">
                                 <label className="admin-form-label">BRANCH *</label>
-                                <select className="admin-filter-select" style={{ width: '100%' }} value={formData.branch} onChange={e => setFormData({ ...formData, branch: e.target.value })}>
+                                <select className="admin-form-input" style={{ width: '100%' }} value={formData.branch} onChange={e => setFormData({ ...formData, branch: e.target.value })}>
                                     {branches.map(b => <option key={b} value={b}>{b}</option>)}
                                 </select>
                             </div>
                         </div>
 
                         <div className="admin-modal-actions">
-                            <button onClick={() => { setShowModal(false); setEditingSchedule(null); }} className="f-cancel-btn">CANCEL</button>
+                            <button onClick={() => { setShowModal(false); setEditingSchedule(null); }} className="admin-btn admin-btn-outline">CANCEL</button>
                             <button onClick={handleSave} className="admin-btn admin-btn-primary">
                                 <FaSave /> SAVE SCHEDULE
                             </button>

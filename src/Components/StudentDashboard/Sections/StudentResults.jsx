@@ -3,36 +3,63 @@ import { FaTrophy, FaChartLine, FaClipboardCheck, FaBook, FaAward } from 'react-
 import { apiGet } from '../../../utils/apiClient';
 import './StudentResults.css';
 
-const StudentResults = ({ studentData }) => {
-    const [resultsBySubject, setResultsBySubject] = useState([]);
-    const [loading, setLoading] = useState(true);
+const StudentResults = ({ studentData, preloadedData }) => {
+    const [resultsBySubject, setResultsBySubject] = useState(preloadedData || []);
+    const [loading, setLoading] = useState(!preloadedData);
     const [overallStats, setOverallStats] = useState({ total: 0, max: 0, percentage: 0 });
 
     useEffect(() => {
-        if (studentData?.sid) {
-            fetchResults();
+        if (preloadedData) {
+            setResultsBySubject(preloadedData);
+            calculateStats(preloadedData);
+            setLoading(false);
+            return;
         }
-    }, [studentData?.sid]);
+
+        if (!studentData?.sid) return;
+
+        const fetchResults = async () => {
+            try {
+                setLoading(true);
+                const data = await apiGet(`/api/students/${studentData.sid}/marks-by-subject`);
+                setResultsBySubject(data);
+                calculateStats(data);
+            } catch (error) {
+                console.error('Error fetching results:', error);
+                setResultsBySubject([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchResults();
+    }, [studentData?.sid, preloadedData]);
+
+    const calculateStats = (data) => {
+        let totalScored = 0;
+        let totalMax = 0;
+        if (Array.isArray(data)) {
+            data.forEach(subject => {
+                if (subject.overall) {
+                    totalScored += subject.overall.total || 0;
+                    totalMax += subject.overall.max || 0;
+                }
+            });
+        }
+
+        setOverallStats({
+            total: totalScored,
+            max: totalMax,
+            percentage: totalMax > 0 ? Math.round((totalScored / totalMax) * 100) : 0
+        });
+    };
 
     const fetchResults = async () => {
         try {
             setLoading(true);
             const data = await apiGet(`/api/students/${studentData.sid}/marks-by-subject`);
             setResultsBySubject(data);
-
-            // Calculate overall stats
-            let totalScored = 0;
-            let totalMax = 0;
-            data.forEach(subject => {
-                totalScored += subject.overall.total;
-                totalMax += subject.overall.max;
-            });
-
-            setOverallStats({
-                total: totalScored,
-                max: totalMax,
-                percentage: totalMax > 0 ? Math.round((totalScored / totalMax) * 100) : 0
-            });
+            calculateStats(data);
         } catch (error) {
             console.error('Error fetching results:', error);
             setResultsBySubject([]);
@@ -96,7 +123,8 @@ const StudentResults = ({ studentData }) => {
             {resultsBySubject.length > 0 ? (
                 <div className="subjects-grid">
                     {resultsBySubject.map((subject, index) => {
-                        const subjectGrade = getGrade(subject.overall.percentage);
+                        if (!subject || !subject.overall) return null; // Safe Skip
+                        const subjectGrade = getGrade(subject.overall.percentage || 0);
 
                         return (
                             <div key={index} className="subject-card">

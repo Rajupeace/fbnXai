@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    FaBriefcase, FaUserTie, FaChevronRight, FaSpinner, FaArrowLeft, FaLaptopCode, FaServer, FaCodeBranch, FaCloud, FaChartBar, FaCheckCircle, FaLightbulb, FaUniversity
+    FaBriefcase, FaUserTie, FaChevronRight, FaSpinner, FaArrowLeft, FaLaptopCode, FaServer, FaCodeBranch, FaCloud, FaChartBar, FaCheckCircle, FaUniversity
 } from 'react-icons/fa';
 import api from '../../../utils/apiClient';
 import './PlacementPrep.css';
 
 /**
  * PLACEMENT PREP HUB
- * Supports: Company Selection -> Domain Selection -> Domain Specific Questions
  */
 const PlacementPrep = ({ userData }) => {
     const [companies, setCompanies] = useState([]);
@@ -33,17 +32,14 @@ const PlacementPrep = ({ userData }) => {
         }
     };
 
-    // Helper: Filter questions based on domain
     const getFilteredQuestions = () => {
         if (!selectedCompany) return [];
         if (!selectedDomain) return [];
-
         return selectedCompany.questions.filter(q =>
             q.domain === selectedDomain || q.domain === 'General' || q.domain === 'Aptitude'
         );
     };
 
-    // Icons for domains
     const getDomainIcon = (domain) => {
         const d = (domain || '').toLowerCase();
         if (d.includes('frontend')) return <FaCodeBranch />;
@@ -61,29 +57,16 @@ const PlacementPrep = ({ userData }) => {
                 layout
                 onClick={() => setIsOpen(!isOpen)}
                 className={`q-card-premium ${isOpen ? 'open' : ''}`}
-                style={{
-                    padding: '1.5rem', borderRadius: '18px', border: '1px solid #f1f5f9',
-                    background: isOpen ? '#ffffff' : '#f8fafc',
-                    cursor: 'pointer', transition: 'all 0.3s',
-                    boxShadow: isOpen ? `0 20px 40px -10px ${color}20` : 'none',
-                    borderLeft: `5px solid ${isOpen ? color : '#e2e8f0'}`,
-                    marginBottom: '1rem'
-                }}
+                style={{ borderLeftColor: isOpen ? color : '#e2e8f0', '--company-color': color }}
             >
-                <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
-                    <div style={{
-                        minWidth: '32px', height: '32px', borderRadius: '10px',
-                        background: isOpen ? color : '#cbd5e1', color: 'white', fontWeight: 900, fontSize: '0.8rem',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.3s'
-                    }}>
+                <div className="q-card-header-row" style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                    <div className="q-index-box" style={{ background: isOpen ? color : '#cbd5e1' }}>
                         {idx + 1}
                     </div>
-                    <h4 style={{ margin: 0, fontSize: '1rem', color: '#334155', fontWeight: 750, flex: 1, lineHeight: 1.4 }}>
-                        {q.question}
-                    </h4>
+                    <h4 className="q-text">{q.question}</h4>
                     <FaChevronRight style={{
                         transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)', fontSize: '0.8rem', color: '#94a3b8'
+                        transition: 'transform 0.4s', fontSize: '0.8rem', color: '#94a3b8'
                     }} />
                 </div>
 
@@ -95,16 +78,11 @@ const PlacementPrep = ({ userData }) => {
                             exit={{ height: 0, opacity: 0 }}
                             style={{ overflow: 'hidden' }}
                         >
-                            <div style={{
-                                marginLeft: 'calc(32px + 1.25rem)', marginTop: '1.5rem',
-                                paddingLeft: '1.5rem', borderLeft: `3px dashed ${color}30`
-                            }}>
-                                <p style={{ margin: 0, fontSize: '0.95rem', color: '#475569', lineHeight: '1.8' }}>
-                                    {q.answer}
-                                </p>
-                                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
-                                    <span style={{ fontSize: '0.7rem', padding: '4px 12px', borderRadius: '6px', background: '#f1f5f9', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>{q.category}</span>
-                                    <span style={{ fontSize: '0.7rem', padding: '4px 12px', borderRadius: '6px', background: '#f1f5f9', color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>{q.difficulty}</span>
+                            <div className="q-answer-wrapper" style={{ borderLeftColor: `${color}30` }}>
+                                <p className="q-answer-text">{q.answer}</p>
+                                <div className="q-metadata">
+                                    <span className="meta-pill">{q.category}</span>
+                                    <span className="meta-pill">{q.difficulty}</span>
                                 </div>
                             </div>
                         </motion.div>
@@ -128,11 +106,7 @@ const PlacementPrep = ({ userData }) => {
             <div className="placement-container">
                 <div className="placement-hero">
                     <div className="hero-content">
-                        <motion.div
-                            initial={{ opacity: 0, y: 30 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.8 }}
-                        >
+                        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
                             <div className="hero-badge">
                                 <FaBriefcase /> PLACEMENT COMMAND CENTER
                             </div>
@@ -140,7 +114,7 @@ const PlacementPrep = ({ userData }) => {
                                 Master Your <br /><span>Strategic Career</span>
                             </h2>
                             <p className="hero-subtitle">
-                                Welcome, <strong>{userData?.studentName}</strong>. Your roadmap to Google, Microsoft, and Amazon begins here. Access curated interview intelligence.
+                                Welcome, <strong>{userData?.studentName}</strong>. Your roadmap to Google, Microsoft, and Amazon begins here.
                             </p>
                         </motion.div>
                     </div>
@@ -173,7 +147,7 @@ const PlacementPrep = ({ userData }) => {
                                     <div className="package-pill">{company.package || '6.5 LPA'}</div>
                                 </div>
                                 <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-                                    {company.description ? company.description.substring(0, 70) : 'Elite recruitment partner for technology roles.'}...
+                                    {company.description ? company.description.substring(0, 70) : 'Elite recruitment partner'}...
                                 </p>
 
                                 <div className="role-info-box">
@@ -234,11 +208,9 @@ const PlacementPrep = ({ userData }) => {
                         ))}
                     </div>
 
-                    <div style={{ marginTop: '3rem', padding: '1.5rem', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
-                        <h5 style={{ margin: '0 0 0.75rem', fontSize: '0.9rem', fontWeight: 850 }}>🚀 AI STRATEGY</h5>
-                        <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', lineHeight: '1.6', fontWeight: 500 }}>
-                            Most students spend <strong>7.4 hours</strong> on software domains. Start with Aptitude for the screening round.
-                        </p>
+                    <div className="prep-strategy-box">
+                        <h5>🚀 AI STRATEGY</h5>
+                        <p>Most students spend <strong>7.4 hours</strong> on software domains. Start with Aptitude for the screening round.</p>
                     </div>
                 </aside>
 
@@ -260,7 +232,7 @@ const PlacementPrep = ({ userData }) => {
                                         {getFilteredQuestions().length} High-Probability Questions
                                     </p>
                                 </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f0fdf4', padding: '0.5rem 1rem', borderRadius: '100px', color: '#10b981', fontSize: '0.8rem', fontWeight: 900 }}>
+                                <div className="secure-sync-badge">
                                     <FaCheckCircle /> SECURE SYNC
                                 </div>
                             </div>
@@ -271,10 +243,10 @@ const PlacementPrep = ({ userData }) => {
                                 ))}
 
                                 {getFilteredQuestions().length === 0 && (
-                                    <div style={{ textAlign: 'center', padding: '6rem 2rem' }}>
-                                        <FaUniversity size={60} style={{ color: '#f1f5f9', marginBottom: '1.5rem' }} />
-                                        <h3 style={{ color: '#cbd5e1' }}>Pipeline Empty</h3>
-                                        <p style={{ color: '#94a3b8' }}>No specific data tags for this domain. Select another filter.</p>
+                                    <div className="prep-empty-state">
+                                        <FaUniversity size={60} />
+                                        <h3>Pipeline Empty</h3>
+                                        <p>No specific data tags for this domain. Select another filter.</p>
                                     </div>
                                 )}
                             </div>

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { FaUserGraduate, FaSearch, FaEnvelope, FaIdCard, FaGraduationCap, FaCodeBranch, FaLayerGroup } from 'react-icons/fa';
+import { FaUserGraduate, FaSearch, FaGraduationCap, FaCodeBranch, FaLayerGroup, FaRobot } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import '../FacultyDashboard.css';
 
-const FacultyStudents = ({ studentsList }) => {
+const FacultyStudents = ({ studentsList, openAiWithPrompt }) => {
+    // Safety check
+    studentsList = studentsList || [];
     const [searchTerm, setSearchTerm] = useState('');
     const [filterYear, setFilterYear] = useState('All');
 
@@ -34,24 +36,29 @@ const FacultyStudents = ({ studentsList }) => {
             </header>
 
             {/* Controls */}
-            <div className="f-attendance-controls animate-slide-up" style={{ marginBottom: '2rem' }}>
-                <div className="f-search-bar" style={{ position: 'relative', width: '300px' }}>
-                    <FaSearch style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <div className="f-flex-gap f-spacer-lg animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <div className="f-search-bar" style={{ position: 'relative', width: '350px' }}>
+                    <FaSearch style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                     <input
                         type="text"
-                        placeholder="Search by name or ID..."
+                        placeholder="Search student name or ID..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="f-input-field"
-                        style={{ paddingLeft: '2.8rem', width: '100%', borderRadius: '16px', fontSize: '0.9rem' }}
+                        className="f-form-select" // Re-using select style for consistent padding/radius
+                        style={{ paddingLeft: '3.2rem', marginBottom: 0 }}
                     />
                 </div>
 
-                <div className="f-pill-control">
-                    <label>YEAR:</label>
-                    <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
-                        {years.map(y => <option key={y} value={y}>{y === 'All' ? 'ALL YEARS' : `YEAR ${y}`}</option>)}
-                    </select>
+                <div className="nexus-glass-pills" style={{ marginBottom: 0 }}>
+                    {years.map(y => (
+                        <button
+                            key={y}
+                            onClick={() => setFilterYear(y)}
+                            className={`nexus-pill ${filterYear === String(y) ? 'active' : ''}`}
+                        >
+                            {y === 'All' ? 'ALL YEARS' : `YEAR ${y}`}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -101,6 +108,18 @@ const FacultyStudents = ({ studentsList }) => {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8rem', fontWeight: 800, color: '#475569', gridColumn: 'span 2' }}>
                                             <FaCodeBranch style={{ color: '#94a3b8' }} />
                                             <span>{student.branch || 'General Engineering'}</span>
+                                        </div>
+                                        <div style={{ gridColumn: 'span 2', marginTop: '0.5rem' }}>
+                                            <button
+                                                className="f-quick-btn outline"
+                                                style={{ width: '100%', fontSize: '0.7rem', padding: '0.5rem', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                                                onClick={() => {
+                                                    const prompt = `Can you provide a pedagogical evaluation and progress report for ${student.studentName} (ID: ${student.sid})? They are in Year ${student.year}, Section ${student.section}, studying ${student.branch}. I want to understand their potential learning hurdles and suggested intervention strategies.`;
+                                                    openAiWithPrompt(prompt);
+                                                }}
+                                            >
+                                                <FaRobot /> AI EVALUATE
+                                            </button>
                                         </div>
                                     </div>
                                 </motion.div>

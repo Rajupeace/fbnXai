@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import '../FacultyDashboard.css';
 
 const FacultyMessages = ({ messages }) => {
+    // Safety check
+    messages = messages || [];
     return (
         <div className="animate-fade-in">
             <div className="nexus-mesh-bg"></div>
@@ -13,33 +15,43 @@ const FacultyMessages = ({ messages }) => {
                     <p className="nexus-subtitle">Official communications from administration</p>
                 </div>
             </header>
-            <div className="f-node-card" style={{ marginTop: '2rem' }}>
+            <div className="f-messages-container" style={{ marginTop: '2.5rem' }}>
                 {messages.length > 0 ? (
-                    <div style={{ display: 'grid', gap: '1rem', padding: '1.5rem' }}>
+                    <div className="f-message-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '1.5rem' }}>
                         {messages.map((msg, i) => (
                             <motion.div
                                 key={msg.id || i}
-                                initial={{ opacity: 0, x: -10 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.05 }}
-                                style={{ padding: '1rem', borderLeft: '4px solid #6366f1', borderRadius: '8px', background: 'rgba(99,102,241,0.05)' }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                                className="f-node-card message-node"
+                                style={{
+                                    padding: '2rem',
+                                    borderLeft: '6px solid var(--accent-primary)',
+                                    background: 'rgba(255,255,255,0.8)',
+                                    backdropFilter: 'blur(10px)'
+                                }}
                             >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-                                    <span style={{ fontWeight: 950, color: 'var(--admin-secondary)' }}>{msg.message || msg.text}</span>
-                                    <span style={{ fontSize: '0.75rem', opacity: 0.6 }}>{new Date(msg.createdAt || msg.date).toLocaleString()}</span>
-                                </div>
-                                {msg.target && (
-                                    <span style={{ fontSize: '0.7rem', opacity: 0.6, padding: '0.25rem 0.5rem', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', display: 'inline-block' }}>
-                                        PRIORITY: {msg.target.toUpperCase()}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                    <div className="f-tag-badge" style={{ background: 'rgba(99,102,241,0.1)', color: 'var(--accent-primary)' }}>
+                                        {msg.target?.toUpperCase() || 'GLOBAL NOTICE'}
+                                    </div>
+                                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#94a3b8' }}>
+                                        {new Date(msg.createdAt || msg.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                     </span>
-                                )}
+                                </div>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 850, color: '#1e293b', lineHeight: 1.6, marginBottom: '1rem' }}>
+                                    {msg.message || msg.text}
+                                </div>
+                                <div style={{ height: '3px', width: '40px', background: 'var(--accent-primary)', borderRadius: '10px' }}></div>
                             </motion.div>
                         ))}
                     </div>
                 ) : (
-                    <div style={{ textAlign: 'center', padding: '4rem 2rem', opacity: 0.6 }}>
-                        <FaBullhorn size={48} style={{ opacity: 0.2, marginBottom: '1rem' }} />
-                        <p style={{ fontWeight: 800, letterSpacing: '0.05em' }}>NO ACTIVE ADMINISTRATIVE NOTICES</p>
+                    <div className="f-node-card f-center-empty" style={{ padding: '6rem 2rem' }}>
+                        <FaBullhorn style={{ fontSize: '4rem', color: '#cbd5e1', marginBottom: '2rem', opacity: 0.5 }} />
+                        <h3 style={{ fontSize: '1.5rem', fontWeight: 950, color: '#1e293b' }}>No Administrative Notices</h3>
+                        <p style={{ color: '#94a3b8', fontWeight: 850, marginTop: '1rem' }}>Official communications will appear here when issued.</p>
                     </div>
                 )}
             </div>

@@ -9,26 +9,27 @@ const AdminMarks = () => {
     const [filters, setFilters] = useState({ year: '', section: '', subject: '' });
 
     useEffect(() => {
+        const fetchOverview = async () => {
+            try {
+                setLoading(true);
+                const params = new URLSearchParams();
+                if (filters.year) params.append('year', filters.year);
+                if (filters.section) params.append('section', filters.section);
+                if (filters.subject) params.append('subject', filters.subject);
+
+                const data = await apiGet(`/api/admin/marks/overview?${params.toString()}`);
+                // Ensure data is not null
+                setOverview(data || { totalStudents: 0, subjectsAnalyzed: [], averagesBySubject: {}, overallAverage: 0 });
+            } catch (error) {
+                console.error('Error fetching marks overview:', error);
+                setOverview({ totalStudents: 0, subjectsAnalyzed: [], averagesBySubject: {}, overallAverage: 0 });
+            } finally {
+                setLoading(false);
+            }
+        };
+
         fetchOverview();
     }, [filters]);
-
-    const fetchOverview = async () => {
-        try {
-            setLoading(true);
-            const params = new URLSearchParams();
-            if (filters.year) params.append('year', filters.year);
-            if (filters.section) params.append('section', filters.section);
-            if (filters.subject) params.append('subject', filters.subject);
-
-            const data = await apiGet(`/api/admin/marks/overview?${params.toString()}`);
-            setOverview(data);
-        } catch (error) {
-            console.error('Error fetching marks overview:', error);
-            setOverview({ totalStudents: 0, subjectsAnalyzed: [], averagesBySubject: {}, overallAverage: 0 });
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const getGradeColor = (percentage) => {
         if (percentage >= 90) return '#10b981';
@@ -53,21 +54,21 @@ const AdminMarks = () => {
 
     return (
         <div className="admin-marks-container animate-fade-in">
-            <header className="admin-marks-header">
-                <div>
-                    <h2>MARKS & GRADES <span>OVERVIEW</span></h2>
-                    <p className="subtitle">Class performance analysis and subject-wise averages</p>
+            <header className="admin-page-header">
+                <div className="admin-page-title">
+                    <h1>MARKS & GRADES <span>OVERVIEW</span></h1>
+                    <p>Class performance analysis and subject-wise averages</p>
                 </div>
             </header>
 
             {/* Filter Bar */}
-            <div className="filter-bar">
-                <div className="filter-group">
-                    <FaFilter />
+            <div className="admin-filter-bar">
+                <div className="filter-group" style={{ display: 'flex', gap: '1rem', alignItems: 'center', width: '100%' }}>
+                    <FaFilter style={{ color: 'var(--admin-text-light)' }} />
                     <select
                         value={filters.year}
                         onChange={(e) => setFilters({ ...filters, year: e.target.value })}
-                        className="filter-select"
+                        className="admin-filter-select"
                     >
                         <option value="">All Years</option>
                         <option value="1">Year 1</option>
@@ -79,7 +80,7 @@ const AdminMarks = () => {
                     <select
                         value={filters.section}
                         onChange={(e) => setFilters({ ...filters, section: e.target.value })}
-                        className="filter-select"
+                        className="admin-filter-select"
                     >
                         <option value="">All Sections</option>
                         {['A', 'B', 'C', 'D', 'E', 'F'].map(s => (
@@ -87,53 +88,53 @@ const AdminMarks = () => {
                         ))}
                     </select>
 
-                    <button className="filter-reset" onClick={() => setFilters({ year: '', section: '', subject: '' })}>
-                        Reset Filters
+                    <button className="admin-btn admin-btn-outline" onClick={() => setFilters({ year: '', section: '', subject: '' })} style={{ marginLeft: 'auto' }}>
+                        RESET FILTERS
                     </button>
                 </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="stats-grid">
-                <div className="stat-card primary">
-                    <div className="stat-icon">
+            <div className="admin-stats-grid">
+                <div className="admin-summary-card">
+                    <div className="summary-icon-box" style={{ background: '#e0e7ff', color: 'var(--admin-primary)' }}>
                         <FaUsers />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-value">{overview.totalStudents}</div>
-                        <div className="stat-label">Total Students</div>
+                    <div style={{ flex: 1 }}>
+                        <div className="value">{overview?.totalStudents || 0}</div>
+                        <div className="label">Total Students</div>
                     </div>
                 </div>
 
-                <div className="stat-card success">
-                    <div className="stat-icon">
+                <div className="admin-summary-card">
+                    <div className="summary-icon-box" style={{ background: '#dcfce7', color: 'var(--admin-success)' }}>
                         <FaBook />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-value">{overview.subjectsAnalyzed.length}</div>
-                        <div className="stat-label">Subjects Analyzed</div>
+                    <div>
+                        <div className="value">{overview?.subjectsAnalyzed?.length || 0}</div>
+                        <div className="label">Subjects Analyzed</div>
                     </div>
                 </div>
 
-                <div className="stat-card warning">
-                    <div className="stat-icon">
+                <div className="admin-summary-card">
+                    <div className="summary-icon-box" style={{ background: '#fef3c7', color: 'var(--admin-warning)' }}>
                         <FaTrophy />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-value">{overview.overallAverage}%</div>
-                        <div className="stat-label">Class Average</div>
+                    <div>
+                        <div className="value">{overview?.overallAverage || 0}%</div>
+                        <div className="label">Class Average</div>
                     </div>
                 </div>
 
-                <div className="stat-card accent">
-                    <div className="stat-icon">
+                <div className="admin-summary-card">
+                    <div className="summary-icon-box" style={{ background: '#f3e8ff', color: '#8b5cf6' }}>
                         <FaChartBar />
                     </div>
-                    <div className="stat-content">
-                        <div className="stat-value">
-                            {Object.keys(overview.averagesBySubject).length}
+                    <div>
+                        <div className="value">
+                            {overview?.averagesBySubject ? Object.keys(overview.averagesBySubject).length : 0}
                         </div>
-                        <div className="stat-label">Active Assessments</div>
+                        <div className="label">Active Assessments</div>
                     </div>
                 </div>
             </div>
@@ -142,7 +143,7 @@ const AdminMarks = () => {
             <div className="performance-section">
                 <h3>SUBJECT-WISE PERFORMANCE</h3>
 
-                {Object.keys(overview.averagesBySubject).length > 0 ? (
+                {overview && overview.averagesBySubject && Object.keys(overview.averagesBySubject).length > 0 ? (
                     <div className="subject-cards-grid">
                         {Object.entries(overview.averagesBySubject).map(([subject, data]) => (
                             <div key={subject} className="subject-performance-card">
@@ -184,16 +185,16 @@ const AdminMarks = () => {
                         ))}
                     </div>
                 ) : (
-                    <div className="empty-state">
-                        <FaChartBar size={64} />
-                        <h4>No Data Available</h4>
-                        <p>Marks will appear here once faculty enters them</p>
+                    <div className="admin-empty-state">
+                        <FaChartBar className="admin-empty-icon" />
+                        <h4 className="admin-empty-title">No Data Available</h4>
+                        <p className="admin-empty-text">Marks will appear here once faculty enters them</p>
                     </div>
                 )}
             </div>
 
             {/* Info Banner */}
-            <div className="info-banner">
+            <div className="info-banner" style={{ marginTop: '2rem' }}>
                 <FaTrophy />
                 <div>
                     <strong>Assessment Structure:</strong>

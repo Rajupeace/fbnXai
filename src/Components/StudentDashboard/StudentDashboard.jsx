@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { apiGet } from '../../utils/apiClient';
 import sseClient from '../../utils/sseClient';
 import {
-    FaGraduationCap, FaChartBar, FaTrophy, FaLightbulb,
-    FaLayerGroup, FaRobot, FaFire, FaClipboardList, FaBriefcase, FaCreditCard, FaBolt
+    FaChartBar, FaLayerGroup, FaRobot, FaBriefcase, FaChevronRight
 } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
 
 // Sections
@@ -15,7 +16,8 @@ import SemesterNotes from './Sections/SemesterNotes';
 import SubjectAttendanceMarks from './Sections/SubjectAttendanceMarks';
 import StudentResults from './Sections/StudentResults';
 import AdvancedLearning from './Sections/AdvancedLearning';
-import StudentAttendanceView from './StudentAttendanceView';
+import StudentHeader from './Sections/StudentHeader';
+
 import StudentExams from './StudentExams';
 import StudentFacultyList from './StudentFacultyList';
 import StudentSchedule from './StudentSchedule';
@@ -23,6 +25,7 @@ import PlacementPrep from './Sections/PlacementPrep';
 import StudentRoadmaps from './Sections/StudentRoadmaps';
 import StudentAnnouncements from './Sections/StudentAnnouncements';
 import StudentSettings from './Sections/StudentSettings';
+import StudentSupport from './Sections/StudentSupport';
 import { getYearData } from './branchData';
 import AcademicPulse from './AcademicPulse';
 import CollegeFees from './Sections/CollegeFees';
@@ -33,6 +36,7 @@ import GlobalNotifications from '../GlobalNotifications/GlobalNotifications';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 import StudentTasks from './Sections/StudentTasks';
 import CareerReadiness from './Sections/CareerReadiness';
+import CommandPalette from '../CommandPalette/CommandPalette';
 // StudyTools intentionally removed (unused) to satisfy linting
 
 /**
@@ -40,7 +44,8 @@ import CareerReadiness from './Sections/CareerReadiness';
  * A high-fidelity, interactive workstation for modern students.
  */
 export default function StudentDashboard({ studentData, onLogout }) {
-    // const navigate = useNavigate(); // Unused
+    const navigate = useNavigate();
+    const location = useLocation();
 
     // Auth & Data Initialization
     let stored = null;
@@ -54,7 +59,10 @@ export default function StudentDashboard({ studentData, onLogout }) {
     const branch = String(initialData.branch || 'CSE').toUpperCase();
 
     // UI & App State
-    const [view, setView] = useState('overview');
+    const [view, setView] = useState(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('view') || 'overview';
+    });
     const [isDashboardLoaded, setIsDashboardLoaded] = useState(false);
     const [userData, setUserData] = useState(initialData);
     const [overviewData, setOverviewData] = useState(null);
@@ -62,20 +70,72 @@ export default function StudentDashboard({ studentData, onLogout }) {
     const [serverMaterials, setServerMaterials] = useState([]);
     const [tasks, setTasks] = useState([]);
     const [messages, setMessages] = useState([]);
-    const [feeData, setFeeData] = useState(null);
+    const [marksData, setMarksData] = useState(null);
+    const [scheduleData, setScheduleData] = useState(null);
+    const [examsData, setExamsData] = useState(null);
     const [nextClass, setNextClass] = useState(null);
+    const [advancedData, setAdvancedData] = useState(null);
+    const [roadmapData, setRoadmapData] = useState(null);
+    const [assignedFaculty, setAssignedFaculty] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     // Modals & UI Flags
     const [showAiModal, setShowAiModal] = useState(false);
-    // Removed showMsgModal/TaskModal as unused
+    const [aiInitialPrompt, setAiInitialPrompt] = useState('');
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [navTarget, setNavTarget] = useState('');
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+    const [showCommandPalette, setShowCommandPalette] = useState(false);
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-    // Initial load animation
+    const openAiWithPrompt = (prompt) => {
+        setAiInitialPrompt(prompt);
+        setShowAiModal(true);
+    };
+
+    const toggleAiModal = () => {
+        setShowAiModal(prev => {
+            if (prev) setAiInitialPrompt('');
+            return !prev;
+        });
+    };
+
+    // Update time for countdowns
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+        return () => clearInterval(timer);
+    }, []);
+
+
+    // Initial load animation & search param sync
     useEffect(() => {
         const timer = setTimeout(() => setIsDashboardLoaded(true), 100);
-        return () => clearTimeout(timer);
-    }, []);
+
+        // Sync view with search params if present
+        const params = new URLSearchParams(location.search);
+        const viewParam = params.get('view');
+        if (viewParam) {
+            setView(viewParam);
+        }
+
+        const handleOpenAi = () => setShowAiModal(true);
+        window.addEventListener('open-ai-modal', handleOpenAi);
+
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                setShowCommandPalette(true);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('open-ai-modal', handleOpenAi);
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [location.search]);
 
     // --- Data Fetching ---
     const fetchData = useCallback(async () => {
@@ -126,11 +186,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 setMessages(msgData);
             }
 
-            const fd = await apiGet(`/api/fees/${userData.sid}`);
-            if (fd) {
-                // console.debug('   ✅ Fee data fetched');
-                setFeeData(fd);
-            }
+            // Fetch Fees Redundant - removed as it's not used in this view context
 
             // Fetch Schedule for "Next Class"
             const queryParams = new URLSearchParams({
@@ -140,6 +196,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
             });
             const schData = await apiGet(`/api/schedule?${queryParams.toString()}`);
             if (Array.isArray(schData) && schData.length > 0) {
+                setScheduleData(schData); // Store full schedule for view
                 const today = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
                 const futureClasses = schData.filter(s => s.day === today).sort((a, b) => a.time.localeCompare(b.time));
                 // Find next upcoming
@@ -154,11 +211,43 @@ export default function StudentDashboard({ studentData, onLogout }) {
                 setNextClass(upcoming || futureClasses[0]);
             }
 
+            // Fetch Marks Data (Preload)
+            const marks = await apiGet(`/api/students/${userData.sid}/marks-by-subject`);
+            if (Array.isArray(marks)) {
+                setMarksData(marks);
+            }
+
+            // Fetch Exams Data (Preload)
+            const exams = await apiGet(`/api/exams?year=${userData.year}&section=${userData.section}&branch=${userData.branch}`);
+            if (Array.isArray(exams)) {
+                setExamsData(exams);
+            }
+
+            // Fetch Attendance Redundant - removed as it's not used in this view context
+
+            // Fetch Advanced Learning Data (Preload - Python default)
+            const advData = await apiGet(`/api/materials?subject=Python&isAdvanced=true`);
+            if (Array.isArray(advData)) {
+                setAdvancedData(advData);
+            }
+
+            // Fetch Assigned Faculty
+            const facResponse = await apiGet(`/api/faculty/teaching?year=${userData.year}&section=${userData.section}&branch=${userData.branch}`);
+            if (Array.isArray(facResponse)) {
+                setAssignedFaculty(facResponse);
+            }
+
+            // Fetch Roadmaps Data (Preload)
+            const maps = await apiGet('/api/roadmaps');
+            if (Array.isArray(maps)) {
+                setRoadmapData(maps);
+            }
+
             // console.debug('✅ StudentDashboard: All data loaded successfully');
         } catch (e) {
             console.error("❌ StudentDashboard: Sync Failed:", e);
         }
-    }, [userData.sid]);
+    }, [userData.sid, userData.year, userData.section, userData.branch]);
 
     useEffect(() => {
         // console.debug('🚀 StudentDashboard: Initial data load started');
@@ -200,7 +289,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
         try {
             const unsub = sseClient.onUpdate((ev) => {
                 if (!ev || !ev.resource) return;
-                if (['materials', 'messages', 'courses'].includes(ev.resource)) {
+                if (ev.resource === 'materials' || ev.resource === 'messages' || ev.resource === 'courses') {
                     fetchData();
                 }
             });
@@ -209,6 +298,15 @@ export default function StudentDashboard({ studentData, onLogout }) {
             console.debug('SSE client error', e);
         }
     }, [fetchData]);
+
+    // Sync URL with view state
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        if (params.get('view') !== view) {
+            params.set('view', view);
+            navigate({ search: params.toString() }, { replace: true });
+        }
+    }, [view, navigate, location.search]);
 
     // --- CURRICULUM LOGIC ---
     const selectedYear = userData.year || 1;
@@ -350,201 +448,198 @@ export default function StudentDashboard({ studentData, onLogout }) {
         return (yearData.semesters || []).flatMap(s => s.subjects || []);
     }, [yearData]);
 
-    const StatCard = ({ icon: Icon, label, value, color, delay, subtext, onClick }) => (
-        <div className="nexus-stat-v2" style={{ animationDelay: `${delay}s`, '--stat-color': color, cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
-            <div className="stat-glow"></div>
-            <div className="stat-content">
-                <div className="stat-icon-group">
-                    <div className="icon-platform" style={{ background: `${color}15`, color }}>
-                        <Icon />
-                    </div>
-                </div>
-                <div className="stat-details">
-                    <span className="stat-label-v2">{label}</span>
-                    <div className="nexus-stat-flex">
-                        <span className="stat-value-v2">{value}</span>
-                        {subtext && <span className="stat-trend">{subtext}</span>}
-                    </div>
-                </div>
-            </div>
-            <div className="stat-progress-trace">
-                <div className="trace-bar" style={{ background: color }}></div>
-            </div>
-        </div>
-    );
+    const todayClassesCount = useMemo(() => {
+        if (!scheduleData) return 0;
+        const today = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][new Date().getDay()];
+        return scheduleData.filter(s => s.day === today).length;
+    }, [scheduleData]);
+
+    const activeFocus = useMemo(() => {
+        if (nextClass) return nextClass.subject;
+        if (enrolledSubjects.length > 0) return enrolledSubjects[0].name;
+        return "Academic Excellence";
+    }, [nextClass, enrolledSubjects]);
+
+    // `StatCard` removed — it was defined but not used. Keep compact UI directly in JSX where needed.
+
+    const handleAiNavigate = (target) => {
+        const t = String(target).toLowerCase();
+        setNavTarget(t);
+        setIsNavigating(true);
+
+        const viewMap = {
+            'attendance': 'attendance',
+            'schedule': 'schedule',
+            'exam': 'exams',
+            'mark': 'marks',
+            'grade': 'marks',
+            'result': 'marks',
+            'task': 'tasks',
+            'todo': 'tasks',
+            'academic': 'semester',
+            'classroom': 'semester',
+            'library': 'semester',
+            'placement': 'placement',
+            'career': 'roadmaps',
+            'roadmap': 'roadmaps',
+            'settings': 'settings',
+            'profile': 'settings',
+            'support': 'support',
+            'help': 'support',
+            'advanced': 'advanced',
+            'video': 'advanced',
+            'note': 'semester',
+            'journal': 'journal',
+            'overview': 'overview'
+        };
+
+        let matchedView = 'overview';
+        Object.keys(viewMap).forEach(key => {
+            if (t.includes(key)) {
+                matchedView = viewMap[key];
+            }
+        });
+
+        setTimeout(() => {
+            setView(matchedView);
+            setIsNavigating(false);
+            if (showAiModal) setShowAiModal(false);
+        }, 800);
+    };
 
     const renderOverview = () => (
-        <div className="nexus-hub-viewport">
-            {/* Background Graphic */}
-            <div className="nexus-mesh-bg"></div>
+        <div className="nexus-bento-viewport">
 
-            <header className="hub-header">
-                <div className="stat-header-flex">
-                    <div>
-                        <h2 className="nexus-page-title">FRIENDLY <span>NOTEBOOK</span></h2>
-                        <p className="nexus-page-subtitle sub-text-slate">Welcome to your personal learning space.</p>
-                    </div>
-                    <div className="header-date-display" style={{ marginLeft: 'auto', textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', paddingRight: '2rem' }}>
-                        <span style={{ fontSize: '1.2rem', fontWeight: '900', color: '#1e293b' }}>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#64748b' }}>{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</span>
-                    </div>
-
-                </div>
-            </header>
-
-            <div className="pad-x-2-mb-4">
-                <AcademicPulse data={overviewData} />
-            </div>
-
-            <div className="nexus-stats-grid">
-                <StatCard icon={FaGraduationCap} label="Total Courses" value={enrolledSubjects.length} color="#6366f1" delay={0.1} subtext="Active Syllabus" />
-                <StatCard icon={FaChartBar} label="Semester Load" value={`${overviewData?.semesterProgress || 0}%`} color="#10b981" delay={0.2} subtext="Time Elapsed" />
-                <StatCard icon={FaTrophy} label="Rank Score" value={overviewData?.student?.stats?.cgpa ? (overviewData.student.stats.cgpa * 10).toFixed(1) : '8.2'} color="#f59e0b" delay={0.3} subtext="Current CGPA" />
-                <StatCard icon={FaFire} label="Study Streak" value={`${overviewData?.activity?.streak || 0} Days`} color="#f97316" delay={0.4} subtext="Daily Activity" />
-                <StatCard icon={FaRobot} label="AI Insights" value={overviewData?.activity?.aiUsage || 0} color="#0ea5e9" delay={0.5} subtext="Sessions Active" />
-                <StatCard icon={FaBriefcase} label="Placement" value="4 MNCs" color="#8b5cf6" delay={0.55} subtext="Interview Prep" onClick={() => setView('placement')} />
-                <StatCard icon={FaClipboardList} label="Tasks" value={tasks.filter(t => !t.completed).length} color="#ec4899" delay={0.6} subtext="Action Items" onClick={() => setView('tasks')} />
-                <StatCard icon={FaCreditCard} label="Fee Due" value={`₹${(feeData?.dueAmount || 0).toLocaleString()}`} color="#ef4444" delay={0.65} subtext={feeData?.status || 'Pending'} onClick={() => setView('fees')} />
-            </div>
-
-            <main className="nexus-main-layout">
-                <aside className="nexus-sidebar-col">
-                    {/* Next Class Widget */}
-                    <div className="nexus-widget next-class-widget animate-slide-in">
-                        <div className="widget-header">
-                            <FaBolt className="icon glow-blue" />
-                            <span>NEXT UPCOMING</span>
-                        </div>
-                        {nextClass ? (
-                            <div className="next-class-content">
-                                <h3 className="class-subject">{nextClass.subject}</h3>
-                                <div className="class-meta">
-                                    <span><FaLayerGroup /> {nextClass.time}</span>
-                                    <span><FaLightbulb /> Room {nextClass.room}</span>
-                                </div>
-                                <div className="class-faculty">
-                                    <div className="faculty-avatar" style={{ background: 'linear-gradient(135deg, var(--nexus-primary), var(--nexus-secondary))' }}>
-                                        {nextClass.faculty.charAt(0)}
-                                    </div>
-                                    <div className="faculty-info">
-                                        <span className="f-name">{nextClass.faculty}</span>
-                                        <span className="f-role">Faculty Mentor</span>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="next-empty">
-                                <p>No more classes today!</p>
-                            </div>
-                        )}
-                        <button className="widget-action-btn" onClick={() => setView('schedule')}>View Full Schedule</button>
-                    </div>
-
-                    <StudentProfileCard userData={userData} setView={setView} />
-                    <SkillsRadar studentData={userData} />
-
-                    <div className="nexus-insight-panel">
-                        <div className="panel-header">
-                            <FaBriefcase /> <span>Career Tracker</span>
-                        </div>
-                        <div className="panel-body" style={{ marginBottom: '1rem' }}>
-                            <p>Prepare for <strong>TCS, Infosys, and Accenture</strong>. Access 50+ interview questions.</p>
-                            <button className="panel-action-btn" onClick={() => setView('placement')} style={{ marginTop: '0.5rem', width: '100%', padding: '0.6rem', background: '#e0e7ff', color: '#4338ca', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
-                                OPEN PRACTICE HUB
-                            </button>
-                        </div>
-
-                        <div className="panel-header">
-                            <FaLightbulb /> <span>Student Insights</span>
-                        </div>
-                        <div className="panel-body">
-                            <p>Current analysis suggests completing the <strong>{extraCourses[0]?.name || 'Data Structures'}</strong> module by Friday for optimal learning.</p>
-                            <div className="ai-status-strip">
-                                <div className="dot pulse"></div>
-                                <span>AI TUTOR READY</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Daily Tasks Mini Widget */}
-                    <div className="task-mini-widget animate-slide-in">
-                        <div className="widget-header">
-                            <FaClipboardList className="icon" style={{ color: '#ec4899' }} />
-                            <span>PRIORITY TASKS</span>
-                        </div>
-                        <div className="task-list-mini">
-                            {tasks.filter(t => !t.completed).slice(0, 3).map((task, i) => (
-                                <div key={i} className="task-item-mini" onClick={() => setView('tasks')} style={{ cursor: 'pointer' }}>
-                                    <div className="task-checkbox"></div>
-                                    <span className="task-text-mini">{task.text}</span>
-                                </div>
-                            ))}
-                            {tasks.filter(t => !t.completed).length === 0 && (
-                                <div className="task-item-mini" style={{ opacity: 0.5 }}>
-                                    <span className="task-text-mini">All caught up!</span>
-                                </div>
+            {/* 🌅 Welcome Hero */}
+            <motion.div
+                className="bento-hero"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+            >
+                <div className="hero-content">
+                    <div className="hero-greeting">
+                        <div className="hero-badge-row">
+                            {overviewData?.activity?.streak > 5 && (
+                                <span className="hero-streak-badge">🔥 {overviewData.activity.streak} DAY STREAK</span>
                             )}
+                            {examsData?.some(ex => {
+                                const diff = new Date(ex.date) - new Date();
+                                return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
+                            }) && (
+                                    <span className="hero-exam-warning">📅 EXAM THIS WEEK</span>
+                                )}
                         </div>
-                        <button className="widget-action-btn" onClick={() => setView('tasks')} style={{ borderStyle: 'dashed' }}>Manage All Tasks</button>
+                        <h2>Welcome back, <span>{(userData.studentName || 'Student').split(' ')[0]}</span></h2>
+                        <p>You have <strong>{todayClassesCount} lectures</strong> today. Your current focus area is <strong>{activeFocus}</strong>.</p>
                     </div>
-                </aside>
+                    <div className="hero-actions">
+                        <button className="quick-btn" onClick={() => setView('ai-agent')}>Ask Friendly AI</button>
+                        <button className="quick-btn outline" onClick={() => handleAiNavigate('tasks')}>Today's Agenda</button>
+                    </div>
+                </div>
+            </motion.div>
 
-                <section className="nexus-content-col">
+            <div className="bento-grid">
+                {/* 📊 KPI Row */}
+                <div className="bento-card stat-card-premium animate-bento" style={{ '--accent': 'var(--v-primary)' }}>
+                    <div className="stat-label">Academic Progress</div>
+                    <div className="stat-value">{overviewData?.semesterProgress || 0}%</div>
+                    <div className="stat-mini-chart">
+                        <div className="mini-bar-flow" style={{ width: `${overviewData?.semesterProgress || 0}%` }}></div>
+                    </div>
+                    <div className="stat-sub">Semester Completion</div>
+                </div>
+
+                <div className="bento-card stat-card-premium animate-bento" style={{ animationDelay: '0.1s', '--accent': 'var(--v-secondary)' }}>
+                    <div className="stat-label">Current CGPA</div>
+                    <div className="stat-value">{overviewData?.student?.stats?.cgpa ? (overviewData.student.stats.cgpa).toFixed(2) : '8.20'}</div>
+                    <div className="stat-sub">Ranked in Top 5%</div>
+                </div>
+
+                <div className="bento-card stat-card-premium animate-bento" style={{ animationDelay: '0.2s', '--accent': '#f97316' }}>
+                    <div className="stat-label">Study Streak</div>
+                    <div className="stat-value">{overviewData?.activity?.streak || 0}d</div>
+                    <div className="stat-sub">Consistency: Peak</div>
+                </div>
+
+                <div className="bento-card stat-card-premium animate-bento" style={{ animationDelay: '0.3s', '--accent': '#0ea5e9' }}>
+                    <div className="stat-label">Intelligence Score</div>
+                    <div className="stat-value">{overviewData?.activity?.aiUsage || 94}</div>
+                    <div className="stat-sub">AI Engagement High</div>
+                </div>
+
+                {/* 💓 Main Data Pulse */}
+                <div className="bento-card span-grid-3 bento-pulse animate-bento" style={{ animationDelay: '0.4s' }}>
+                    <div className="bento-card-header">
+                        <h3><FaChartBar /> Academic Vitality</h3>
+                        <span>Live Analytics</span>
+                    </div>
+                    <AcademicPulse data={overviewData} />
+                </div>
+
+                {/* 🎯 Next Class */}
+                <div className="bento-card bento-mini-widget animate-bento" style={{ animationDelay: '0.5s' }}>
+                    <div className="bento-card-header">
+                        <h3>Next Class</h3>
+                        {nextClass && (
+                            <span className="live-tag">
+                                IN {(() => {
+                                    const startTime = nextClass.time.split(' - ')[0];
+                                    const [h, m] = startTime.split(':');
+                                    const classDate = new Date();
+                                    classDate.setHours(parseInt(h), parseInt(m), 0);
+                                    const diff = classDate - currentTime;
+                                    const diffMins = Math.floor(diff / 60000);
+                                    if (diffMins < 0) return 'STARTED';
+                                    if (diffMins < 60) return `${diffMins}M`;
+                                    return `${Math.floor(diffMins / 60)}H`;
+                                })()}
+                            </span>
+                        )}
+                    </div>
+                    {nextClass ? (
+                        <div className="session-compact">
+                            <h4 className="s-subject">{nextClass.subject}</h4>
+                            <p className="s-meta">{nextClass.time} | Room {nextClass.room}</p>
+                            <span className="s-faculty">with Prof. {nextClass.faculty.split(' ')[0]}</span>
+                            <button className="s-action" onClick={() => setView('schedule')}>GO TO SCHEDULE</button>
+                        </div>
+                    ) : (
+                        <div className="session-empty">No active classes today</div>
+                    )}
+                </div>
+
+                {/* 💼 Career Insights */}
+                <div className="bento-card span-grid-2 animate-bento" style={{ animationDelay: '0.6s' }}>
+                    <div className="bento-card-header">
+                        <h3><FaBriefcase /> Career Readiness</h3>
+                        <button onClick={() => setView('placement')}>Track Prep</button>
+                    </div>
                     <CareerReadiness
                         score={overviewData?.activity?.careerReadyScore || 0}
                         academics={overviewData?.academics || {}}
                         attendance={overviewData?.attendance || {}}
                         roadmapCount={Object.keys(overviewData?.roadmapProgress || {}).length}
                     />
+                </div>
 
-                    <div className="nexus-browser-wrap" style={{ marginTop: '2rem' }}>
-                        <div className="browser-glass-header">
-                            <FaLayerGroup /> <span>Your Academic Progress</span>
-                        </div>
-                        <SubjectAttendanceMarks overviewData={overviewData} enrolledSubjects={enrolledSubjects} />
+                {/* 🎯 Skill Radar */}
+                <div className="bento-card animate-bento" style={{ animationDelay: '0.7s' }}>
+                    <div className="bento-card-header">
+                        <h3><FaLayerGroup /> Skill Mastery</h3>
                     </div>
+                    <SkillsRadar studentData={userData} />
+                </div>
 
-                    {/* Weekly Analytics Chart */}
-                    <div className="weekly-progress-card animate-slide-in">
-                        <div className="weekly-header">
-                            <h3><FaChartBar style={{ color: 'var(--nexus-primary)' }} /> STUDY HOURS (WEEKLY)</h3>
-                            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8' }}>
-                                AVG: {(overviewData?.activity?.weeklyActivity?.reduce((acc, curr) => acc + curr.hours, 0) / 7 || 0).toFixed(1)}h/day
-                            </span>
-                        </div>
-                        <div className="chart-container">
-                            {(overviewData?.activity?.weeklyActivity || [
-                                { day: 'Mon', hours: 0 },
-                                { day: 'Tue', hours: 0 },
-                                { day: 'Wed', hours: 0 },
-                                { day: 'Thu', hours: 0 },
-                                { day: 'Fri', hours: 0 },
-                                { day: 'Sat', hours: 0 },
-                                { day: 'Sun', hours: 0 }
-                            ]).map((d, i) => {
-                                const val = Math.min((d.hours / 12) * 100, 100);
-                                return (
-                                    <div key={i} className="bar-wrapper">
-                                        <div className="bar-bg">
-                                            <div
-                                                className="bar-fill"
-                                                style={{
-                                                    height: d.hours > 0 ? `${val}%` : '4px',
-                                                    transitionDelay: `${i * 0.1}s`,
-                                                    background: d.hours >= 8 ? 'linear-gradient(to top, #10b981, #34d399)' : 'linear-gradient(to top, var(--nexus-primary), var(--nexus-secondary))'
-                                                }}
-                                            ></div>
-                                        </div>
-                                        <span className="bar-day">{d.day.toUpperCase()}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
+                {/* 📡 Profile Mini */}
+                <div className="bento-card animate-bento" style={{ animationDelay: '0.8s' }}>
+                    <StudentProfileCard userData={userData} setView={setView} />
+                </div>
+            </div>
+        </div >
     );
+
 
     const [focusMode] = useState(false);
 
@@ -572,125 +667,296 @@ export default function StudentDashboard({ studentData, onLogout }) {
             )}
 
             <div className="dashboard-content-area">
-                {view === 'overview' && renderOverview()}
+                {/* 🌌 Ambient Background Layer */}
+                <div className="nexus-mesh-bg content-bg-fixed"></div>
 
-                {view === 'announcements' && (
-                    <div className="nexus-page-container">
-                        <StudentAnnouncements messages={messages} userData={userData} />
-                    </div>
-                )}
+                {/* Modern Dynamic Header with Glassmorphism */}
+                <StudentHeader view={view} />
 
-                {view === 'semester' && (
-                    <div className="nexus-page-container">
-                        <AcademicBrowser
-                            yearData={yearData}
-                            selectedYear={selectedYear}
-                            serverMaterials={serverMaterials}
-                            userData={userData}
-                            setView={setView}
-                            branch={branch}
-                            onRefresh={fetchData}
-                        />
-                    </div>
-                )}
+                <AnimatePresence mode="wait">
+                    {isNavigating && (
+                        <motion.div
+                            key="navigating"
+                            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                            animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+                            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+                            transition={{ duration: 0.5 }}
+                            className="navigating-overlay"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.5, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                                className="navigating-pulse"
+                            ></motion.div>
+                            <motion.h2
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                                style={{ marginTop: '2.5rem', fontWeight: 950, color: 'var(--v-primary)', letterSpacing: '0.1em' }}
+                            >
+                                TRANSMITTING TO {navTarget.toUpperCase()}...
+                            </motion.h2>
+                        </motion.div>
+                    )}
 
-                {view === 'journal' && (
-                    <div className="nexus-page-container">
-                        <SemesterNotes
-                            semester={userData.semester || 'Current'}
-                            studentData={userData}
-                            enrolledSubjects={enrolledSubjects}
-                            serverMaterials={serverMaterials}
-                        />
-                    </div>
-                )}
+                    {view === 'overview' && (
+                        <motion.div
+                            key="overview"
+                            initial={{ opacity: 0, scale: 0.98, y: 15 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.02, y: -15 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            style={{ height: '100%' }}
+                        >
+                            {renderOverview()}
+                        </motion.div>
+                    )}
 
-                {view === 'advanced' && (
-                    <div className="nexus-page-container">
-                        <AdvancedLearning userData={userData} overviewData={overviewData} />
-                    </div>
-                )}
 
-                {view === 'tasks' && (
-                    <div className="nexus-page-container">
-                        <StudentTasks tasks={tasks} userData={userData} onRefresh={fetchData} />
-                    </div>
-                )}
+                    {view === 'announcements' && (
+                        <motion.div
+                            key="announcements"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentAnnouncements messages={messages} userData={userData} />
+                        </motion.div>
+                    )}
 
-                {view === 'attendance' && (
-                    <div className="nexus-page-container">
-                        <StudentAttendanceView studentId={userData.sid} />
-                    </div>
-                )}
 
-                {view === 'exams' && (
-                    <div className="nexus-page-container">
-                        <StudentExams studentData={userData} />
-                    </div>
-                )}
+                    {view === 'semester' && (
+                        <motion.div
+                            key="semester"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <AcademicBrowser
+                                yearData={getYearData(userData.branch, userData.year)}
+                                selectedYear={userData.year}
+                                serverMaterials={serverMaterials}
+                                userData={userData}
+                                setView={setView}
+                                branch={userData.branch}
+                                assignedFaculty={assignedFaculty}
+                                onRefresh={fetchData}
+                            />
+                        </motion.div>
+                    )}
 
-                {view === 'faculty' && (
-                    <div className="nexus-page-container">
-                        <StudentFacultyList studentData={userData} />
-                    </div>
-                )}
+                    {view === 'journal' && (
+                        <motion.div
+                            key="journal"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <SemesterNotes
+                                semester={userData.semester || 'Current'}
+                                studentData={userData}
+                                enrolledSubjects={enrolledSubjects}
+                                serverMaterials={serverMaterials}
+                                assignedFaculty={assignedFaculty}
+                            />
+                        </motion.div>
+                    )}
 
-                {view === 'schedule' && (
-                    <div className="nexus-page-container">
-                        <StudentSchedule studentData={userData} />
-                    </div>
-                )}
+                    {view === 'advanced' && (
+                        <motion.div
+                            key="advanced"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <AdvancedLearning userData={userData} overviewData={overviewData} preloadedData={advancedData} />
+                        </motion.div>
+                    )}
 
-                {view === 'placement' && (
-                    <div className="nexus-page-container">
-                        <PlacementPrep userData={userData} />
-                    </div>
-                )}
+                    {view === 'tasks' && (
+                        <motion.div
+                            key="tasks"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentTasks tasks={tasks} userData={userData} onRefresh={fetchData} />
+                        </motion.div>
+                    )}
 
-                {view === 'roadmaps' && (
-                    <div className="nexus-page-container">
-                        <StudentRoadmaps studentData={userData} />
-                    </div>
-                )}
 
-                {view === 'settings' && (
-                    <div className="nexus-page-container">
-                        <StudentSettings
-                            userData={userData}
-                            onProfileUpdate={setUserData}
-                        />
-                    </div>
-                )}
+                    {view === 'attendance' && (
+                        <motion.div
+                            key="attendance"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <SubjectAttendanceMarks
+                                overviewData={overviewData}
+                                enrolledSubjects={enrolledSubjects}
+                                setView={setView}
+                                openAiWithPrompt={openAiWithPrompt}
+                            />
+                        </motion.div>
+                    )}
 
-                {view === 'marks' && (
-                    <div className="nexus-hub-viewport">
-                        <StudentResults studentData={studentData} />
-                    </div>
-                )}
+                    {view === 'exams' && (
+                        <motion.div
+                            key="exams"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentExams studentData={userData} preloadedData={examsData} />
+                        </motion.div>
+                    )}
 
-                {view === 'fees' && (
-                    <div className="nexus-page-container">
-                        <CollegeFees userData={userData} />
-                    </div>
-                )}
+                    {view === 'faculty' && (
+                        <motion.div
+                            key="faculty"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentFacultyList studentData={userData} />
+                        </motion.div>
+                    )}
 
-                {view === 'ai-agent' && (
-                    <div className="nexus-hub-viewport" style={{ padding: '0 2rem', height: 'calc(100vh - 100px)' }}>
-                        <div className="nexus-mesh-bg"></div>
-                        <header className="hub-header" style={{ marginBottom: '1.5rem' }}>
-                            <h2 className="nexus-page-title">AI <span>TUTOR</span></h2>
-                            <p className="nexus-page-subtitle sub-text-slate">Your Personal Academic Assistant</p>
-                        </header>
-                        <div style={{ flex: 1, height: '100%', paddingBottom: '2rem' }}>
-                            <VuAiAgent onNavigate={setView} />
-                        </div>
-                    </div>
-                )}
+                    {view === 'schedule' && (
+                        <motion.div
+                            key="schedule"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentSchedule studentData={userData} preloadedData={scheduleData} />
+                        </motion.div>
+                    )}
+
+
+                    {view === 'placement' && (
+                        <motion.div
+                            key="placement"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <PlacementPrep userData={userData} />
+                        </motion.div>
+                    )}
+
+                    {view === 'roadmaps' && (
+                        <motion.div
+                            key="roadmaps"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentRoadmaps studentData={userData} preloadedData={roadmapData} />
+                        </motion.div>
+                    )}
+
+                    {view === 'settings' && (
+                        <motion.div
+                            key="settings"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentSettings
+                                userData={userData}
+                                onProfileUpdate={setUserData}
+                            />
+                        </motion.div>
+                    )}
+
+                    {view === 'marks' && (
+                        <motion.div
+                            key="marks"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-hub-viewport"
+                        >
+                            <StudentResults studentData={userData} preloadedData={marksData} />
+                        </motion.div>
+                    )}
+
+                    {view === 'fees' && (
+                        <motion.div
+                            key="fees"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <CollegeFees userData={userData} />
+                        </motion.div>
+                    )}
+
+                    {view === 'support' && (
+                        <motion.div
+                            key="support"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 1.05, y: -20 }}
+                            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+                            className="nexus-page-container"
+                        >
+                            <StudentSupport userData={userData} />
+                        </motion.div>
+                    )}
+
+                    {view === 'ai-agent' && (
+                        <motion.div
+                            key="ai-agent-view"
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 1.02 }}
+                            transition={{ duration: 0.3 }}
+                            className="nexus-hub-viewport"
+                            style={{ padding: '0 2rem', height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}
+                        >
+                            <div style={{ flex: 1, height: '100%', paddingBottom: '2rem', position: 'relative', zIndex: 10 }}>
+                                <VuAiAgent onNavigate={handleAiNavigate} initialMessage={aiInitialPrompt} />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
+
 
             {mobileSidebarOpen && <div className="mobile-sidebar-overlay" onClick={() => setMobileSidebarOpen(false)}></div>}
 
-            <button className="ai-fab" onClick={() => setShowAiModal(true)}>
+            <button className="ai-fab" onClick={toggleAiModal}>
                 <FaRobot />
                 <span className="fab-label">AI Tutor</span>
             </button>
@@ -701,13 +967,22 @@ export default function StudentDashboard({ studentData, onLogout }) {
                         <button className="nexus-modal-close" onClick={() => setShowAiModal(false)}>
                             &times;
                         </button>
-                        <VuAiAgent onNavigate={(target) => { setView(target); setShowAiModal(false); }} />
+                        <VuAiAgent onNavigate={handleAiNavigate} />
                     </div>
                 </div>
             )}
 
-            <PersonalDetailsBall role="student" data={userData} />
-            <GlobalNotifications userRole="student" userData={userData} />
+            {/* ⌨️ Command Palette (Quick Navigation) */}
+            <CommandPalette
+                isOpen={showCommandPalette}
+                onClose={() => setShowCommandPalette(false)}
+                role="student"
+                userData={userData}
+            />
+
+            {/* 🏗️ Core Global Components */}
+            <PersonalDetailsBall userData={userData} />
+            <GlobalNotifications />
         </div>
     );
 }

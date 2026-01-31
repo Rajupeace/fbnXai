@@ -16,6 +16,8 @@ const weekDays = daysOfWeek.filter(day => day !== 'Sunday');
  * Theme: Friendly Notebook
  */
 const FacultyScheduleView = ({ facultyData }) => {
+    // Proactive Hardening
+    facultyData = facultyData || {};
     const [schedule, setSchedule] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedDay, setSelectedDay] = useState(new Date().getDay());

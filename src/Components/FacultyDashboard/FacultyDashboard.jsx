@@ -2,9 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
 import {
-  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaRobot
+  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaLayerGroup, FaFilter, FaRobot, FaChevronRight
 } from 'react-icons/fa';
-// Global Styles
 import sseClient from '../../utils/sseClient';
 import MaterialManager from './MaterialManager';
 import FacultySettings from './FacultySettings';
@@ -24,6 +23,9 @@ import FacultyMessages from './Sections/FacultyMessages';
 import FacultyStudents from './Sections/FacultyStudents';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 
+// Styles
+import './FacultyDashboard.css';
+
 const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => {
   const [currentFaculty, setCurrentFaculty] = useState(facultyData);
   const [view, setView] = useState('overview');
@@ -32,86 +34,59 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   const [messages, setMessages] = useState([]);
   const [materialsList, setMaterialsList] = useState([]);
   const [studentsList, setStudentsList] = useState([]);
-  const [, setSyncing] = useState(false); // syncing unused
   const [initialLoad, setInitialLoad] = useState(true);
   const [showMsgModal, setShowMsgModal] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiInitialPrompt, setAiInitialPrompt] = useState('');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  const openAiWithPrompt = (prompt) => {
+    setAiInitialPrompt(prompt);
+    setShowAiModal(true);
+  };
+
+  const toggleAiModal = () => {
+    setShowAiModal(prev => {
+      if (prev) setAiInitialPrompt('');
+      return !prev;
+    });
+  };
 
   const navigate = useNavigate();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const refreshAll = async () => {
     try {
-      // Refresh profile for assignments update
       const freshFac = await apiGet(`/api/faculty/${facultyData.facultyId}`);
       if (freshFac) setCurrentFaculty(freshFac);
     } catch (e) { console.warn('Fac profile refresh failed', e); }
-    setSyncing(true);
+
     try {
-      // console.debug('📊 FacultyDashboard: Fetching data from database...');
-
       const mats = await apiGet('/api/materials');
-      if (mats) {
-        // console.debug(`   ✅ Materials fetched: ${mats.length} items`);
-        setMaterialsList(mats);
-      }
+      if (mats) setMaterialsList(mats);
 
-      const adminMsgs = await apiGet('/api/messages');
+      const query = new URLSearchParams({
+        userId: facultyData.facultyId,
+        role: 'faculty'
+      }).toString();
+      const adminMsgs = await apiGet(`/api/messages?${query}`);
       if (adminMsgs) {
-        const filteredMsgs = adminMsgs.filter(m =>
-          m.target === 'all' ||
-          m.target === 'faculty' ||
-          m.facultyId === facultyData.facultyId
-        );
-        // console.debug(`   ✅ Messages fetched: ${filteredMsgs.length} items`);
-        setMessages(filteredMsgs.slice(0, 10));
+        setMessages(adminMsgs.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)).slice(0, 10));
       }
 
       const studentsData = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
-      if (Array.isArray(studentsData)) {
-        // console.debug(`   ✅ Students fetched: ${studentsData.length} items`);
-        setStudentsList(studentsData);
-      }
-
-      // console.debug('✅ FacultyDashboard: All data loaded successfully');
-      setTimeout(() => setSyncing(false), 800);
+      if (Array.isArray(studentsData)) setStudentsList(studentsData);
     } catch (e) {
       console.error("❌ FacultyDashboard: Sync Failed", e);
-      setSyncing(false);
     }
   };
 
   useEffect(() => {
-    // console.debug('🚀 FacultyDashboard: Initial data load started');
     refreshAll();
-    const timer = setTimeout(() => setInitialLoad(false), 1500);
-
-    // Optimized polling: 5 seconds (more efficient than 3s)
-    const interval = setInterval(() => {
-      // console.debug('🔄 FacultyDashboard: Polling data from database...');
-      refreshAll();
-    }, 5000);
-
-    // Fast messages update every 5s
-    const msgInterval = setInterval(async () => {
-      try {
-        const query = new URLSearchParams({
-          userId: facultyData.facultyId,
-          role: 'faculty'
-        }).toString();
-        const adminMsgs = await apiGet(`/api/messages?${query}`);
-        if (adminMsgs) {
-          setMessages(adminMsgs.sort((a, b) => new Date(b.createdAt || b.date || 0) - new Date(a.createdAt || a.date || 0)).slice(0, 10));
-        }
-      } catch (e) {
-        console.debug('Faculty messages update failed', e);
-      }
-    }, 5000);
-
+    const timer = setTimeout(() => setInitialLoad(false), 800);
+    const interval = setInterval(refreshAll, 10000);
     return () => {
-      // console.debug('🛑 FacultyDashboard: Cleaning up intervals');
       clearTimeout(timer);
       clearInterval(interval);
-      clearInterval(msgInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,7 +94,6 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   useEffect(() => {
     const unsub = sseClient.onUpdate((ev) => {
       if (!ev || !ev.resource) return;
-      // Refresh when materials, students, messages or faculty assignments change
       if (['materials', 'students', 'messages', 'faculty'].includes(ev.resource)) {
         refreshAll();
       }
@@ -168,7 +142,11 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
     e.preventDefault();
     const formData = new FormData(e.target);
     const message = formData.get('message');
-    const contextToUse = activeContext || myClasses[0];
+    const targetClass = formData.get('targetClass');
+
+    const contextToUse = targetClass ?
+      myClasses.find(c => `${c.year}-${c.subject}` === targetClass) :
+      (activeContext || myClasses[0]);
 
     if (!message) return;
     if (!contextToUse) return alert("Error: No classes assigned.");
@@ -196,7 +174,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           <div className="load-icon-box">
             <FaUniversity className="pulse" />
           </div>
-          <h2 className="load-shimmer">Loading Dashboard...</h2>
+          <h2 className="load-shimmer">Accessing Faculty Node...</h2>
           <div className="load-progress-wrap">
             <div className="load-progress-bar"></div>
           </div>
@@ -213,7 +191,10 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
   };
 
   return (
-    <div className="student-dashboard-layout animate-fade-in">
+    <div className={`faculty-dashboard-layout loaded ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
+      <button className="mobile-sidebar-toggle" onClick={() => setMobileSidebarOpen(true)}>☰</button>
+      {mobileSidebarOpen && <div className="mobile-overlay" onClick={() => setMobileSidebarOpen(false)}></div>}
+
       <FacultySidebar
         facultyData={facultyData}
         view={view}
@@ -221,32 +202,115 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
         onLogout={handleLogout}
+        onNavigate={() => setMobileSidebarOpen(false)}
       />
 
       <div className="dashboard-content-area">
-        {view === 'overview' && (
-          <FacultyHome
-            studentsList={studentsList}
-            materialsList={materialsList}
-            myClasses={myClasses}
-            facultyData={facultyData}
-            messages={messages}
-            getFileUrl={getFileUrl}
-            setView={setView}
-          />
-        )}
+        <div className="nexus-mesh-bg content-bg-fixed"></div>
 
-        {view === 'materials' && (() => {
-          const ctx = ensureContext();
-          return ctx ? (
-            <div className="nexus-hub-viewport">
-              <header className="f-view-header">
-                <div>
-                  <h2>COURSE <span>MATERIALS</span></h2>
-                  <p className="nexus-subtitle">Manage study materials for your courses</p>
+        <header className="nexus-glass-header">
+          <div className="header-left">
+            <div className="breadcrumb-box">
+              <span className="bc-main">FACULTY</span>
+              <FaChevronRight className="bc-sep" />
+              <span className="bc-active">{view.toUpperCase()}</span>
+            </div>
+          </div>
+          <div className="header-right">
+            <div className="header-time-box">
+              <span className="time-val">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span className="date-val">{new Date().toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+            </div>
+          </div>
+        </header>
+
+        <div className="view-content-layer">
+          {view === 'overview' && (
+            <FacultyHome
+              studentsList={studentsList}
+              materialsList={materialsList}
+              myClasses={myClasses}
+              facultyData={facultyData}
+              messages={messages}
+              getFileUrl={getFileUrl}
+              setView={setView}
+              openAiWithPrompt={openAiWithPrompt}
+            />
+          )}
+
+          {view === 'materials' && (() => {
+            const ctx = ensureContext();
+            return ctx ? (
+              <div className="nexus-hub-viewport">
+                <header className="f-view-header">
+                  <div>
+                    <h2>COURSE <span>MATERIALS</span></h2>
+                    <p className="nexus-subtitle">Manage study materials for {ctx.subject}</p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <FaFilter style={{ color: '#94a3b8' }} />
+                    <select
+                      className="f-context-select"
+                      onChange={(e) => {
+                        const [yr, subj] = e.target.value.split('-');
+                        const cls = myClasses.find(c => String(c.year) === yr && c.subject === subj);
+                        if (cls) setActiveContext(cls);
+                      }}
+                      value={ctx ? `${ctx.year}-${ctx.subject}` : ''}
+                    >
+                      {myClasses.map(c => (
+                        <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
+                          {c.subject} (YEAR {c.year})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </header>
+
+                <div className="f-upload-stage animate-slide-up">
+                  <MaterialManager
+                    selectedSubject={`${ctx.subject} - Year ${ctx.year}`}
+                    selectedSections={ctx.sections}
+                    onUploadSuccess={refreshAll}
+                  />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <FaFilter style={{ color: '#94a3b8' }} />
+
+                <div className="f-materials-grid">
+                  {materialsList.filter(m => String(m.year) === String(ctx.year) && m.subject.includes(ctx.subject)).map((node, index) => (
+                    <div key={node.id || node._id} className="f-node-card animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                      <div className="f-node-head">
+                        <div className="f-node-type-icon">
+                          {node.type === 'videos' ? <FaLayerGroup /> : <FaFileAlt />}
+                        </div>
+                        <div className="f-node-actions">
+                          <a href={getFileUrl(node.url)} target="_blank" rel="noreferrer" className="f-node-btn view" title="View File"><FaEye /></a>
+                          <button onClick={() => handleDeleteNode(node.id || node._id)} className="f-node-btn delete" title="Delete File"><FaTrash /></button>
+                        </div>
+                      </div>
+                      <h4 className="f-node-title">{node.title}</h4>
+                      <div className="f-node-meta">
+                        <span className="f-meta-badge type">{node.type.toUpperCase()}</span>
+                        <span className="f-meta-badge unit">UNIT {node.unit || 1}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : <div className="no-content">No classes assigned.</div>;
+          })()}
+
+          {view === 'assignments' && <FacultyAssignments facultyId={facultyData.facultyId} openAiWithPrompt={openAiWithPrompt} />}
+          {view === 'marks' && <FacultyMarks facultyData={currentFaculty} openAiWithPrompt={openAiWithPrompt} />}
+
+          {view === 'attendance' && (() => {
+            const ctx = ensureContext();
+            return ctx ? (
+              <div className="nexus-hub-viewport">
+                <header className="f-view-header">
+                  <div>
+                    <h2>ATTENDANCE <span>ROSTER</span></h2>
+                    <p className="nexus-subtitle">Daily tracking for {ctx.subject}</p>
+                  </div>
                   <select
                     className="f-context-select"
                     onChange={(e) => {
@@ -262,203 +326,161 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                       </option>
                     ))}
                   </select>
-                </div>
-              </header>
-
-              <div className="f-upload-stage animate-slide-up">
-                <MaterialManager
-                  selectedSubject={`${ctx.subject} - Year ${ctx.year}`}
-                  selectedSections={ctx.sections}
-                  onUploadSuccess={refreshAll}
+                </header>
+                <FacultyAttendanceManager
+                  facultyId={facultyData.facultyId}
+                  subject={ctx.subject}
+                  year={ctx.year}
+                  sections={ctx.sections}
+                  currentFaculty={currentFaculty}
+                  openAiWithPrompt={openAiWithPrompt}
                 />
               </div>
+            ) : <div className="no-content">No classes assigned.</div>;
+          })()}
 
-              <div className="f-materials-grid">
-                {materialsList.filter(m => String(m.year) === String(ctx.year) && m.subject.includes(ctx.subject)).map((node, index) => (
-                  <div key={node.id || node._id} className="f-node-card animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
-                    <div className="f-node-head">
-                      <div className="f-node-type-icon">
-                        {node.type === 'videos' ? <FaLayerGroup /> : <FaFileAlt />}
-                      </div>
-                      <div className="f-node-actions">
-                        <a href={getFileUrl(node.url)} target="_blank" rel="noreferrer" className="f-node-btn view" title="View File"><FaEye /></a>
-                        <button onClick={() => handleDeleteNode(node.id || node._id)} className="f-node-btn delete" title="Delete File"><FaTrash /></button>
-                      </div>
-                    </div>
-                    <h4 className="f-node-title">{node.title}</h4>
-                    <div className="f-node-meta">
-                      <span className="f-meta-badge type">{node.type.toUpperCase()}</span>
-                      <span className="f-meta-badge unit">UNIT {node.unit || 1}</span>
-                      <div className="f-sync-active"></div>
-                    </div>
+          {view === 'exams' && (() => {
+            const ctx = ensureContext();
+            return ctx ? (
+              <div className="nexus-hub-viewport">
+                <header className="f-view-header">
+                  <div>
+                    <h2>EXAM <span>MANAGEMENT</span></h2>
+                    <p className="nexus-subtitle">Manage assessments for {ctx.subject}</p>
                   </div>
-                ))}
-              </div>
-            </div>
-          ) : <div className="no-content">No classes assigned.</div>;
-        })()}
-
-        {view === 'assignments' && (
-          <div className="nexus-hub-viewport">
-            <FacultyAssignments facultyId={facultyData.facultyId} />
-          </div>
-        )}
-
-        {view === 'marks' && (
-          <div className="nexus-hub-viewport">
-            <FacultyMarks facultyData={currentFaculty} />
-          </div>
-        )}
-
-        {view === 'attendance' && (() => {
-          const ctx = ensureContext();
-          return ctx ? (
-            <div className="nexus-hub-viewport">
-              <header className="f-view-header">
-                <div>
-                  <h2>ATTENDANCE <span>ROSTER</span></h2>
-                  <p className="nexus-subtitle">Track student attendance</p>
-                </div>
-                <select
-                  className="f-context-select"
-                  onChange={(e) => {
-                    const [yr, subj] = e.target.value.split('-');
-                    const cls = myClasses.find(c => String(c.year) === yr && c.subject === subj);
-                    if (cls) setActiveContext(cls);
-                  }}
-                  value={ctx ? `${ctx.year}-${ctx.subject}` : ''}
-                >
-                  {myClasses.map(c => (
-                    <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
-                      {c.subject} (YEAR {c.year})
-                    </option>
-                  ))}
-                </select>
-              </header>
-              <FacultyAttendanceManager
-                facultyData={currentFaculty}
-              />
-            </div>
-          ) : <div className="no-content">No classes assigned.</div>;
-        })()}
-
-        {view === 'exams' && (() => {
-          const ctx = ensureContext();
-          return ctx ? (
-            <div className="nexus-hub-viewport">
-              <header className="f-view-header">
-                <div>
-                  <h2>EXAM <span>MANAGEMENT</span></h2>
-                  <p className="nexus-subtitle">Create and manage exams</p>
-                </div>
-                <select
-                  className="f-context-select"
-                  onChange={(e) => {
-                    const [yr, subj] = e.target.value.split('-');
-                    const cls = myClasses.find(c => String(c.year) === yr && c.subject === subj);
-                    if (cls) setActiveContext(cls);
-                  }}
-                  value={ctx ? `${ctx.year}-${ctx.subject}` : ''}
-                >
-                  {myClasses.map(c => (
-                    <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
-                      {c.subject} (YEAR {c.year})
-                    </option>
-                  ))}
-                </select>
-              </header>
-              <FacultyExams
-                subject={ctx.subject}
-                year={ctx.year}
-                sections={ctx.sections}
-                facultyId={currentFaculty.facultyId}
-                branch={currentFaculty.department}
-              />
-            </div>
-          ) : <div className="no-content">No classes assigned.</div>;
-        })()}
-
-        {view === 'schedule' && (
-          <div className="nexus-hub-viewport">
-            <FacultyScheduleView facultyData={currentFaculty} />
-          </div>
-        )}
-
-        {view === 'curriculum' && (
-          <div className="nexus-hub-viewport">
-            <FacultyCurriculumArch />
-          </div>
-        )}
-
-        {view === 'settings' && (
-          <div className="nexus-hub-viewport">
-            <FacultySettings facultyData={currentFaculty} onProfileUpdate={setCurrentFaculty} />
-          </div>
-        )}
-
-        {view === 'broadcast' && (
-          <div className="nexus-hub-viewport">
-            <div className="f-node-card animate-slide-up" style={{ maxWidth: '600px', margin: '0 auto' }}>
-              <div className="f-modal-header">
-                <FaBullhorn style={{ fontSize: '2rem' }} />
-                <h2>MAKE ANNOUNCEMENT</h2>
-              </div>
-
-              <p style={{ color: '#64748b', marginBottom: '2.5rem', fontWeight: 850 }}>
-                Send announcements to your classes.
-              </p>
-
-              <form onSubmit={handleSendMessage} className="f-broadcast-form">
-                <div className="nexus-group">
-                  <label className="f-form-label">Target Class</label>
-                  <select name="targetClass" className="f-form-select">
+                  <select
+                    className="f-context-select"
+                    onChange={(e) => {
+                      const [yr, subj] = e.target.value.split('-');
+                      const cls = myClasses.find(c => String(c.year) === yr && c.subject === subj);
+                      if (cls) setActiveContext(cls);
+                    }}
+                    value={ctx ? `${ctx.year}-${ctx.subject}` : ''}
+                  >
                     {myClasses.map(c => (
                       <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
                         {c.subject} (YEAR {c.year})
                       </option>
                     ))}
                   </select>
-                </div>
+                </header>
+                <FacultyExams
+                  subject={ctx.subject}
+                  year={ctx.year}
+                  sections={ctx.sections}
+                  facultyId={currentFaculty.facultyId}
+                  branch={currentFaculty.department}
+                  openAiWithPrompt={openAiWithPrompt}
+                />
+              </div>
+            ) : <div className="no-content">No classes assigned.</div>;
+          })()}
 
-                <div className="nexus-group">
-                  <label className="f-form-label">Message</label>
-                  <textarea
-                    name="message"
-                    placeholder="Enter announcement text..."
-                    required
-                    className="f-form-textarea"
-                  ></textarea>
-                </div>
+          {view === 'schedule' && <FacultyScheduleView facultyData={currentFaculty} openAiWithPrompt={openAiWithPrompt} />}
+          {view === 'curriculum' && (
+            <FacultyCurriculumArch
+              myClasses={myClasses}
+              materialsList={materialsList}
+              currentFaculty={currentFaculty}
+              getFileUrl={getFileUrl}
+              openAiWithPrompt={openAiWithPrompt}
+            />
+          )}
+          {view === 'settings' && <FacultySettings facultyData={currentFaculty} onProfileUpdate={setCurrentFaculty} openAiWithPrompt={openAiWithPrompt} />}
+          {view === 'messages' && <FacultyMessages messages={messages} openAiWithPrompt={openAiWithPrompt} />}
+          {view === 'students' && <FacultyStudents studentsList={studentsList} openAiWithPrompt={openAiWithPrompt} />}
 
-                <div className="f-modal-actions">
-                  <button type="submit" className="nexus-btn-primary">POST ANNOUNCEMENT</button>
+          {view === 'broadcast' && (
+            <div className="nexus-hub-viewport" style={{ maxWidth: '800px', margin: '0 auto' }}>
+              <div className="f-node-card animate-slide-up">
+                <div className="f-modal-header">
+                  <FaBullhorn style={{ fontSize: '2rem' }} />
+                  <h2>SYSTEM BROADCAST</h2>
                 </div>
-              </form>
+                <form onSubmit={handleSendMessage} className="f-broadcast-form">
+                  <div className="nexus-group">
+                    <label className="f-form-label">Target Course Pipeline</label>
+                    <select name="targetClass" className="f-form-select">
+                      {myClasses.map(c => (
+                        <option key={`${c.year}-${c.subject}`} value={`${c.year}-${c.subject}`}>
+                          {c.subject} (YEAR {c.year})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="nexus-group">
+                    <label className="f-form-label">Transmission Signal</label>
+                    <textarea name="message" placeholder="Type your announcement..." required className="f-form-textarea" style={{ height: '200px' }}></textarea>
+                  </div>
+                  <div className="f-modal-actions">
+                    <button type="submit" className="f-quick-btn primary" style={{ width: '100%', borderRadius: '16px' }}>INITIATE BROADCAST</button>
+                  </div>
+                </form>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {view === 'messages' && (
-          <div className="nexus-hub-viewport">
-            <FacultyMessages messages={messages} />
-          </div>
-        )}
 
-        {view === 'students' && (
-          <div className="nexus-hub-viewport">
-            <FacultyStudents studentsList={studentsList} />
-          </div>
-        )}
+        </div>
       </div>
 
-      {/* QUICK ANNOUNCEMENT MODAL */}
+      <PersonalDetailsBall role="faculty" data={facultyData} />
+      <div className="ai-fab" onClick={toggleAiModal} title="AI Assistant">
+        <FaRobot />
+        <span className="fab-label">Ask AI</span>
+      </div>
+
+      {showAiModal && (
+        <div className="nexus-modal-overlay" onClick={toggleAiModal}>
+          <div className="nexus-modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '1000px', width: '90%', position: 'relative' }}>
+            <button className="nexus-modal-close" onClick={toggleAiModal}>
+              &times;
+            </button>
+            <VuAiAgent onNavigate={(path) => {
+              const target = String(path).toLowerCase();
+              setShowAiModal(false);
+              setAiInitialPrompt('');
+
+              const viewMap = {
+                'overview': 'overview',
+                'materials': 'materials',
+                'assignment': 'assignments',
+                'assignments': 'assignments',
+                'mark': 'marks',
+                'marks': 'marks',
+                'attend': 'attendance',
+                'attendance': 'attendance',
+                'exam': 'exams',
+                'exams': 'exams',
+                'schedule': 'schedule',
+                'settings': 'settings',
+                'message': 'messages',
+                'messages': 'messages',
+                'students': 'students',
+                'broadcast': 'broadcast',
+                'curriculum': 'curriculum'
+              };
+
+              let matched = false;
+              Object.keys(viewMap).forEach(key => {
+                if (target.includes(key)) {
+                  setView(viewMap[key]);
+                  matched = true;
+                }
+              });
+
+              if (!matched) {
+                console.log('AI requested unknown path:', path);
+              }
+            }} initialMessage={aiInitialPrompt} />
+          </div>
+        </div>
+      )}
+
       {showMsgModal && (
         <div className="nexus-modal-overlay" onClick={() => setShowMsgModal(false)}>
           <div className="nexus-modal-content" onClick={e => e.stopPropagation()}>
-            <div className="f-modal-header">
-              <FaBullhorn />
-              <h2>QUICK ANNOUNCEMENT</h2>
-            </div>
+            <div className="f-modal-header"><FaBullhorn /><h2>QUICK ALERT</h2></div>
             <form onSubmit={handleSendMessage} className="f-broadcast-form">
               <div className="nexus-group">
                 <label className="f-form-label">Target Class</label>
@@ -470,46 +492,21 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                   ))}
                 </select>
               </div>
-
               <div className="nexus-group">
                 <label className="f-form-label">Message</label>
-                <textarea
-                  name="message"
-                  placeholder="Enter message..."
-                  required
-                  className="f-form-textarea"
-                  style={{ height: '100px' }}
-                ></textarea>
+                <textarea name="message" placeholder="Type info..." required className="f-form-textarea" style={{ height: '100px' }}></textarea>
               </div>
-
               <div className="f-modal-actions">
-                <button type="button" onClick={() => setShowMsgModal(false)} className="f-cancel-btn">CANCEL</button>
-                <button type="submit" className="nexus-btn-primary">SEND</button>
+                <button type="button" onClick={() => setShowMsgModal(false)} className="f-cancel-btn">CLOSE</button>
+                <button type="submit" className="f-quick-btn primary">SEND</button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-
-      <PersonalDetailsBall role="faculty" data={facultyData} />
-
-      <div className="ai-fab" onClick={() => setView('ai-agent')} title="Open AI Assistant">
-        <FaRobot />
-      </div>
-      {
-        view === 'ai-agent' && (
-          <div className="nexus-modal-overlay" onClick={() => setView('overview')}>
-            <div className="nexus-modal-content" onClick={e => e.stopPropagation()}>
-              <VuAiAgent onNavigate={setView} />
-            </div>
-          </div>
-        )
-      }
     </div >
   );
 };
-
 FacultyDashboard.propTypes = {
   facultyData: PropTypes.object.isRequired,
   setIsAuthenticated: PropTypes.func.isRequired,

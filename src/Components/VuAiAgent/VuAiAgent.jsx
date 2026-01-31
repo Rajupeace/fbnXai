@@ -5,8 +5,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion, AnimatePresence } from 'framer-motion';
 import './VuAiAgent.css';
+import { FaSyncAlt } from 'react-icons/fa';
 
-const VuAiAgent = ({ onNavigate }) => {
+const VuAiAgent = ({ onNavigate, initialMessage }) => {
     const defaultBotMessage = {
         id: 'vuai-greeting',
         sender: 'bot',
@@ -20,8 +21,10 @@ const VuAiAgent = ({ onNavigate }) => {
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
     const [userProfile, setUserProfile] = useState(null);
     const [copiedId, setCopiedId] = useState(null);
+    const [lastFailedText, setLastFailedText] = useState(null);
     const messagesEndRef = useRef(null);
     const historyLoadedRef = useRef(false);
+    const initialMessageProcessed = useRef(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -45,7 +48,7 @@ const VuAiAgent = ({ onNavigate }) => {
 
         const safeParse = (value) => {
             try { return JSON.parse(value); }
-            catch (err) { return null; }
+            catch (err) { return {}; }
         };
 
         if (userDataStr) {
@@ -73,8 +76,8 @@ const VuAiAgent = ({ onNavigate }) => {
             userId: userData.sid || userData.facultyId || userData.adminId || 'guest',
             context: {
                 year: userData.year,
-                branch: userData.branch,
-                section: userData.section,
+                branch: userData.branch || 'CSE',
+                section: userData.section || 'A',
                 name: userData.studentName || userData.name || 'User'
             }
         };
@@ -84,6 +87,23 @@ const VuAiAgent = ({ onNavigate }) => {
         setUserProfile(resolveUserProfile());
     }, []);
 
+    // Personalize greeting once user profile is resolved
+    useEffect(() => {
+        if (!userProfile) return;
+        setMessages(prev => {
+            try {
+                const name = (userProfile.context && userProfile.context.name) || (userProfile.userId || 'Student');
+                const personalized = `Hi ${name}! I'm your Study Companion — ask a question and I'll help you quickly with short, actionable steps.`;
+                if (Array.isArray(prev) && prev.length === 1 && prev[0].id === 'vuai-greeting') {
+                    return [{ ...prev[0], text: personalized }];
+                }
+            } catch (e) {
+                // ignore personalization errors
+            }
+            return prev;
+        });
+    }, [userProfile]);
+
     useEffect(() => {
         const fetchHistory = async () => {
             if (!userProfile || historyLoadedRef.current) return;
@@ -92,8 +112,7 @@ const VuAiAgent = ({ onNavigate }) => {
             try {
                 const params = new URLSearchParams({
                     userId: userProfile.userId || 'guest',
-                    role: userProfile.role || 'student',
-                    limit: '50'
+                    role: userProfile.role || 'student'
                 });
                 const history = await apiGet(`/api/chat/history?${params.toString()}`);
                 if (Array.isArray(history) && history.length > 0) {
@@ -128,22 +147,35 @@ const VuAiAgent = ({ onNavigate }) => {
         fetchHistory();
     }, [userProfile]);
 
+    useEffect(() => {
+        if (initialMessage && !initialMessageProcessed.current && userProfile && !isHistoryLoading) {
+            initialMessageProcessed.current = true;
+            setTimeout(() => {
+                handleSend(null, initialMessage);
+            }, 1000);
+        }
+    }, [initialMessage, userProfile, isHistoryLoading]);
+
     const handleActionTags = (text) => {
         // Detect {{NAVIGATE: section}} case-insensitive
         const navMatch = text.match(/{{NAVIGATE:\s*([^}]+)}}/i);
         if (navMatch && navMatch[1] && onNavigate) {
             const section = navMatch[1].trim();
             console.log('[FriendlyAgent] Executing navigation directive:', section);
-            setTimeout(() => onNavigate(section), 1000);
+            // faster navigation - 200ms so UI feels more responsive
+            setTimeout(() => onNavigate(section), 200);
         }
         return text.replace(/{{NAVIGATE:\s*[^}]+}}/gi, '');
     };
 
-    const handleSend = async (e) => {
-        if (e) e.preventDefault();
-        if (!input.trim() || !userProfile || isLoading) return;
+    const isMountedRef = useRef(true);
+    useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
-        const userText = input;
+    const handleSend = async (e, forcedText = null) => {
+        if (e) e.preventDefault();
+        const userText = forcedText || input;
+        if (!userText || !userText.trim() || !userProfile || isLoading) return;
+
         setInput('');
 
         const userMsg = {
@@ -156,46 +188,74 @@ const VuAiAgent = ({ onNavigate }) => {
         setMessages(prev => [...prev, userMsg]);
         setIsLoading(true);
 
-        try {
-            const payload = {
-                prompt: userText,
-                userId: userProfile.userId || 'guest',
-                role: userProfile.role || 'student',
-                context: userProfile.context || {}
-            };
+        const payload = {
+            user_id: userProfile.userId || 'guest',
+            message: userText,
+            role: userProfile.role || 'student',
+            user_name: (userProfile.context && userProfile.context.name) || 'User'
+        };
 
-            const data = await apiPost('/api/chat', payload);
+        const MAX_RETRIES = 3;
 
-            if (data && (data.response || data.text || data.message)) {
-                let botResponse = data.response || data.text || data.message;
-                botResponse = handleActionTags(botResponse);
+        const sendPayload = async (attempt = 1) => {
+            try {
+                const data = await apiPost('/api/chat', payload);
 
+                let botResponse = '';
+                if (typeof data === 'string') {
+                    botResponse = data;
+                } else if (data && (data.response || data.text || data.message)) {
+                    botResponse = data.response || data.text || data.message;
+                } else {
+                    botResponse = 'Received empty response from server.';
+                }
+
+                botResponse = handleActionTags(String(botResponse));
+
+                if (!isMountedRef.current) return;
                 setMessages(prev => [...prev, {
                     id: Date.now() + 1,
                     sender: 'bot',
                     text: botResponse,
                     timestamp: new Date().toISOString()
                 }]);
-            } else {
-                setMessages(prev => [...prev, {
-                    id: Date.now() + 1,
-                    sender: 'bot',
-                    text: "I didn't catch that. Could you rephrase?",
-                    timestamp: new Date().toISOString()
-                }]);
-            }
 
-        } catch (error) {
-            setMessages(prev => [...prev, {
-                id: Date.now() + 1,
-                sender: 'bot',
-                text: "Connection lost. Please try again.",
-                isError: true,
-                timestamp: new Date().toISOString()
-            }]);
-        } finally {
-            setIsLoading(false);
-        }
+                if (isMountedRef.current) setLastFailedText(null);
+                return;
+            } catch (error) {
+                console.error('[VuAiAgent] chat send failed (attempt', attempt, '):', error);
+                if (attempt < MAX_RETRIES) {
+                    const nextAttempt = attempt + 1;
+                    const delay = Math.pow(2, attempt - 1) * 1000; // 1s,2s,4s
+                    if (isMountedRef.current) {
+                        setMessages(prev => [...prev, {
+                            id: `retry-${Date.now()}-${attempt}`,
+                            sender: 'bot',
+                            text: `Retrying... (attempt ${nextAttempt}/${MAX_RETRIES})`,
+                            timestamp: new Date().toISOString()
+                        }]);
+                    }
+                    await new Promise(res => setTimeout(res, delay));
+                    if (!isMountedRef.current) return;
+                    return sendPayload(nextAttempt);
+                }
+
+                if (isMountedRef.current) {
+                    setLastFailedText(userText);
+                    setMessages(prev => [...prev, {
+                        id: Date.now() + 1,
+                        sender: 'bot',
+                        text: `Connection lost. Please try again. (${error?.message || 'Network error'})`,
+                        isError: true,
+                        timestamp: new Date().toISOString()
+                    }]);
+                }
+            } finally {
+                if (isMountedRef.current) setIsLoading(false);
+            }
+        };
+
+        await sendPayload(1);
     };
 
     const copyToClipboard = (text, id) => {
@@ -205,10 +265,10 @@ const VuAiAgent = ({ onNavigate }) => {
     };
 
     const suggestions = [
-        "Explain my next exam",
-        "Show my grades",
-        "Where is my next class?",
-        "Summarize last lecture"
+        "What is my current attendance?",
+        "Show my upcoming exams",
+        "Explain DBMS join types",
+        "Navigate to Academic Browser"
     ];
 
     return (
@@ -241,6 +301,22 @@ const VuAiAgent = ({ onNavigate }) => {
                     <div className="vu-status">
                         <div className="vu-status-dot"></div>
                         <span>Online & Friendly</span>
+                        <button
+                            title="Refresh AI Knowledge"
+                            className="vu-refresh-btn"
+                            onClick={async () => {
+                                try {
+                                    // Call backend proxy to reload knowledge modules
+                                    await apiPost('/api/agent/reload', {});
+                                    setMessages(prev => [...prev, { id: Date.now() + 99, sender: 'bot', text: 'Knowledge refreshed ✅', timestamp: new Date().toISOString() }]);
+                                } catch (e) {
+                                    setMessages(prev => [...prev, { id: Date.now() + 100, sender: 'bot', text: 'Failed to refresh knowledge', timestamp: new Date().toISOString(), isError: true }]);
+                                }
+                            }}
+                            style={{ marginLeft: 8, background: 'transparent', border: 'none', cursor: 'pointer', color: '#2d8cff' }}
+                        >
+                            <FaSyncAlt />
+                        </button>
                     </div>
                 </div>
             </header>
@@ -296,7 +372,13 @@ const VuAiAgent = ({ onNavigate }) => {
             {userProfile?.role === 'student' && (
                 <div className="vu-suggestions">
                     {suggestions.map((s, i) => (
-                        <div key={i} className="suggestion-chip" onClick={() => { setInput(s); }}>
+                        <div
+                            key={i}
+                            className="suggestion-chip"
+                            onClick={() => {
+                                handleSend(null, s);
+                            }}
+                        >
                             {s}
                         </div>
                     ))}
@@ -321,6 +403,17 @@ const VuAiAgent = ({ onNavigate }) => {
                     >
                         <FaPaperPlane size={16} />
                     </button>
+                    {lastFailedText && !isLoading && (
+                        <button
+                            type="button"
+                            title="Retry last message"
+                            className="vu-retry-btn"
+                            onClick={() => handleSend(null, lastFailedText)}
+                            style={{ marginLeft: '8px', background: 'transparent', border: '1px solid #e2e8f0', borderRadius: 6, padding: '6px 8px', cursor: 'pointer' }}
+                        >
+                            Retry
+                        </button>
+                    )}
                 </div>
             </form>
         </div>

@@ -20,6 +20,8 @@ const AdminHeader = ({
     collapsed,
     setCollapsed
 }) => {
+    // Proactive hardening for null prop usage
+    adminData = adminData || { name: 'System Administrator', role: 'Administrator' };
 
     const localHandleLogout = (e) => {
         e.preventDefault();
@@ -80,7 +82,6 @@ const AdminHeader = ({
                 <motion.div
                     className="admin-brand-group"
                     onClick={() => setCollapsed(!collapsed)}
-                    style={{ cursor: 'pointer' }}
                     layout
                 >
                     <motion.div className="admin-brand-icon" layout>
@@ -94,8 +95,8 @@ const AdminHeader = ({
                                 exit={{ opacity: 0, x: -10 }}
                                 className="fade-in-text"
                             >
-                                <h1 className="admin-brand-name" style={{ margin: 0, whiteSpace: 'nowrap' }}>FNB Admin</h1>
-                                <span style={{ fontSize: '0.6rem', fontWeight: 950, color: 'var(--admin-text-muted)', letterSpacing: '0.1rem', whiteSpace: 'nowrap' }}>Friendly Notebook</span>
+                                <h1 className="admin-brand-name">FNB Admin</h1>
+                                <span className="admin-brand-subtitle">Friendly Notebook</span>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -137,7 +138,7 @@ const AdminHeader = ({
                                             initial={{ opacity: 0, x: -10 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             exit={{ opacity: 0, x: -10 }}
-                                            style={{ whiteSpace: 'nowrap' }}
+                                            className="nav-item-label"
                                         >
                                             {item.label}
                                         </motion.span>
@@ -157,18 +158,17 @@ const AdminHeader = ({
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
-                            style={{ padding: '1.25rem', background: '#f8fafc', borderRadius: '16px', marginBottom: '1.5rem', border: '1px solid var(--admin-border)' }}
+                            className="admin-user-profile"
                         >
-                            <div style={{ fontSize: '0.85rem', fontWeight: 950, color: 'var(--admin-secondary)' }}>{adminData.name}</div>
-                            <div style={{ fontSize: '0.65rem', fontWeight: 850, color: 'var(--admin-text-muted)', textTransform: 'uppercase' }}>{adminData.role}</div>
+                            <div className="user-name">{adminData.name}</div>
+                            <div className="user-role">{adminData.role}</div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 <motion.button
                     onClick={() => openModal('about')}
-                    className="admin-btn admin-btn-outline"
-                    style={{ width: '100%', marginBottom: '0.75rem', height: '45px' }}
+                    className="admin-btn admin-btn-outline full-width"
                     layout
                 >
                     <FaCog /> {!collapsed && "SETTINGS"}
@@ -176,8 +176,7 @@ const AdminHeader = ({
 
                 <motion.button
                     onClick={localHandleLogout}
-                    className="admin-btn"
-                    style={{ width: '100%', background: '#fef2f2', color: '#dc2626', border: 'none', height: '45px' }}
+                    className="admin-btn admin-btn-danger full-width"
                     layout
                 >
                     <FaSignOutAlt /> {!collapsed && "LOGOUT"}

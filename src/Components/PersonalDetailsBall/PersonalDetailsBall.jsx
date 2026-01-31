@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './PersonalDetailsBall.css';
-import { FaUser, FaIdCard, FaUniversity, FaChalkboardTeacher, FaUserShield } from 'react-icons/fa';
+import { FaUser, FaChalkboardTeacher, FaUserShield } from 'react-icons/fa';
 
 const PersonalDetailsBall = ({ role, data }) => {
+    // Safety Fallback
+    data = data || {};
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef(null);
 

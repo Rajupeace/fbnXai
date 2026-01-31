@@ -1,15 +1,17 @@
 import React from 'react';
-import '../StudentDashboard.css';
+import './SkillsRadar.css';
 
 const SkillsRadar = ({ studentData }) => {
-    // Mock data based on student performance (could be dynamic)
+    // Dynamically derive skills from student performance data if available
+    const stats = studentData?.stats || {};
+
     const skills = [
-        { name: 'Algorithms', value: 85 },
-        { name: 'Sys Design', value: 70 },
-        { name: 'AI/ML', value: 90 },
-        { name: 'Web Dev', value: 75 },
-        { name: 'Soft Skills', value: 65 },
-        { name: 'Cloud', value: 80 }
+        { name: 'Algorithms', value: stats.algorithms || 85 },
+        { name: 'Sys Design', value: stats.systemDesign || 70 },
+        { name: 'AI/ML', value: stats.ai || 90 },
+        { name: 'Web Dev', value: stats.webDev || 75 },
+        { name: 'Soft Skills', value: stats.communication || 65 },
+        { name: 'Cloud', value: stats.cloud || 80 }
     ];
 
     const numPoints = skills.length;
@@ -27,7 +29,6 @@ const SkillsRadar = ({ studentData }) => {
     };
 
     const points = skills.map((s, i) => getCoordinates(s.value, i).join(',')).join(' ');
-    const fullPoints = skills.map((_, i) => getCoordinates(100, i).join(',')).join(' ');
 
     return (
         <div className="radar-card animate-fade-in">
