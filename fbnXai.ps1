@@ -97,17 +97,26 @@ if (-not $SkipBackend) {
     $backendJob = Start-Job -ScriptBlock {
         Set-Location $using:PWD
         Set-Location backend
-        npm start
+        npm start 2>&1
     }
     $jobs += @{Name="Backend"; Job=$backendJob; Port=5000}
-    Start-Sleep -Seconds 3
     
-    # Verify backend started
-    $backendCheck = netstat -ano | Select-String ":5000.*LISTENING"
-    if ($backendCheck) {
-        Write-Success "Backend running on http://localhost:5000"
-    } else {
-        Write-Error "Backend failed to start on port 5000"
+    # Wait up to 15 seconds for backend to start
+    Write-Info "Waiting for backend to initialize..."
+    $backendStarted = $false
+    for ($i = 0; $i -lt 15; $i++) {
+        Start-Sleep -Seconds 1
+        $backendCheck = netstat -ano | Select-String ":5000.*LISTENING"
+        if ($backendCheck) {
+            Write-Success "Backend running on http://localhost:5000"
+            $backendStarted = $true
+            break
+        }
+    }
+    if (-not $backendStarted) {
+        Write-Error "Backend failed to start on port 5000 after 15s"
+        Write-Info "Checking job output..."
+        Receive-Job -Job $backendJob | Select-Object -First 10
     }
 }
 
@@ -117,17 +126,26 @@ if (-not $SkipAgent) {
     $agentJob = Start-Job -ScriptBlock {
         Set-Location $using:PWD
         Set-Location backend/ai_agent
-        python main.py
+        python main.py 2>&1
     }
     $jobs += @{Name="AI Agent"; Job=$agentJob; Port=8000}
-    Start-Sleep -Seconds 5
     
-    # Verify agent started
-    $agentCheck = netstat -ano | Select-String ":8000.*LISTENING"
-    if ($agentCheck) {
-        Write-Success "AI Agent running on http://localhost:8000"
-    } else {
-        Write-Error "AI Agent failed to start on port 8000"
+    # Wait up to 20 seconds for AI agent to start
+    Write-Info "Waiting for AI agent to initialize..."
+    $agentStarted = $false
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Seconds 1
+        $agentCheck = netstat -ano | Select-String ":8000.*LISTENING"
+        if ($agentCheck) {
+            Write-Success "AI Agent running on http://localhost:8000"
+            $agentStarted = $true
+            break
+        }
+    }
+    if (-not $agentStarted) {
+        Write-Error "AI Agent failed to start on port 8000 after 20s"
+        Write-Info "Checking job output..."
+        Receive-Job -Job $agentJob | Select-Object -First 10
     }
 }
 
@@ -136,20 +154,22 @@ if (-not $SkipFrontend) {
     Write-Info "Starting Frontend (React) on port 3000..."
     $frontendJob = Start-Job -ScriptBlock {
         Set-Location $using:PWD
-        npm start
+        $env:BROWSER = "none"  # Prevent auto-opening browser multiple times
+        npm start 2>&1
     }
     $jobs += @{Name="Frontend"; Job=$frontendJob; Port=3000}
-    Write-Success "Frontend starting on http://localhost:3000"
-    Write-Info "Browser will open automatically..."
+    Write-Info "Frontend will be available at http://localhost:3000 (may take 30-60 seconds)"
 }
 
 Write-Host ""
 Write-Header "SYSTEM STATUS"
 
+# Wait a moment for final initialization
 Start-Sleep -Seconds 3
 
 # Check all services
 $allRunning = $true
+$runningCount = 0
 
 foreach ($service in $jobs) {
     $port = $service.Port
@@ -158,9 +178,13 @@ foreach ($service in $jobs) {
     
     if ($isListening) {
         Write-Success "$name running on port $port"
+        $runningCount++
     } else {
         Write-Error "$name not responding on port $port"
         $allRunning = $false
+        
+        # Show job output for debugging
+        Write-Info "Job output for $name":
     }
 }
 
