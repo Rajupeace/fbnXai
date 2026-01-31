@@ -126,7 +126,7 @@ function findKnowledgeMatch(userMessage, knowledgeBase, context) {
 
     // Check ultra-fast important knowledge first for critical queries
     const ultraFastResult = ultraFastResponse.getUltraFastResponse(userMessage, context);
-    if (ultraFastResult.responseTime < 50) {
+    if (ultraFastResult && ultraFastResult.responseTime < 50) {
         return {
             response: ultraFastResult.response,
             ultraFast: true,

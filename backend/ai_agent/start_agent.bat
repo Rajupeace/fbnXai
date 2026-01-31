@@ -16,10 +16,14 @@ call .venv\Scripts\Activate.bat
 
 REM Upgrade pip and install dependencies if requirements.txt present
 python -m pip install --upgrade pip
-if exist requirements.txt (
-  echo Installing Python dependencies from requirements.txt ...
-  echo Installing Python dependencies from requirements.txt ...
-  pip install -r requirements.txt --upgrade
+REM Optimized Dependency Check
+python -c "import faiss, langchain_community" 2>nul
+if %errorlevel% neq 0 (
+    echo [i] Installing/Updating High-Performance Dependencies...
+    pip install -r requirements.txt --quiet
+    pip install faiss-cpu sentence-transformers --quiet
+) else (
+    echo [i] Dependencies ready. Skipping install for speed.
 )
 
 REM Ensure a .env exists (copy example if not present)
