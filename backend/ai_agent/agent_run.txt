@@ -1,0 +1,18 @@
+Checking RAG dependencies...
+  - langchain_community: OK
+  - FAISS: OK
+  - Embeddings: OK
+  - Splitters: OK
+[!] RAG Check failed: No module named 'langchain.chains'
+  - langchain_community: Found
+  - faiss: Found
+  - sentence_transformers: Found
+  - langchain: Found
+[!] RAG disabled: missing core libraries.
+
+==================================================
+STARTING FAST RAG ENGINE
+==================================================
+[:] initializing GEMINI (gemini-1.5-flash)...
+[X] FAISS/LangChain not installed. RAG disabled.
+[OK] MongoDB Connected.

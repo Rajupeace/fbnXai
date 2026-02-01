@@ -71,6 +71,7 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
             apiFormData.append('unit', formData.unit);
             if (formData.topic) apiFormData.append('topic', formData.topic);
             if (formData.duration) apiFormData.append('duration', formData.duration);
+            if (formData.videoAnalysis) apiFormData.append('videoAnalysis', formData.videoAnalysis);
             if (formData.examYear) apiFormData.append('examYear', formData.examYear);
 
             if (uploadType === 'assignments') {
@@ -100,7 +101,15 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
 
     const handleEdit = (res) => {
         setUploadType(res.type);
-        setFormData({ module: res.module || '1', unit: res.unit || '1', topic: res.topic || '', title: res.title || '', semester: res.semester || '1' });
+        setFormData({
+            module: res.module || '1',
+            unit: res.unit || '1',
+            topic: res.topic || '',
+            title: res.title || '',
+            semester: res.semester || '1',
+            duration: res.duration || '',
+            videoAnalysis: res.videoAnalysis || ''
+        });
         setEditId(res._id || res.id);
         setActiveTab('upload');
     };
@@ -112,6 +121,7 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
         if (!title || !url) return alert('Error: Title and URL required.');
         const { subject, year } = getContext();
         try {
+            const analysis = document.getElementById('link-analysis')?.value;
             const linkForm = new FormData();
             linkForm.append('title', title);
             linkForm.append('year', year);
@@ -119,6 +129,7 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
             linkForm.append('subject', subject);
             linkForm.append('type', type);
             linkForm.append('link', url);
+            if (analysis) linkForm.append('videoAnalysis', analysis);
             await apiUpload('/api/materials', linkForm);
             alert('Success: Link added.');
             if (onUploadSuccess) onUploadSuccess();
@@ -204,10 +215,22 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
                                 </select>
                             </div>
                             {uploadType === 'videos' && (
-                                <div className="nexus-group">
-                                    <label className="f-form-label">TEMPORAL FOOTPRINT (DURATION)</label>
-                                    <input placeholder="e.g. 15:00" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="f-form-select" />
-                                </div>
+                                <>
+                                    <div className="nexus-group">
+                                        <label className="f-form-label">TEMPORAL FOOTPRINT (DURATION)</label>
+                                        <input placeholder="e.g. 15:00" value={formData.duration || ''} onChange={e => setFormData({ ...formData, duration: e.target.value })} className="f-form-select" />
+                                    </div>
+                                    <div className="nexus-group" style={{ gridColumn: '1 / -1' }}>
+                                        <label className="f-form-label">AI INSIGHTS / VIDEO ANALYSIS (FOR VUAI AGENT)</label>
+                                        <textarea
+                                            placeholder="Provide key takeaways, timestamps, or academic context for the AI agent..."
+                                            value={formData.videoAnalysis || ''}
+                                            onChange={e => setFormData({ ...formData, videoAnalysis: e.target.value })}
+                                            className="f-form-textarea"
+                                            style={{ height: '100px', background: '#f8fafc' }}
+                                        />
+                                    </div>
+                                </>
                             )}
                         </div>
 
@@ -291,6 +314,10 @@ const MaterialManager = ({ selectedSubject, selectedSections, onUploadSuccess })
                                     <option value="notes">Digital Documentation</option>
                                     <option value="videos">Video Stream Node</option>
                                 </select>
+                            </div>
+                            <div className="nexus-group">
+                                <label className="f-form-label">AI INSIGHTS / VIDEO ANALYSIS (FOR VUAI AGENT)</label>
+                                <textarea id="link-analysis" placeholder="Synthesize the video content for the AI agent..." className="f-form-textarea" style={{ height: '120px', background: '#f8fafc' }} />
                             </div>
                         </div>
                         <button className="nexus-btn-primary" onClick={handleLinkAdd} style={{ width: '100%', height: '60px' }}>

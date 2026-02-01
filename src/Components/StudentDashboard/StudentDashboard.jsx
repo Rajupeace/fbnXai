@@ -95,9 +95,9 @@ export default function StudentDashboard({ studentData, onLogout }) {
         setShowAiModal(true);
     };
 
-    const openAiWithDoc = (title, url) => {
-        setAiDocumentContext({ title, url });
-        setAiInitialPrompt(`I have questions about this document: ${title}`);
+    const openAiWithDoc = (title, url, videoAnalysis = null) => {
+        setAiDocumentContext({ title, url, videoAnalysis });
+        setAiInitialPrompt(`I have questions about this video/document: ${title}`);
         setView('ai-agent');
     };
 
@@ -786,7 +786,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                             transition={{ type: "spring", stiffness: 120, damping: 20 }}
                             className="nexus-page-container"
                         >
-                            <AdvancedLearning userData={userData} overviewData={overviewData} preloadedData={advancedData} />
+                            <AdvancedLearning userData={userData} overviewData={overviewData} preloadedData={advancedData} openAiWithDoc={openAiWithDoc} />
                         </motion.div>
                     )}
 

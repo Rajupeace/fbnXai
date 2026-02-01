@@ -365,8 +365,8 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                         </div>
                                         <div className="res-actions">
                                             <button
-                                                className="ai-ask-btn"
-                                                style={{ background: 'transparent', color: '#f43f5e', border: 'none', padding: '0 0.5rem' }}
+                                                className="like-btn"
+                                                style={{ background: 'transparent', color: '#f43f5e', border: 'none', padding: '0 0.5rem', cursor: 'pointer' }}
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
                                                     try {
@@ -377,6 +377,11 @@ const AcademicBrowser = ({ yearData, selectedYear, serverMaterials, userData, se
                                             >
                                                 ❤️ {v.likes || 0}
                                             </button>
+                                            <button className="ai-ask-btn vid" onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (openAiWithDoc) openAiWithDoc(v.name || v.title, v.url || v.fileUrl, v.videoAnalysis);
+                                                else setView('ai-agent');
+                                            }}>ASK AI</button>
                                             <FaChevronRight className="node-arrow-static" />
                                         </div>
                                     </div>

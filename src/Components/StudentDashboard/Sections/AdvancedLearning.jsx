@@ -14,7 +14,7 @@ import '../AdvancedLearning.css';
  * ADVANCED LEARNING HUB
  * A premium workstation for advanced programming and full-stack development.
  */
-const AdvancedLearning = ({ userData, overviewData, preloadedData }) => {
+const AdvancedLearning = ({ userData, overviewData, preloadedData, openAiWithDoc }) => {
     // Proactive hardening
     overviewData = overviewData || { myFaculty: [] };
     preloadedData = preloadedData || [];
@@ -91,6 +91,15 @@ const AdvancedLearning = ({ userData, overviewData, preloadedData }) => {
                                 <h4>{m.title}</h4>
                                 <span>{m.description || 'Advanced Tutorial'}</span>
                             </div>
+                            <button
+                                className="ai-ask-btn-mini"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (openAiWithDoc) openAiWithDoc(m.title, finalUrl, m.videoAnalysis);
+                                }}
+                            >
+                                <FaBrain /> ASK AI
+                            </button>
                             <FaChevronRight className="arrow" />
                         </div>
                     );

@@ -56,6 +56,7 @@ exports.getMaterials = async (req, res) => {
           module: material.module,
           unit: material.unit,
           topic: material.topic,
+          videoAnalysis: material.videoAnalysis || "Analysis currently being processed by VUAI Systems...",
           uploadedAt: material.createdAt,
           uploaderName: material.uploadedBy?.name || 'Unknown',
           uploaderRole: material.uploadedBy?.facultyId === 'admin' ? 'admin' : 'faculty',

@@ -1,0 +1,31 @@
+[!] RAG Unexpected Error: 'charmap' codec can't encode character '\u26a1' in position 0: character maps to <undefined>
+C:\Users\rajub\Downloads\fbnXai-main\fbnXai-main\backend\ai_agent\main.py:222: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+
+==================================================
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\rajub\AppData\Roaming\Python\Python312\site-packages\starlette\routing.py", line 694, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rajub\AppData\Roaming\Python\Python312\site-packages\starlette\routing.py", line 571, in __aenter__
+    await self._router.startup()
+  File "C:\Users\rajub\AppData\Roaming\Python\Python312\site-packages\starlette\routing.py", line 671, in startup
+    await handler()
+  File "C:\Users\rajub\Downloads\fbnXai-main\fbnXai-main\backend\ai_agent\main.py", line 226, in startup_event
+    await loop.run_in_executor(None, initialize_fast_rag)
+  File "C:\Program Files\Python312\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rajub\Downloads\fbnXai-main\fbnXai-main\backend\ai_agent\main.py", line 122, in initialize_fast_rag
+    print("\U0001f680 STARTING FAST RAG ENGINE")
+  File "C:\Program Files\Python312\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+ERROR:    Application startup failed. Exiting.

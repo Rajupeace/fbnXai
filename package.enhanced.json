@@ -1,0 +1,55 @@
+{
+  "name": "vuai-agent-enhanced",
+  "version": "2.0.0",
+  "description": "Enhanced VUAI Agent with Full LLM and LangChain Integration",
+  "main": "backend/enhancedVUAIWithLLM.js",
+  "scripts": {
+    "start": "node backend/enhancedVUAIWithLLM.js",
+    "dev": "nodemon backend/enhancedVUAIWithLLM.js",
+    "test": "node healthCheck.js",
+    "setup": "npm install && node scripts/setup.js",
+    "migrate": "node scripts/migrate.js",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "compression": "^1.7.4",
+    "express-rate-limit": "^6.10.0",
+    "dotenv": "^16.3.1",
+    "path": "^0.12.7",
+    "fs": "^0.0.1-security",
+    "crypto": "^1.0.1",
+    "child_process": "^1.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.0"
+  },
+  "keywords": [
+    "vuai",
+    "agent",
+    "llm",
+    "langchain",
+    "knowledge-base",
+    "mongodb",
+    "atlas",
+    "rag"
+  ],
+  "author": "VUAI Development Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "python": ">=3.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vuai/agent-enhanced"
+  },
+  "bugs": {
+    "url": "https://github.com/vuai/agent-enhanced/issues"
+  },
+  "homepage": "https://github.com/vuai/agent-enhanced#readme"
+}

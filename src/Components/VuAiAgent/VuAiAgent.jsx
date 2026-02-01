@@ -203,7 +203,12 @@ const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
 
         const sendPayload = async (attempt = 1) => {
             try {
+                console.log('[VuAiAgent] Sending payload:', payload);
+                console.log('[VuAiAgent] Attempt:', attempt);
+
                 const data = await apiPost('/api/chat', payload);
+
+                console.log('[VuAiAgent] Received data:', data);
 
                 let botResponse = '';
                 if (typeof data === 'string') {
@@ -228,6 +233,8 @@ const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
                 return;
             } catch (error) {
                 console.error('[VuAiAgent] chat send failed (attempt', attempt, '):', error);
+                console.error('[VuAiAgent] Error details:', error.message, error.status);
+
                 if (attempt < MAX_RETRIES) {
                     const nextAttempt = attempt + 1;
                     const delay = Math.pow(2, attempt - 1) * 1000; // 1s,2s,4s
@@ -255,6 +262,7 @@ const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
                     }]);
                 }
             } finally {
+                console.log('[VuAiAgent] Setting isLoading to false');
                 if (isMountedRef.current) setIsLoading(false);
             }
         };
@@ -334,6 +342,27 @@ const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
                     <FaRegFileAlt />
                     <span>Analyzing: <strong>{documentContext.title || 'Document'}</strong></span>
                 </div>
+            )}
+
+            {/* Holographic Video Analysis Overlay */}
+            {documentContext?.videoAnalysis && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="vu-analysis-overlay"
+                    style={{ margin: '1rem' }}
+                >
+                    <div className="analysis-header">
+                        <div className="analysis-tag">AI ANALYSIS</div>
+                        <span>VIDEO INSIGHTS ENGINE</span>
+                    </div>
+                    <div className="analysis-content">
+                        {documentContext.videoAnalysis}
+                    </div>
+                    <a href={documentContext.url} target="_blank" rel="noopener noreferrer" className="analysis-link">
+                        View Source Resource →
+                    </a>
+                </motion.div>
             )}
 
             {/* Messages Area */}

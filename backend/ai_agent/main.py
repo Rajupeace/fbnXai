@@ -1,4 +1,5 @@
 import os
+import sys
 import datetime
 from datetime import timezone
 import asyncio
@@ -6,6 +7,18 @@ import functools
 import glob
 import re
 import shutil
+
+# Force UTF-8 for Windows to prevent crashes with special characters
+if sys.platform == "win32":
+    try:
+        import io
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+        if hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8')
+    except:
+        pass
+
 print = functools.partial(print, flush=True)
 
 from fastapi import FastAPI, HTTPException, Depends, Body
@@ -19,18 +32,54 @@ from jose import JWTError, jwt
 from fastapi.security import OAuth2PasswordBearer
 import logging
 
+# Globals for RAG
+FAISS = None
+HuggingFaceEmbeddings = None
+RecursiveCharacterTextSplitter = None
+RetrievalQA = None
+Document = None
+
 # --- PERFORMANT RAG IMPORTS ---
-try:
-    from langchain_community.vectorstores import FAISS
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-    from langchain.chains import RetrievalQA
-    from langchain_core.documents import Document
-    RAG_AVAILABLE = True
-    print("[i] RAG dependencies loaded successfully")
-except ImportError as e:
-    print(f"[!] RAG dependencies missing: {e}")
-    RAG_AVAILABLE = False
+def check_rag_available():
+    """Checks if required RAG libraries are available with compatibility fallback."""
+    global FAISS, HuggingFaceEmbeddings, RecursiveCharacterTextSplitter, RetrievalQA, Document
+    try:
+        try:
+            from langchain_community.vectorstores import FAISS
+        except ImportError:
+            from langchain.vectorstores import FAISS
+        
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+        except ImportError:
+            from langchain.embeddings import HuggingFaceEmbeddings
+            
+        try:
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
+        except ImportError:
+            try:
+                from langchain.text_splitter import RecursiveCharacterTextSplitter
+            except ImportError:
+                from langchain_community.text_splitters import RecursiveCharacterTextSplitter
+            
+        from langchain.chains import RetrievalQA
+        
+        try:
+            from langchain_core.documents import Document
+        except ImportError:
+            from langchain.docstore.document import Document
+            
+        return True
+    except Exception as e:
+        print(f"[!] RAG modules failing: {e}")
+        return False
+
+# Initialize status once
+RAG_AVAILABLE = check_rag_available()
+if RAG_AVAILABLE:
+    print("[i] RAG status: Optimized & Ready")
+else:
+    print("[!] RAG status: Disabled (Missing dependencies)")
 
 # Load environment variables
 env_path = os.path.join(os.path.dirname(__file__), '.env')
@@ -93,13 +142,29 @@ def get_llm():
         except Exception as e:
             print(f"[!] Google Init Failed: {e}")
     
-    # 3. Try OPENAI
+    # 3. Try OPENAI / OPENROUTER
     try:
         from langchain_openai import ChatOpenAI
-        print("[:] initializing OpenAI...")
-        return ChatOpenAI(temperature=0.3, model_name="gpt-4o-mini")
-    except:
-        pass
+        api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            print("[:] initializing OpenAI/OpenRouter...")
+            # Detect OpenRouter
+            base_url = None
+            model = "gpt-4o-mini"
+            if api_key.startswith("sk-or-v1"):
+                base_url = "https://openrouter.ai/api/v1"
+                # Use a common OpenRouter model if specific one not provided
+                model = os.getenv("MODEL_NAME") or "openai/gpt-4o-mini"
+                print(f"    -> OpenRouter detected. Hub: {model}")
+            
+            return ChatOpenAI(
+                api_key=api_key,
+                base_url=base_url,
+                model_name=model,
+                temperature=0.3
+            )
+    except Exception as e:
+        print(f"[!] OpenAI Init Failed: {e}")
         
     # 4. Mock
     print("[!] No LLM found. Using Stub.")
@@ -110,7 +175,7 @@ def initialize_fast_rag():
     global vector_store, qa_chain, llm, embeddings
     
     print("\n" + "="*50)
-    print("🚀 STARTING FAST RAG ENGINE")
+    print("STARTING FAST RAG ENGINE")
     print("="*50)
 
     # A. INITIALIZE LLM
@@ -124,13 +189,13 @@ def initialize_fast_rag():
         return
 
     # B. INITIALIZE EMBEDDINGS (Local = Fast)
-    print("⚡ Loading Embeddings (all-MiniLM-L6-v2)...")
+    print("Loading Embeddings (all-MiniLM-L6-v2)...")
     try:
         # Use a small, fast local model. No API calls needed for embeddings!
         embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     except Exception as e:
         print(f"[!] Embedding Load Fail: {e}")
-        print("    -> Assuming this is due to missing libraries. Will run without RAG.")
+        print("    -> Running without RAG.")
         return
 
     # C. LOAD DOCUMENTS
@@ -169,12 +234,7 @@ def initialize_fast_rag():
     print(f"🧩 Split into {len(split_docs)} chunks (Size: 500).")
 
     # E. BUILD VECTOR DB (FAISS)
-    # Check for existing index
-    index_path = "faiss_index_v1"
-    
     try:
-        # For simplicity in this demo, strict rebuild ensures freshness
-        # In prod, we would load_local if exists
         print("🧠 Building Vector Index (In-Memory FAISS)...")
         vector_store = FAISS.from_documents(split_docs, embeddings)
         print("✅ Vector Index Ready.")
@@ -183,107 +243,73 @@ def initialize_fast_rag():
         return
 
     # F. CREATE RETRIEVAL CHAIN
-    # k=2 -> Only retrieve top 2 most relevant chunks = VERY FAST LLM processing
     retriever = vector_store.as_retriever(search_kwargs={"k": 2})
     
-    from langchain.chains import RetrievalQA
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
-        chain_type="stuff", # 'stuff' simply puts docs in prompt
+        chain_type="stuff",
         retriever=retriever,
         return_source_documents=False
     )
-    print("🚀 FAST RAG ENGINE READY.\n")
+    print("FAST RAG ENGINE READY.\n")
 
 
 # --- ROUTING LOGIC ---
 
-# Pydantic Models
 class ChatRequest(BaseModel):
     message: str | None = None
     prompt: str | None = None
     role: str = "student"
-    user_name: str = "User"
     user_id: str = "guest"
+    user_name: str = "Student"
 
-class ChatResponse(BaseModel):
-    response: str
+@app.post("/chat")
+async def chat_endpoint(req: ChatRequest):
+    global qa_chain
+    user_message = req.message or req.prompt
+    if not user_message: return {"response": "No message received."}
 
-# Endpoints
-@app.on_event("startup")
-async def startup_event():
-    # Run initialization in thread to not block
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, initialize_fast_rag)
-    
-    # DB Connect
-    global users_collection
+    # If RAG is ready, use it
+    if qa_chain:
+        try:
+            print(f"[*] RAG Query: {user_message[:50]}...")
+            # Langchain 0.1+ use invoke
+            if hasattr(qa_chain, 'invoke'):
+                result = await asyncio.to_thread(qa_chain.invoke, {"query": user_message})
+                return {"response": result["result"]}
+            else:
+                result = await asyncio.to_thread(qa_chain, user_message)
+                return {"response": result["result"]}
+        except Exception as e:
+            print(f"[!] RAG Fail: {e}")
+
+    # Fallback to direct LLM if RAG fails
     try:
-        mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-        client = AsyncIOMotorClient(mongo_uri)
-        db = client.vu_ai_agent
-        users_collection = db.users
-        print("[OK] MongoDB Connected.")
-    except:
-        print("[!] MongoDB Failed.")
+        print(f"[*] Direct LLM Query: {user_message[:50]}...")
+        if llm:
+            msg = HumanMessage(content=user_message)
+            response = await asyncio.to_thread(llm.invoke, [msg])
+            return {"response": response.content}
+    except Exception as e:
+        print(f"[!] LLM Fail: {e}")
+
+    return {"response": "I'm having trouble connecting to my brain right now. Please try again later!"}
 
 @app.get("/")
-def health():
-    return {"status": "active", "mode": "high_performance", "rag_enabled": qa_chain is not None}
+def health_check():
+    return {
+        "status": "active", 
+        "mode": "high_performance", 
+        "rag_ready": qa_chain is not None,
+        "llm_ready": llm is not None
+    }
 
-@app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest):
-    try:
-        user_msg = req.message or req.prompt
-        if not user_msg: 
-            return ChatResponse(response="Please ask me something!")
-        
-        print(f"[CHAT] Received: {user_msg[:50]}...")
-        
-        # 2. Try RAG if available
-        if qa_chain:
-            try:
-                print("[CHAT] Using RAG...")
-                style_instruction = " (Answer concisely as a friendly university assistant in < 50 words)"
-                
-                # Run in executor for sync code
-                loop = asyncio.get_event_loop()
-                res = await loop.run_in_executor(None, qa_chain.invoke, user_msg + style_instruction)
-                answer = res.get('result', "I'm not sure.")
-                
-                print(f"[CHAT] RAG response: {answer[:50]}...")
-                return ChatResponse(response=answer)
-            except Exception as e:
-                print(f"[!] RAG Error: {e}")
-                # Fall through to LLM fallback
-                
-        # 3. Direct LLM fallback
-        if llm:
-            try:
-                print("[CHAT] Using direct LLM...")
-                resp = await llm.ainvoke([HumanMessage(content=user_msg)])
-                answer = resp.content if hasattr(resp, 'content') else str(resp)
-                print(f"[CHAT] LLM response: {answer[:50]}...")
-                return ChatResponse(response=answer)
-            except Exception as e:
-                print(f"[!] LLM Error: {e}")
-                return ChatResponse(response="I'm having trouble connecting right now. Please try again in a moment!")
-                
-        return ChatResponse(response="AI Service is warming up. Please try again in a moment.")
-        
-    except Exception as e:
-        print(f"[X] CRITICAL Chat Error: {e}")
-        import traceback
-        traceback.print_exc()
-        return ChatResponse(response=f"An error occurred. Please check the server logs.")
-
-# --- AUTH (Simplified for performance file) ---
-@app.post("/login")
-async def login_placeholder():
-    # Login handled by Node.js primarily, this is stub for Python-only usage
-    raise HTTPException(status_code=501, detail="Please use Node.js backend for auth.")
+@app.on_event("startup")
+async def startup_event():
+    # Initialize RAG in background thread to not block FastAPI boot
+    asyncio.create_task(asyncio.to_thread(initialize_fast_rag))
 
 if __name__ == "__main__":
     import uvicorn
-    # Optimized Uvicorn settings
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="error")
+    print("Starting VuAiAgent Server on port 8000...")
+    uvicorn.run(app, host="0.0.0.0", port=8000)

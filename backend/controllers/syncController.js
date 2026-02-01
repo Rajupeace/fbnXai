@@ -9,6 +9,7 @@ const Message = require('../models/Message');
 const { RESOURCE_MAP } = require('../dashboardConfig');
 
 exports.syncLocalToCloud = async (req, res) => {
+    const startTime = Date.now();
     const results = {
         roadmaps: 0,
         placements: 0,
@@ -20,120 +21,89 @@ exports.syncLocalToCloud = async (req, res) => {
     };
 
     try {
-        // Helper to find file in RESOURCE_MAP or fallback to backend/data
         const getSyncPath = (key, defaultFilename) => {
             const primary = RESOURCE_MAP[key];
             if (primary && fs.existsSync(primary)) return primary;
-
             const fallback = path.join(__dirname, '../data', defaultFilename);
             if (fs.existsSync(fallback)) return fallback;
-
             return null;
         };
 
-        // 1. Sync Roadmaps
-        const roadmapPath = getSyncPath('roadmaps', 'roadmaps.json');
-        if (roadmapPath) {
-            const data = JSON.parse(fs.readFileSync(roadmapPath, 'utf8'));
-            for (const item of (Array.isArray(data) ? data : [])) {
-                await Roadmap.findOneAndUpdate({ slug: item.slug }, item, { upsert: true });
-                results.roadmaps++;
-            }
-        }
+        // Standardized bulk sync helper
+        const bulkSync = async (model, path, findQuery, transformFn) => {
+            if (!path) return 0;
+            const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const items = Array.isArray(data) ? data : [];
+            if (items.length === 0) return 0;
 
-        // 2. Sync Placement Companies
-        const placementPath = getSyncPath('placements', 'placements.json');
-        if (placementPath) {
-            const data = JSON.parse(fs.readFileSync(placementPath, 'utf8'));
-            for (const item of (Array.isArray(data) ? data : [])) {
-                await PlacementCompany.findOneAndUpdate({ slug: item.slug }, item, { upsert: true });
-                results.placements++;
-            }
-        }
-
-        // 3. Sync Materials (Metdata ONLY)
-        const materialPath = getSyncPath('materials', 'materials.json');
-        if (materialPath) {
-            const data = JSON.parse(fs.readFileSync(materialPath, 'utf8'));
-            for (const item of (Array.isArray(data) ? data : [])) {
-                // Map local ID to _id if needed
-                delete item._id;
-                delete item.id;
-
-                // Ensure fileUrl exists (Model requires it)
-                if (!item.fileUrl && item.url) item.fileUrl = item.url;
-                if (!item.fileUrl) item.fileUrl = 'https://placeholder.com'; // Fallback for strict mode
-
-                await Material.findOneAndUpdate({ title: item.title, subject: item.subject }, item, { upsert: true });
-                results.materials++;
-            }
-        }
-
-        // 4. Sync Courses
-        const coursePath = getSyncPath('courses', 'courses.json');
-        if (coursePath) {
-            const data = JSON.parse(fs.readFileSync(coursePath, 'utf8'));
-            for (const item of (Array.isArray(data) ? data : [])) {
-                // Map courseCode to code
-                const searchCode = item.code || item.courseCode;
-                if (item.courseCode && !item.code) item.code = item.courseCode;
-
-                await Course.findOneAndUpdate({ code: searchCode }, item, { upsert: true });
-                results.courses++;
-            }
-        }
-
-        // 5. Sync Attendance (Legacy fallback)
-        const attendancePath = getSyncPath('attendance', 'attendance.json');
-        if (attendancePath) {
-            const data = JSON.parse(fs.readFileSync(attendancePath, 'utf8'));
-            for (const item of (Array.isArray(data) ? data : [])) {
-                if (!item.studentId || !item.subject || !item.date) continue;
-                // Ensure required defaults
-                const attendanceData = {
-                    ...item,
-                    year: item.year || '1',
-                    section: item.section || 'A',
-                    branch: item.branch || 'CSE',
-                    facultyId: item.facultyId || 'admin'
+            const operations = items.map(item => {
+                const transformed = transformFn ? transformFn(item) : item;
+                return {
+                    updateOne: {
+                        filter: findQuery(item),
+                        update: transformed,
+                        upsert: true
+                    }
                 };
-                delete attendanceData.id;
-                delete attendanceData._id;
+            });
 
-                await Attendance.findOneAndUpdate(
-                    { studentId: item.studentId, subject: item.subject, date: item.date },
-                    attendanceData,
-                    { upsert: true }
-                );
-                results.attendance++;
+            const syncResult = await model.bulkWrite(operations);
+            return syncResult.upsertedCount + syncResult.modifiedCount + syncResult.matchedCount;
+        };
+
+        // 1. Roadmaps
+        results.roadmaps = await bulkSync(Roadmap, getSyncPath('roadmaps', 'roadmaps.json'), i => ({ slug: i.slug }));
+
+        // 2. Placements
+        results.placements = await bulkSync(PlacementCompany, getSyncPath('placements', 'placements.json'), i => ({ slug: i.slug }));
+
+        // 3. Materials
+        results.materials = await bulkSync(Material, getSyncPath('materials', 'materials.json'),
+            i => ({ title: i.title, subject: i.subject }),
+            i => {
+                const item = { ...i };
+                delete item._id; delete item.id;
+                if (!item.fileUrl) item.fileUrl = item.url || 'https://placeholder.com';
+                return item;
             }
-        }
+        );
 
-        // 6. Sync Messages (Broadcasts)
-        const messagePath = getSyncPath('messages', 'messages.json');
-        if (messagePath) {
-            const data = JSON.parse(fs.readFileSync(messagePath, 'utf8'));
-            for (const item of (Array.isArray(data) ? data : [])) {
-                if (!item.message) continue;
-                const msgData = {
-                    ...item,
-                    target: item.target || 'all',
-                    createdAt: item.createdAt || item.date || new Date().toISOString()
+        // 4. Courses
+        results.courses = await bulkSync(Course, getSyncPath('courses', 'courses.json'),
+            i => ({ code: i.code || i.courseCode }),
+            i => {
+                if (i.courseCode && !i.code) i.code = i.courseCode;
+                return i;
+            }
+        );
+
+        // 5. Attendance
+        results.attendance = await bulkSync(Attendance, getSyncPath('attendance', 'attendance.json'),
+            i => ({ studentId: i.studentId, subject: i.subject, date: i.date }),
+            i => {
+                const item = {
+                    ...i,
+                    year: i.year || '1', section: i.section || 'A',
+                    branch: i.branch || 'CSE', facultyId: i.facultyId || 'admin'
                 };
-                delete msgData.id;
-                delete msgData._id;
-
-                await Message.findOneAndUpdate(
-                    { message: item.message, createdAt: msgData.createdAt },
-                    msgData,
-                    { upsert: true }
-                );
-                results.messages++;
+                delete item._id; delete item.id;
+                return item;
             }
-        }
+        );
 
-        console.log('[Sync] Migration results:', results);
-        res.json({ message: 'Migration successful', results });
+        // 6. Messages
+        results.messages = await bulkSync(Message, getSyncPath('messages', 'messages.json'),
+            i => ({ message: i.message, createdAt: i.createdAt || i.date }),
+            i => {
+                const item = { ...i, target: i.target || 'all', createdAt: i.createdAt || i.date || new Date().toISOString() };
+                delete item._id; delete item.id;
+                return item;
+            }
+        );
+
+        const totalTime = Date.now() - startTime;
+        console.log(`[Sync] High-speed migration complete in ${totalTime}ms. Results:`, results);
+        res.json({ message: 'Migration successful (High Performance Mode)', results, timeMs: totalTime });
     } catch (err) {
         console.error('Migration failed:', err);
         res.status(500).json({ error: 'Migration failed', details: err.message });

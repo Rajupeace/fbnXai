@@ -493,8 +493,9 @@ router.post('/', async (req, res) => {
 
     // START TIMING
     const startTime = Date.now();
-    const { userId, prompt, role, context, query } = req.body;
-    const userMessage = prompt || query || '';
+    const { userId, user_id, prompt, message, role, context, query } = req.body;
+    const userMessage = message || prompt || query || '';
+    const finalUserId = userId || user_id || 'guest';
 
     // 0. IMMEDIATE VALIDATION
     if (!userMessage) return res.status(400).json({ error: 'Please provide a message' });
@@ -516,7 +517,7 @@ router.post('/', async (req, res) => {
         // Background: Log interaction (Don't await)
         appendChatEntry({
             id: uuidv4(),
-            userId: userId || 'guest', role: role || 'student', message: userMessage,
+            userId: finalUserId, role: role || 'student', message: userMessage,
             response: ultraFastResult.response, context: context || {}, timestamp: new Date().toISOString()
         }).catch(err => console.error('Bg log error:', err.message));
         return;
@@ -534,8 +535,8 @@ router.post('/', async (req, res) => {
         // Optimization: Use Promise.race to cap fetching time.
         try {
             adaptiveInsight = await Promise.race([
-                selfLearningAgent.generateAdaptiveResponse(userId || 'guest', userMessage, detectCategory(userMessage), context?.branch || 'general'),
-                new Promise(resolve => setTimeout(() => resolve(''), 1500)) // 1.5s cap
+                selfLearningAgent.generateAdaptiveResponse(finalUserId, userMessage, detectCategory(userMessage), context?.branch || 'general'),
+                new Promise(resolve => setTimeout(() => resolve(''), 500)) // 500ms cap
             ]);
         } catch (e) { /* ignore */ }
 
@@ -583,7 +584,7 @@ router.post('/', async (req, res) => {
         if (!reply) {
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms max - if Python agent not ready, skip it
+                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s max for Python RAG Agent
                 const response = await fetch('http://localhost:8000/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -625,7 +626,12 @@ router.post('/', async (req, res) => {
 
                 let studentContext = `Student: ${context.name}, ${context.year}, ${context.branch}.`;
                 if (adaptiveInsight) studentContext += `\nInsight: ${adaptiveInsight}`;
-                if (context?.document) studentContext += `\nDoc: ${context.document.title} (${context.document.url})`;
+                if (context?.document) {
+                    studentContext += `\nDoc: ${context.document.title} (${context.document.url})`;
+                    if (context.document.videoAnalysis) {
+                        studentContext += `\nVideo Insights: ${context.document.videoAnalysis}`;
+                    }
+                }
 
                 if (process.env.OPENAI_API_KEY) {
                     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -743,7 +749,7 @@ router.post('/', async (req, res) => {
             try {
                 await appendChatEntry({
                     id: uuidv4(),
-                    userId: userId || 'guest', role: role || 'student',
+                    userId: finalUserId, role: role || 'student',
                     message: userMessage, response: reply, context: context || {}, timestamp: new Date().toISOString()
                 });
 
@@ -751,13 +757,13 @@ router.post('/', async (req, res) => {
                 const category = detectCategory(userMessage);
                 const keywords = extractKeywords(userMessage);
                 await selfLearningAgent.recordInteraction(
-                    userId || 'guest', context?.branch || 'general', userMessage, reply,
+                    finalUserId, context?.branch || 'general', userMessage, reply,
                     Date.now() - startTime, category, keywords
                 );
 
                 // Update Stats
                 if (role === 'student' && userId) {
-                    await Student.updateOne({ sid: userId }, { $inc: { "stats.aiUsageCount": 1 } });
+                    await Student.updateOne({ sid: finalUserId }, { $inc: { "stats.aiUsageCount": 1 } });
                 }
             } catch (err) { console.error("Bg stats error:", err.message); }
         })();

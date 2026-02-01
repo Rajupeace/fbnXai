@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VUAI Agent Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .status-online {
+            background: #10b981;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fas fa-robot text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">VUAI Agent Dashboard</h1>
+                        <p class="text-sm opacity-90">Enhanced Learning Companion</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <div class="text-right">
+                        <p class="text-sm opacity-90">System Status</p>
+                        <p class="font-semibold"><span class="status-online"></span> All Systems Operational</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm opacity-90" id="current-time">--:--:--</p>
+                        <p class="font-semibold" id="current-date">----/--/--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Quick Actions -->
+        <section class="mb-8">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Quick Actions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <button onclick="checkIn()" class="card-hover bg-green-500 text-white p-4 rounded-lg text-center">
+                    <i class="fas fa-sign-in-alt text-2xl mb-2"></i>
+                    <p class="font-semibold">Check In</p>
+                </button>
+                <button onclick="checkOut()" class="card-hover bg-blue-500 text-white p-4 rounded-lg text-center">
+                    <i class="fas fa-sign-out-alt text-2xl mb-2"></i>
+                    <p class="font-semibold">Check Out</p>
+                </button>
+                <button onclick="openChat()" class="card-hover bg-purple-500 text-white p-4 rounded-lg text-center">
+                    <i class="fas fa-comments text-2xl mb-2"></i>
+                    <p class="font-semibold">Chat with Agent</p>
+                </button>
+                <button onclick="refreshDashboard()" class="card-hover bg-orange-500 text-white p-4 rounded-lg text-center">
+                    <i class="fas fa-sync-alt text-2xl mb-2"></i>
+                    <p class="font-semibold">Refresh</p>
+                </button>
+            </div>
+        </section>
+
+        <!-- Statistics Cards -->
+        <section class="mb-8">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Today's Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Attendance Status</p>
+                            <p class="text-2xl font-bold text-gray-800" id="attendance-status">Not Checked In</p>
+                        </div>
+                        <i class="fas fa-calendar-check text-3xl text-green-500"></i>
+                    </div>
+                </div>
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Knowledge Points</p>
+                            <p class="text-2xl font-bold text-gray-800" id="knowledge-points">0</p>
+                        </div>
+                        <i class="fas fa-brain text-3xl text-purple-500"></i>
+                    </div>
+                </div>
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Active Time</p>
+                            <p class="text-2xl font-bold text-gray-800" id="active-time">0h 0m</p>
+                        </div>
+                        <i class="fas fa-clock text-3xl text-blue-500"></i>
+                    </div>
+                </div>
+                <div class="card-hover bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-gray-500 text-sm">Navigation Sessions</p>
+                            <p class="text-2xl font-bold text-gray-800" id="nav-sessions">0</p>
+                        </div>
+                        <i class="fas fa-compass text-3xl text-orange-500"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Knowledge Base Section -->
+            <section class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">Knowledge Base Updates</h2>
+                    <div class="mb-4">
+                        <div class="flex space-x-2 mb-4">
+                            <button onclick="filterKnowledge('all')" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">All</button>
+                            <button onclick="filterKnowledge('eee')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">EEE</button>
+                            <button onclick="filterKnowledge('ece')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">ECE</button>
+                            <button onclick="filterKnowledge('cse')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">CSE</button>
+                            <button onclick="filterKnowledge('important')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Important</button>
+                            <button onclick="filterKnowledge('leetcode')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">LeetCode</button>
+                        </div>
+                    </div>
+                    <div id="knowledge-updates" class="space-y-4 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 text-center">Loading knowledge updates...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Activity Feed -->
+            <section>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4 text-gray-800">Recent Activity</h2>
+                    <div id="activity-feed" class="space-y-3 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 text-center">Loading activities...</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Navigation History -->
+        <section class="mt-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">Navigation History</h2>
+                <div id="navigation-history" class="overflow-x-auto">
+                    <p class="text-gray-500 text-center">Loading navigation history...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Chat Modal -->
+    <div id="chat-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+        <div class="flex items-center justify-center h-full p-4">
+            <div class="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
+                <div class="gradient-bg text-white p-4 rounded-t-lg flex justify-between items-center">
+                    <h3 class="text-lg font-semibold">VUAI Agent+Assistant</h3>
+                    <button onclick="closeChat()" class="text-white hover:text-gray-200">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="chat-messages" class="flex-1 p-4 overflow-y-auto max-h-96">
+                    <div class="text-gray-500 text-center">Start a conversation...</div>
+                </div>
+                <div class="p-4 border-t">
+                    <div class="flex space-x-2">
+                        <input type="text" id="chat-input" placeholder="Type your message..." 
+                               class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               onkeypress="if(event.key === 'Enter') sendMessage()">
+                        <button onclick="sendMessage()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+        let currentFilter = 'all';
+        let isCheckedIn = false;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            loadDashboard();
+            setInterval(loadDashboard, 30000); // Refresh every 30 seconds
+        });
+
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString();
+            document.getElementById('current-date').textContent = now.toLocaleDateString();
+        }
+
+        // Load dashboard data
+        async function loadDashboard() {
+            await Promise.all([
+                loadAttendanceStatus(),
+                loadKnowledgeUpdates(),
+                loadActivityFeed(),
+                loadNavigationHistory(),
+                loadUserStatistics()
+            ]);
+        }
+
+        // Load attendance status
+        async function loadAttendanceStatus() {
+            try {
+                const response = await fetch(`/api/attendance/${userId}`);
+                const data = await response.json();
+                
+                if (data.success && data.attendance.length > 0) {
+                    const today = new Date().toDateString();
+                    const todayAttendance = data.attendance.find(a => 
+                        new Date(a.date).toDateString() === today
+                    );
+                    
+                    if (todayAttendance) {
+                        isCheckedIn = todayAttendance.checkIn && !todayAttendance.checkOut;
+                        document.getElementById('attendance-status').textContent = 
+                            isCheckedIn ? 'Checked In' : 'Checked Out';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading attendance:', error);
+            }
+        }
+
+        // Check in
+        async function checkIn() {
+            if (isCheckedIn) {
+                showNotification('Already checked in!', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/attendance/check-in', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: userId,
+                        location: 'Dashboard',
+                        notes: 'Checked in from dashboard'
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    isCheckedIn = true;
+                    document.getElementById('attendance-status').textContent = 'Checked In';
+                    showNotification('Check-in successful!', 'success');
+                    loadDashboard();
+                } else {
+                    showNotification(data.message || 'Check-in failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Check-in failed: ' + error.message, 'error');
+            }
+        }
+
+        // Check out
+        async function checkOut() {
+            if (!isCheckedIn) {
+                showNotification('Not checked in!', 'warning');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/attendance/check-out', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: userId,
+                        activities: ['Dashboard interaction', 'Learning session'],
+                        knowledgeGained: ['VUAI Agent features', 'Dashboard navigation']
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    isCheckedIn = false;
+                    document.getElementById('attendance-status').textContent = 'Checked Out';
+                    showNotification('Check-out successful!', 'success');
+                    loadDashboard();
+                } else {
+                    showNotification(data.message || 'Check-out failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Check-out failed: ' + error.message, 'error');
+            }
+        }
+
+        // Load knowledge updates
+        async function loadKnowledgeUpdates() {
+            try {
+                const response = await fetch('/api/knowledge/dashboard');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayKnowledgeUpdates(data.updates);
+                }
+            } catch (error) {
+                console.error('Error loading knowledge updates:', error);
+            }
+        }
+
+        // Display knowledge updates
+        function displayKnowledgeUpdates(updates) {
+            const container = document.getElementById('knowledge-updates');
+            
+            if (updates.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No updates available</p>';
+                return;
+            }
+
+            const filteredUpdates = currentFilter === 'all' 
+                ? updates 
+                : updates.filter(u => u.category === currentFilter);
+
+            const html = filteredUpdates.slice(0, 10).map(update => `
+                <div class="border-l-4 border-blue-500 pl-4 py-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">${update.topic}</h4>
+                            <p class="text-sm text-gray-600">${update.content.substring(0, 100)}...</p>
+                            <div class="flex items-center space-x-2 mt-1">
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${update.category.toUpperCase()}</span>
+                                <span class="text-xs text-gray-500">${new Date(update.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                        </div>
+                        ${update.importance === 'high' ? '<i class="fas fa-star text-yellow-500"></i>' : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Filter knowledge updates
+        function filterKnowledge(category) {
+            currentFilter = category;
+            
+            // Update button styles
+            document.querySelectorAll('.flex.space-x-2 button').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            event.target.classList.remove('bg-gray-200', 'text-gray-700');
+            event.target.classList.add('bg-blue-500', 'text-white');
+            
+            loadKnowledgeUpdates();
+        }
+
+        // Load activity feed
+        async function loadActivityFeed() {
+            try {
+                const response = await fetch(`/api/activity/${userId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayActivityFeed(data.activities);
+                }
+            } catch (error) {
+                console.error('Error loading activities:', error);
+            }
+        }
+
+        // Display activity feed
+        function displayActivityFeed(activities) {
+            const container = document.getElementById('activity-feed');
+            
+            if (activities.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No activities yet</p>';
+                return;
+            }
+
+            const recentActivities = activities[0]?.activities.slice(-5).reverse() || [];
+            
+            const html = recentActivities.map(activity => `
+                <div class="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
+                    <i class="fas fa-circle text-xs text-blue-500 mt-1"></i>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-800">${activity.description}</p>
+                        <p class="text-xs text-gray-500">${new Date(activity.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Load navigation history
+        async function loadNavigationHistory() {
+            try {
+                const response = await fetch(`/api/navigation/${userId}?limit=5`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayNavigationHistory(data.navigation);
+                }
+            } catch (error) {
+                console.error('Error loading navigation history:', error);
+            }
+        }
+
+        // Display navigation history
+        function displayNavigationHistory(navigation) {
+            const container = document.getElementById('navigation-history');
+            
+            if (navigation.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">No navigation history</p>';
+                return;
+            }
+
+            const html = `
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="text-left p-2">Session ID</th>
+                            <th class="text-left p-2">Purpose</th>
+                            <th class="text-left p-2">Duration</th>
+                            <th class="text-left p-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${navigation.map(nav => `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-2">${nav.sessionId.substring(0, 12)}...</td>
+                                <td class="p-2">${nav.purpose || 'Navigation'}</td>
+                                <td class="p-2">${formatDuration(nav.totalDuration || 0)}</td>
+                                <td class="p-2">
+                                    <span class="text-xs ${nav.completed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'} px-2 py-1 rounded">
+                                        ${nav.completed ? 'Completed' : 'In Progress'}
+                                    </span>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Load user statistics
+        async function loadUserStatistics() {
+            try {
+                const response = await fetch(`/api/activity/${userId}`);
+                const data = await response.json();
+                
+                if (data.success && data.statistics) {
+                    document.getElementById('knowledge-points').textContent = data.statistics.totalKnowledgePoints || 0;
+                    document.getElementById('active-time').textContent = formatDuration(data.statistics.totalActiveTime || 0);
+                    document.getElementById('nav-sessions').textContent = data.statistics.activeDays || 0;
+                }
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        // Format duration
+        function formatDuration(milliseconds) {
+            const seconds = Math.floor(milliseconds / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes % 60}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds % 60}s`;
+            } else {
+                return `${seconds}s`;
+            }
+        }
+
+        // Chat functions
+        function openChat() {
+            document.getElementById('chat-modal').classList.remove('hidden');
+            document.getElementById('chat-input').focus();
+        }
+
+        function closeChat() {
+            document.getElementById('chat-modal').classList.add('hidden');
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+
+            const messagesContainer = document.getElementById('chat-messages');
+            
+            // Add user message
+            messagesContainer.innerHTML += `
+                <div class="mb-4">
+                    <div class="flex justify-end">
+                        <div class="bg-blue-500 text-white rounded-lg p-3 max-w-xs">
+                            <p>${message}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            input.value = '';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                const response = await fetch('/api/agent-assistant/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message, userId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    messagesContainer.innerHTML += `
+                        <div class="mb-4">
+                            <div class="flex justify-start">
+                                <div class="bg-gray-100 rounded-lg p-3 max-w-xs">
+                                    <div class="text-sm text-gray-600 mb-1">${data.source}</div>
+                                    <div class="text-gray-800">${data.response}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            } catch (error) {
+                messagesContainer.innerHTML += `
+                    <div class="mb-4">
+                        <div class="flex justify-start">
+                            <div class="bg-red-100 text-red-800 rounded-lg p-3 max-w-xs">
+                                <p>Sorry, I encountered an error. Please try again.</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                warning: 'bg-yellow-500',
+                info: 'bg-blue-500'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-3 rounded-lg shadow-lg z-50`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Refresh dashboard
+        function refreshDashboard() {
+            showNotification('Refreshing dashboard...', 'info');
+            loadDashboard();
+        }
+    </script>
+</body>
+</html>

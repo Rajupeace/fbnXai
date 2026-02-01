@@ -42,6 +42,7 @@ const materialSchema = new mongoose.Schema({
 
   // Extra Metadata
   duration: String, // For videos
+  videoAnalysis: String, // AI Generated Insights for videos
   examYear: String, // For model papers
   dueDate: Date,    // For assignments
   message: String   // For notifications or descriptions

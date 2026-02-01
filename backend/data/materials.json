@@ -35,7 +35,8 @@
     "uploadedBy": "sentinel-seeder",
     "uploaderId": null,
     "uploaderName": "SENTINEL CORE",
-    "isAdvanced": false
+    "isAdvanced": false,
+    "videoAnalysis": "VUAI Analysis Insight: This master-class video provides a comprehensive breakdown of Engineering Mathematics fundamentals. It explains the relationship between eigenvalues and linear transformations with high clarity. Recommended for students preparing for semester examinations."
   },
   {
     "id": "e247b983-7e52-40f5-ab9c-f209734ed27b",
@@ -73,7 +74,8 @@
     "uploadedBy": "sentinel-seeder",
     "uploaderId": null,
     "uploaderName": "SENTINEL CORE",
-    "isAdvanced": false
+    "isAdvanced": false,
+    "videoAnalysis": "VUAI Analysis Insight: Deep dive into Quantum Mechanics principles. The video effectively explains Wave-Particle Duality and the uncertainty principle. Essential viewing for unit 2 curriculum mastery."
   },
   {
     "id": "a2291726-a842-4cae-b976-a7ec8a4313ab",

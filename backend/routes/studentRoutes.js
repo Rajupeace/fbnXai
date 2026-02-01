@@ -198,6 +198,7 @@ router.get('/:studentId/courses/:courseId', async (req, res) => {
         module: m.module,
         unit: m.unit,
         topic: m.topic,
+        videoAnalysis: m.videoAnalysis || "Analysis currently being processed by VUAI Systems...",
         uploadedAt: m.createdAt,
         uploaderName: m.uploadedBy?.name || 'Unknown'
       }));
