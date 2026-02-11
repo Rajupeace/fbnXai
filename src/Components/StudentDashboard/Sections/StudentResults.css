@@ -1,0 +1,341 @@
+/* ==========================================================================
+   STUDENT RESULTS (SENTINEL THEME)
+   Theme: Friendly Notebook Premium
+   ========================================================================== */
+
+.results-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 3rem;
+    gap: 2rem;
+}
+
+.results-header h2 {
+    font-size: 2.5rem;
+    font-weight: 950;
+    color: var(--v-text-main);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.results-header h2 span {
+    color: var(--v-primary);
+}
+
+.nexus-subtitle {
+    color: var(--v-text-muted);
+    font-size: 1rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.overall-performance-card {
+    display: flex;
+    gap: 2rem;
+    padding: 1.5rem 2rem;
+    background: var(--v-surface, #ffffff);
+    border-radius: 20px;
+    border: 1px solid var(--v-border);
+    box-shadow: var(--v-shadow-lg);
+    align-items: center;
+}
+
+.grade-circle-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 6px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--v-surface);
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.grade-circle-large .grade-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--v-text-main);
+    line-height: 1;
+}
+
+.grade-circle-large .grade-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--v-text-muted);
+    margin-top: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.overall-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--v-primary);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--v-text-muted);
+    margin-top: 0.25rem;
+}
+
+/* --- SUBJECTS GRID --- */
+.subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+}
+
+.subject-card {
+    background: var(--v-surface);
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--v-border);
+    box-shadow: var(--v-shadow);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.subject-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--v-shadow-xl);
+    border-color: var(--v-primary-light);
+}
+
+.subject-card-header {
+    padding: 1.5rem;
+    border-top: 6px solid;
+    background: var(--v-bg);
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    border-bottom: 1px solid var(--v-border);
+}
+
+.subject-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--v-primary);
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    box-shadow: var(--v-shadow-sm);
+    border: 1px solid var(--v-border);
+}
+
+.subject-info {
+    flex: 1;
+}
+
+.subject-info h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--v-text-main);
+    margin: 0 0 0.5rem;
+}
+
+.subject-grade-badge {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
+    color: white;
+    font-weight: 800;
+    font-size: 0.8rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.subject-card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.marks-section {
+    background: var(--v-bg);
+    padding: 1.25rem;
+    border-radius: 16px;
+    border: 1px dashed var(--v-border);
+}
+
+.section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--v-text-main);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.section-title svg {
+    color: var(--v-primary);
+}
+
+.section-title.module1 svg {
+    color: #8b5cf6;
+}
+
+.section-title.module2 svg {
+    color: #ec4899;
+}
+
+.marks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.75rem;
+}
+
+.cla-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+}
+
+.mark-item {
+    background: var(--v-surface);
+    padding: 0.75rem 0.5rem;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid var(--v-border);
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.mark-item:hover {
+    border-color: var(--v-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--v-shadow);
+}
+
+.mark-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--v-text-muted);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+}
+
+.mark-value {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 900;
+    color: var(--v-text-main);
+}
+
+.no-data {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.85rem;
+    color: var(--v-text-light);
+    font-weight: 600;
+    font-style: italic;
+}
+
+.subject-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--v-surface);
+    border: 1px solid var(--v-border);
+    border-radius: 14px;
+    font-weight: 800;
+    box-shadow: var(--v-shadow-sm);
+}
+
+.total-marks {
+    font-size: 1.3rem;
+    color: var(--v-primary);
+}
+
+/* --- STATES --- */
+.empty-state {
+    text-align: center;
+    padding: 6rem 2rem;
+    color: var(--v-text-muted);
+}
+
+.empty-state svg {
+    opacity: 0.5;
+    margin-bottom: 1.5rem;
+    color: var(--v-primary-light);
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin: 0 0 0.5rem;
+    color: var(--v-text-main);
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    gap: 1rem;
+    color: var(--v-text-muted);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--v-bg);
+    border-top-color: var(--v-primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .subjects-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .results-header {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .overall-performance-card {
+        width: 100%;
+    }
+}

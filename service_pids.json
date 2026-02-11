@@ -1,0 +1,17 @@
+﻿[
+    {
+        "Port":  5000,
+        "PID":  8676,
+        "Name":  "Backend"
+    },
+    {
+        "Port":  8000,
+        "PID":  29552,
+        "Name":  "AI Agent"
+    },
+    {
+        "Port":  3000,
+        "PID":  2768,
+        "Name":  "Frontend"
+    }
+]

@@ -1,0 +1,536 @@
+/* ==========================================================================
+   FACULTY ATTENDANCE MARKING INTERFACE
+   Theme: Clean, efficient, teacher-friendly
+   ========================================================================== */
+
+.faculty-marking-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.marking-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.marking-header h1 {
+    font-size: 2.5rem;
+    color: #0f172a;
+    margin: 0 0 0.5rem 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.marking-header h1 svg {
+    color: #4f46e5;
+}
+
+.marking-header p {
+    font-size: 1.1rem;
+    color: #475569;
+    margin: 0;
+}
+
+/* ==========================================================================
+   FORM STYLING
+   ========================================================================== */
+
+.marking-form {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+}
+
+.form-section {
+    margin-bottom: 2.5rem;
+}
+
+.form-section h2 {
+    font-size: 1.4rem;
+    color: #0f172a;
+    margin: 0 0 1.5rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border-bottom: 2px solid #eef2ff;
+    padding-bottom: 1rem;
+}
+
+.form-section h2 svg {
+    color: #4f46e5;
+    font-size: 1.6rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.form-group label svg {
+    color: #4f46e5;
+    font-size: 1rem;
+}
+
+.required {
+    color: #ef4444;
+}
+
+.form-group input,
+.form-group select {
+    padding: 0.8rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+    color: #0f172a;
+    font-family: inherit;
+}
+
+.form-group input:hover,
+.form-group select:hover {
+    border-color: #cbd5e1;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* ==========================================================================
+   STATISTICS
+   ========================================================================== */
+
+.statistics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 12px;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: white;
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card.green {
+    border-left-color: #10b981;
+}
+
+.stat-card.red {
+    border-left-color: #ef4444;
+}
+
+.stat-card.total {
+    border-left-color: #4f46e5;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-card.green .stat-icon {
+    color: #10b981;
+}
+
+.stat-card.red .stat-icon {
+    color: #ef4444;
+}
+
+.stat-card.total .stat-icon {
+    color: #4f46e5;
+}
+
+.stat-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0.5rem 0;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   BULK ACTIONS
+   ========================================================================== */
+
+.bulk-actions {
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0 2rem 0;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.bulk-btn {
+    flex: 1;
+    padding: 0.9rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.bulk-btn.mark-all-present {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.bulk-btn.mark-all-present:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.3);
+}
+
+.bulk-btn.mark-all-absent {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.bulk-btn.mark-all-absent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+}
+
+/* ==========================================================================
+   STUDENT LIST
+   ========================================================================== */
+
+.student-list-section {
+    margin: 2rem 0;
+}
+
+.student-list-section h3 {
+    font-size: 1.2rem;
+    color: #0f172a;
+    margin: 0 0 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.student-list-section .count {
+    color: #64748b;
+    font-weight: 400;
+    font-size: 0.95rem;
+}
+
+.student-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.student-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.student-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.student-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.student-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.student-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid;
+    transition: all 0.3s ease;
+}
+
+.student-row.present {
+    border-left-color: #10b981;
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.05), transparent);
+}
+
+.student-row.absent {
+    border-left-color: #ef4444;
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);
+}
+
+.student-row:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.student-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+}
+
+.roll-no {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #4f46e5;
+    min-width: 50px;
+    text-align: center;
+}
+
+.student-name {
+    font-size: 1rem;
+    color: #0f172a;
+    font-weight: 500;
+}
+
+.attendance-toggle {
+    padding: 0.6rem 1.2rem;
+    border: 2px solid;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.attendance-toggle.Present {
+    background: white;
+    color: #10b981;
+    border-color: #10b981;
+}
+
+.attendance-toggle.Present:hover {
+    background: #10b981;
+    color: white;
+}
+
+.attendance-toggle.Absent {
+    background: white;
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+.attendance-toggle.Absent:hover {
+    background: #ef4444;
+    color: white;
+}
+
+/* ==========================================================================
+   MESSAGES & FEEDBACK
+   ========================================================================== */
+
+.error-message {
+    padding: 1rem;
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #7f1d1d;
+    border-left: 4px solid #ef4444;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 500;
+}
+
+.success-message {
+    padding: 1rem;
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #166534;
+    border-left: 4px solid #10b981;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 500;
+    animation: slideInDown 0.4s ease-out;
+}
+
+.no-data {
+    text-align: center;
+    padding: 3rem;
+    color: #94a3b8;
+    font-size: 1.1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: #4f46e5;
+    font-size: 1.1rem;
+}
+
+/* ==========================================================================
+   FORM ACTIONS
+   ========================================================================== */
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #e2e8f0;
+}
+
+.submit-btn {
+    flex: 1;
+    padding: 1rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+}
+
+.submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   RESPONSIVE DESIGN
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .faculty-marking-container {
+        padding: 1rem;
+    }
+
+    .marking-header h1 {
+        font-size: 1.8rem;
+    }
+
+    .marking-form {
+        padding: 1.5rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .student-list {
+        max-height: 400px;
+    }
+
+    .student-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .attendance-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .bulk-actions {
+        flex-direction: column;
+    }
+
+    .statistics {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .marking-header h1 {
+        font-size: 1.4rem;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .statistics {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+
+    .student-info {
+        gap: 0.8rem;
+    }
+
+    .student-name {
+        font-size: 0.95rem;
+    }
+}
