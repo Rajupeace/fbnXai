@@ -1,6 +1,20 @@
 {
   "name": "fbn-xai-system",
   "version": "1.0.1",
+  "description": "Comprehensive AI-powered educational management platform featuring Smart Paint Board for digital lectures, RAG-based AI Chatbot, and real-time dashboards for Faculty, Students, and Admins.",
+  "author": "Rajupeace",
+  "license": "MIT",
+  "homepage": "https://github.com/Rajupeace/fbnXai",
+  "keywords": [
+    "education",
+    "lms",
+    "whiteboard",
+    "ai-chatbot",
+    "react",
+    "nodejs",
+    "mongodb",
+    "rag"
+  ],
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.11.0",
