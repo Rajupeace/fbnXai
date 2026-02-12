@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './AdminAnalyticsDashboard.css';
-import { FaChartBar, FaUsers, FaBook, FaChartLine, FaExclamationTriangle, FaStar, FaFilePdf } from 'react-icons/fa';
+import { FaChartBar, FaChartLine, FaFilePdf } from 'react-icons/fa';
 import ReportGenerator from './ReportGenerator';
 
 const AdminAnalyticsDashboard = ({ adminData }) => {

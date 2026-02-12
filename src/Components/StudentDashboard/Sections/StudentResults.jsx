@@ -74,30 +74,6 @@ const StudentResults = ({ studentData, preloadedData, enrolledSubjects = [] }) =
         });
     };
 
-    const fetchResults = async () => {
-        try {
-            setLoading(true);
-            const data = await apiGet(`/api/students/${studentData.sid}/marks-by-subject`);
-            let filtered = data;
-            if (enrolledSubjects && enrolledSubjects.length > 0 && Array.isArray(data)) {
-                filtered = data.filter(item =>
-                    enrolledSubjects.some(sub =>
-                        (sub.name && item.subject && String(sub.name).toLowerCase() === String(item.subject).toLowerCase()) ||
-                        (sub.code && item.courseCode && String(sub.code).toLowerCase() === String(item.courseCode).toLowerCase()) ||
-                        (sub.code && item.subject && String(sub.code).toLowerCase() === String(item.subject).toLowerCase())
-                    )
-                );
-            }
-            setResultsBySubject(filtered);
-            calculateStats(filtered);
-        } catch (error) {
-            console.error('Error fetching results:', error);
-            setResultsBySubject([]);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const getGrade = (percentage) => {
         if (percentage >= 90) return { grade: 'O', color: '#10b981', label: 'Outstanding' };
         if (percentage >= 80) return { grade: 'A+', color: '#3b82f6', label: 'Excellent' };

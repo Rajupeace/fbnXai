@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaPaperPlane, FaRobot, FaRegCopy, FaCheck, FaRegFileAlt } from 'react-icons/fa';
 import { apiPost, apiGet } from '../../utils/apiClient';
 import ReactMarkdown from 'react-markdown';
@@ -147,16 +147,9 @@ const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
         fetchHistory();
     }, [userProfile]);
 
-    useEffect(() => {
-        if (initialMessage && !initialMessageProcessed.current && userProfile && !isHistoryLoading) {
-            initialMessageProcessed.current = true;
-            setTimeout(() => {
-                handleSend(null, initialMessage);
-            }, 1000);
-        }
-    }, [initialMessage, userProfile, isHistoryLoading]);
 
-    const handleActionTags = (text) => {
+
+    const handleActionTags = useCallback((text) => {
         // Detect {{NAVIGATE: section}} case-insensitive
         const navMatch = text.match(/{{NAVIGATE:\s*([^}]+)}}/i);
         if (navMatch && navMatch[1] && onNavigate) {
@@ -166,12 +159,12 @@ const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
             setTimeout(() => onNavigate(section), 200);
         }
         return text.replace(/{{NAVIGATE:\s*[^}]+}}/gi, '');
-    };
+    }, [onNavigate]);
 
     const isMountedRef = useRef(true);
     useEffect(() => { return () => { isMountedRef.current = false; }; }, []);
 
-    const handleSend = async (e, forcedText = null) => {
+    const handleSend = useCallback(async (e, forcedText = null) => {
         if (e) e.preventDefault();
         const userText = forcedText || input;
         if (!userText || !userText.trim() || !userProfile || isLoading) return;
@@ -268,7 +261,16 @@ const VuAiAgent = ({ onNavigate, initialMessage, documentContext }) => {
         };
 
         await sendPayload(1);
-    };
+    }, [input, userProfile, isLoading, documentContext, handleActionTags]);
+
+    useEffect(() => {
+        if (initialMessage && !initialMessageProcessed.current && userProfile && !isHistoryLoading) {
+            initialMessageProcessed.current = true;
+            setTimeout(() => {
+                handleSend(null, initialMessage);
+            }, 1000);
+        }
+    }, [initialMessage, userProfile, isHistoryLoading, handleSend]);
 
     const copyToClipboard = (text, id) => {
         navigator.clipboard.writeText(text);

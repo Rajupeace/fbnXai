@@ -168,7 +168,7 @@ const FacultyMarks = ({ facultyData }) => {
         } catch (error) {
             console.error('Error fetching marks:', error);
         }
-    }, [selectedSection.subject, students]);
+    }, [selectedSection.subject, students, assessmentStructure]);
 
     const handleMarkChange = (studentId, assessmentId, value) => {
         if (value === '') {

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import './FacultyDashboard.css';
-import { FaCalendarAlt, FaCheckCircle, FaSave, FaUserCheck, FaHistory, FaFilter, FaUsers, FaExclamationTriangle, FaClock, FaCircle } from 'react-icons/fa';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FaCalendarAlt, FaUserCheck, FaHistory, FaUsers, FaExclamationTriangle, FaClock } from 'react-icons/fa';
+import { motion } from 'framer-motion';
 import { apiGet, apiPost } from '../../utils/apiClient';
 
 /**
@@ -23,6 +23,7 @@ const FacultyAttendanceManager = ({ facultyId, subject, year, sections, currentF
     const [availableSections, setAvailableSections] = useState([]);
     const [selectedSection, setSelectedSection] = useState({ year: '', section: '', subject: '' });
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    // eslint-disable-next-line no-unused-vars
     const [scheduleSlots, setScheduleSlots] = useState([]);
     const [selectedSlot, setSelectedSlot] = useState(null); // { hour: 1, time: '09:00', subject: 'Math' }
 
@@ -33,10 +34,6 @@ const FacultyAttendanceManager = ({ facultyId, subject, year, sections, currentF
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [viewMode, setViewMode] = useState('take'); // 'take' | 'history'
-    const [history, setHistory] = useState([]);
-    const [debugMessage, setDebugMessage] = useState('');
-
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     // 3. Initialize Sections
     const initializeSections = useCallback(() => {
@@ -64,51 +61,7 @@ const FacultyAttendanceManager = ({ facultyId, subject, year, sections, currentF
 
     useEffect(() => { initializeSections(); }, [initializeSections]);
 
-    // 4. Fetch Schedule for Date
-    const fetchScheduleForDate = useCallback(async () => {
-        if (!selectedSection.year || !date) return;
-        try {
-            const dayName = days[new Date(date).getDay()];
-            // Fetch schedule for the specific class (Year/Sec/Branch)
-            // We need branch... let's try to guess or fetch from students later. 
-            // For now, fetch by faculty if possible, or section.
-            // Best bet: Fetch schedule for this section/year on this day.
-            const query = `year=${selectedSection.year}&section=${selectedSection.section}&day=${dayName}`;
-            const sched = await apiGet(`/api/schedule?${query}`);
-
-            if (Array.isArray(sched) && sched.length > 0) {
-                // Map schedule items to slots
-                // We assume schedule has 'time' string like '09:00 - 10:00'
-                // We'll assign an index as 'hour' based on sorted time
-                const sorted = sched.sort((a, b) => a.time.localeCompare(b.time));
-                const slots = sorted.map((s, idx) => ({
-                    id: s._id,
-                    hour: idx + 1, // 1-based index for simplicity
-                    time: s.time,
-                    subject: s.subject,
-                    type: s.type
-                }));
-                setScheduleSlots(slots);
-
-                // Auto-select the first slot if none selected, or if current selection is invalid
-                if (!selectedSlot || !slots.find(s => s.hour === selectedSlot.hour)) {
-                    // Try to match current time? For now just pick first.
-                    setSelectedSlot(slots[0]);
-                }
-            } else {
-                // Fallback: Create generic hourly slots if no schedule exists
-                const generics = Array.from({ length: 8 }, (_, i) => ({
-                    id: `gen-${i}`, hour: i + 1, time: `Period ${i + 1}`, subject: selectedSection.subject
-                }));
-                setScheduleSlots(generics);
-                if (!selectedSlot) setSelectedSlot(generics[0]);
-            }
-        } catch (e) {
-            console.error("Schedule fetch error:", e);
-        }
-    }, [selectedSection, date]);
-
-    // 5. Fetch Activity Log (Overall daily activity for this section)
+    // 4. Fetch Activity Log (Overall daily activity for this section)
     const fetchDailyActivity = useCallback(async () => {
         if (!selectedSection.year || !date) return;
         try {
@@ -138,62 +91,35 @@ const FacultyAttendanceManager = ({ facultyId, subject, year, sections, currentF
 
 
     // 6. Main Data Fetch (Students + Current Slot Attendance)
+    // 6. Main Data Fetch (Students + Current Slot Attendance)
     const fetchData = useCallback(async () => {
+        if (!selectedSection.year || !selectedSection.section) return;
         setLoading(true);
         try {
-            // A. Fetch Students
-            let roster = [];
-            try {
-                roster = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students`);
-            } catch (e) {
-                // Fallback
-                roster = await apiGet(`/api/faculty-stats/${facultyData.facultyId}/students/public`);
+            // Fetch students for the selected section
+            const query = `year=${selectedSection.year}&section=${selectedSection.section}`;
+            // Try to use the common student search or listing endpoint
+            const res = await apiGet(`/api/students?${query}`);
+
+            if (res && res.success && res.students) {
+                setStudents(res.students);
+            } else if (Array.isArray(res)) {
+                setStudents(res);
             }
-
-            // Filter
-            const filtered = (Array.isArray(roster) ? roster : []).filter(s =>
-                String(s.year || s.Year) === String(selectedSection.year) &&
-                String(s.section || s.Section).toUpperCase() === String(selectedSection.section).toUpperCase()
-            ).sort((a, b) => String(a.sid).localeCompare(String(b.sid)));
-
-            setStudents(filtered);
-
-            // B. Fetch Activity Log & Schedule
-            await Promise.all([fetchScheduleForDate(), fetchDailyActivity()]);
-
-            // C. Fetch Attendance for SELECTED SLOT
-            // We need to know which subject/hour we are marking for.
-            // Using selectedSlot state.
-            // Wait, fetchScheduleForDate updates selectedSlot, so we might need a separate effect or depend on it.
-            // Actually, let's look at `selectedSlot`.
-
-            if (selectedSlot) {
-                const hourQuery = selectedSlot.hour ? `&hour=${selectedSlot.hour}` : '';
-                // Note: The /all endpoint returns groups. We might need to filter client side or backend.
-                // Or just use the dailyLog we already fetched!
-                // Let's rely on DailyLog for now to populate 'attendance'.
-
-                // However, we need to populate 'attendance' state (the checkboxes)
-                // from the daily log for the CURRENT slot.
-
-                // Logic moved to a separate useEffect dependent on [selectedSlot, dailyLog]
-            }
-
         } catch (e) {
             console.error("Main fetch error:", e);
-            setDebugMessage(e.message);
         } finally {
             setLoading(false);
         }
-    }, [facultyData, selectedSection, date]); // selectedSlot is managed separately
-
+    }, [selectedSection]);
 
     // Trigger Initial Fetch
     useEffect(() => {
         if (selectedSection.year && selectedSection.section) {
             fetchData();
+            fetchDailyActivity();
         }
-    }, [selectedSection, date, fetchData]);
+    }, [selectedSection, date, fetchData, fetchDailyActivity]);
 
 
     // Sync Attendance State with Selected Slot

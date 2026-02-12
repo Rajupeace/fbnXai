@@ -1,9 +1,9 @@
 import React from 'react';
 import {
     FaGraduationCap, FaEnvelope, FaSignOutAlt,
-    FaLayerGroup, FaBolt, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt, FaUserGraduate,
-    FaRobot, FaClipboardList, FaPencilAlt, FaTimes, FaBookOpen, FaCalendarAlt,
-    FaThLarge, FaBook, FaCog
+    FaLayerGroup, FaChartLine, FaUserCheck, FaBullhorn, FaShieldAlt, FaUserGraduate, FaBook,
+    FaClipboardList, FaPencilAlt, FaTimes, FaCalendarAlt,
+    FaThLarge, FaCog
 } from 'react-icons/fa';
 
 /**
@@ -36,7 +36,7 @@ const FacultySidebar = ({
         { id: 'exams', label: 'Exams', icon: <FaShieldAlt /> },
         { id: 'schedule', label: 'Schedule', icon: <FaCalendarAlt /> },
         { id: 'students', label: 'Students', icon: <FaUserGraduate /> },
-        { id: 'achievements', label: 'Student Achievements', icon: <FaLayerGroup /> },
+
         { id: 'curriculum', label: 'Curriculum', icon: <FaLayerGroup /> },
         { id: 'broadcast', label: 'Announcements', icon: <FaBullhorn /> },
         { id: 'messages', label: 'Messages', icon: <FaEnvelope /> },

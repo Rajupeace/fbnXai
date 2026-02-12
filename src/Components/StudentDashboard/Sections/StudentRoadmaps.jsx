@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     FaRoad, FaCode, FaLaptopCode, FaJava, FaPython, FaServer, FaCheckCircle, FaSpinner,
@@ -37,7 +37,7 @@ const StudentRoadmaps = ({ studentData, preloadedData }) => {
     const [completedTopics, setCompletedTopics] = useState(studentData?.roadmapProgress || {});
 
     // Fetch Roadmaps & Progress
-    const fetchRoadmaps = async () => {
+    const fetchRoadmaps = useCallback(async () => {
         setLoading(true);
         try {
             // 1. Fetch available roadmaps
@@ -62,7 +62,7 @@ const StudentRoadmaps = ({ studentData, preloadedData }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [studentData?.sid, studentData?.roadmapProgress]);
 
     useEffect(() => {
         if (preloadedData) {
@@ -71,7 +71,7 @@ const StudentRoadmaps = ({ studentData, preloadedData }) => {
         } else {
             fetchRoadmaps();
         }
-    }, [preloadedData]);
+    }, [preloadedData, fetchRoadmaps]);
 
     const toggleTopic = async (roadmapSlug, topicName) => {
         // Optimistic Update

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '../utils/apiClient';
 import './StudentAchievements.css';
 
@@ -7,11 +7,7 @@ const StudentAchievementsList = ({ studentId }) => {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, pending, approved, rejected
 
-    useEffect(() => {
-        fetchAchievements();
-    }, [studentId, filter]);
-
-    const fetchAchievements = async () => {
+    const fetchAchievements = useCallback(async () => {
         try {
             setLoading(true);
             const statusParam = filter !== 'all' ? `?status=${filter.charAt(0).toUpperCase() + filter.slice(1)}` : '';
@@ -25,7 +21,11 @@ const StudentAchievementsList = ({ studentId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [studentId, filter]);
+
+    useEffect(() => {
+        fetchAchievements();
+    }, [fetchAchievements]);
 
     const getStatusBadgeClass = (status) => {
         switch (status) {

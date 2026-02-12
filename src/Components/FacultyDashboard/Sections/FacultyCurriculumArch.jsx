@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaLayerGroup, FaClock, FaCheckCircle, FaBookOpen, FaTimes, FaFilter, FaEye } from 'react-icons/fa';
-import { motion } from 'framer-motion';
+import { FaEdit, FaLayerGroup, FaCheckCircle, FaBookOpen, FaTimes, FaFilter, FaEye } from 'react-icons/fa';
 import '../FacultyDashboard.css';
 
 /**

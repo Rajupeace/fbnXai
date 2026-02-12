@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiPost, apiGet } from '../../utils/apiClient';
+import { apiPost } from '../../utils/apiClient';
 import { FaCheckCircle, FaTimesCircle, FaClock, FaUsers, FaBook, FaCalendarDay } from 'react-icons/fa';
 import './FacultyAttendanceMarker.css';
 

@@ -13,7 +13,7 @@ import AdminScheduleManager from './AdminScheduleManager';
 import AdminExams from './AdminExams';
 import AdminAnalyticsDashboard from './AdminAnalyticsDashboard';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaEyeSlash, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaLayerGroup, FaCreditCard, FaBars, FaChartBar } from 'react-icons/fa';
+import { FaUserGraduate, FaChalkboardTeacher, FaBook, FaEnvelope, FaPlus, FaTrash, FaEye, FaEyeSlash, FaBookOpen, FaRobot, FaFileUpload, FaBullhorn, FaBars, FaLayerGroup } from 'react-icons/fa';
 import sseClient from '../../utils/sseClient';
 
 // Newly extracted sections
@@ -597,8 +597,7 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
           if (isReallyStatic) {
             try {
               // Attempt to Create dynamic version of static item
-              const res = await api.apiPost('/api/courses', data);
-              const savedItem = res.data || res;
+              await api.apiPost('/api/courses', data);
               // If successful, local state will be refreshed via loadData below
             } catch (err) {
               if (err.message && err.message.includes('409')) {

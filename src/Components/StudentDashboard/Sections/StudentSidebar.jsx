@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    FaGraduationCap, FaSignOutAlt, FaRocket, FaBook, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaRobot, FaBriefcase, FaRoad, FaBullhorn, FaUniversity, FaHeadset, FaLayerGroup, FaBolt, FaAward, FaChalkboardTeacher
+    FaGraduationCap, FaSignOutAlt, FaRocket, FaChartBar, FaPen, FaShieldAlt, FaClipboardList, FaBriefcase, FaRoad, FaBullhorn, FaUniversity, FaHeadset, FaLayerGroup, FaAward, FaChalkboardTeacher, FaBolt
 } from 'react-icons/fa';
 import './StudentSidebar.css';
 

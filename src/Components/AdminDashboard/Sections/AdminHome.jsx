@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     FaUserGraduate, FaChalkboardTeacher, FaBook, FaLayerGroup,
-    FaCreditCard, FaRobot, FaCheckCircle, FaExclamationTriangle
+    FaCreditCard, FaRobot, FaCheckCircle
 } from 'react-icons/fa';
 import SystemTelemetry from '../SystemTelemetry';
 import SystemIntelligence from '../SystemIntelligence';

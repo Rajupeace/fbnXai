@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiGet } from '../../utils/apiClient';
-import { FaChalkboardTeacher, FaUserGraduate, FaBookOpen, FaUsers, FaThLarge, FaBookmark, FaCalendarAlt, FaSatellite } from 'react-icons/fa';
+import { FaBookOpen, FaUsers, FaThLarge, FaBookmark, FaCalendarAlt } from 'react-icons/fa';
 
 const FacultyTeachingStats = ({ facultyId }) => {
     const [stats, setStats] = useState({

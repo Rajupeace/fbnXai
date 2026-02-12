@@ -1,9 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
-import {
-  FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaSave, FaDownload, FaLayerGroup, FaFilter, FaRobot, FaChevronRight, FaVideo
-} from 'react-icons/fa';
+import { FaUniversity, FaBullhorn, FaFileAlt, FaEye, FaTrash, FaDownload, FaFilter, FaRobot, FaVideo, FaChevronRight } from 'react-icons/fa';
 import sseClient from '../../utils/sseClient';
 import MaterialManager from './MaterialManager';
 import FacultySettings from './FacultySettings';
@@ -24,7 +22,6 @@ import FacultyHome from './Sections/FacultyHome';
 import FacultyCurriculumArch from './Sections/FacultyCurriculumArch';
 import FacultyMessages from './Sections/FacultyMessages';
 import FacultyStudents from './Sections/FacultyStudents';
-import FacultyStudentSearch from '../FacultyStudentSearch';
 import PersonalDetailsBall from '../PersonalDetailsBall/PersonalDetailsBall';
 
 // Styles
@@ -457,7 +454,7 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
           {view === 'settings' && <FacultySettings facultyData={currentFaculty} onProfileUpdate={setCurrentFaculty} openAiWithPrompt={openAiWithPrompt} />}
           {view === 'messages' && <FacultyMessages messages={messages} openAiWithPrompt={openAiWithPrompt} />}
           {view === 'students' && <FacultyStudents studentsList={studentsList} openAiWithPrompt={openAiWithPrompt} />}
-          {view === 'achievements' && <FacultyStudentSearch facultyData={currentFaculty} />}
+
 
           {view === 'whiteboard' && (() => {
             const ctx = ensureContext();
@@ -778,6 +775,8 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
                   'message': 'messages',
                   'messages': 'messages',
                   'students': 'students',
+                  'achievement': 'students',
+                  'achievements': 'students',
                   'broadcast': 'broadcast',
                   'curriculum': 'curriculum'
                 };

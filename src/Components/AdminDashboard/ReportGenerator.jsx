@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './ReportGenerator.css';
-import { FaFilePdf, FaFileExcel, FaCalendarAlt, FaDownload, FaEye, FaSpinner, FaCheckCircle } from 'react-icons/fa';
+import { FaFilePdf, FaFileExcel, FaCalendarAlt, FaDownload, FaSpinner } from 'react-icons/fa';
 
 const ReportGenerator = ({ onClose }) => {
     const [startDate, setStartDate] = useState(getDefaultStartDate());
@@ -18,11 +18,7 @@ const ReportGenerator = ({ onClose }) => {
         return date.toISOString().split('T')[0];
     }
 
-    useEffect(() => {
-        fetchSummary();
-    }, [startDate, endDate]);
-
-    const fetchSummary = async () => {
+    const fetchSummary = useCallback(async () => {
         try {
             setLoading(true);
             const response = await fetch(
@@ -38,7 +34,11 @@ const ReportGenerator = ({ onClose }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [startDate, endDate]);
+
+    useEffect(() => {
+        fetchSummary();
+    }, [startDate, endDate, fetchSummary]);
 
     const generateReport = async () => {
         try {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { FaClock, FaMapMarkerAlt, FaBook, FaUsers, FaChalkboardTeacher } from 'react-icons/fa';
-import { apiGet } from '../../utils/apiClient';
 
 /**
  * CHRONOS SCHEDULE (FACULTY EDITION)
@@ -18,7 +17,6 @@ const weekDays = daysOfWeek.filter(day => day !== 'Sunday');
 const FacultyScheduleView = ({ facultyData, schedule = [] }) => {
     // Proactive Hardening
     facultyData = facultyData || {};
-    const [loading, setLoading] = useState(false);
     const [selectedDay, setSelectedDay] = useState(new Date().getDay());
     const [myClasses, setMyClasses] = useState([]);
 
@@ -39,12 +37,11 @@ const FacultyScheduleView = ({ facultyData, schedule = [] }) => {
     }, [schedule]);
 
     const todaySchedule = useMemo(() => {
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const todayStr = days[selectedDay];
+        const todayStr = daysOfWeek[selectedDay];
         return schedule.filter(item => item.day === todayStr);
     }, [schedule, selectedDay]);
 
-    if (loading) return <div className="no-content">Loading Schedule...</div>;
+
 
     return (
         <div className="animate-fade-in">

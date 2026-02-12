@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FaChalkboard, FaCalendarAlt, FaUserTie, FaSearch, FaExternalLinkAlt, FaTimes, FaFilter, FaClock, FaBookOpen } from 'react-icons/fa';
 import { apiGet } from '../../../utils/apiClient';
 import sseClient from '../../../utils/sseClient';
@@ -13,7 +13,7 @@ const ClassBoards = ({ studentId, year, branch, section, openAiWithPrompt }) => 
     const [filterSubject, setFilterSubject] = useState('all');
     const [sortBy, setSortBy] = useState('recent');
 
-    const fetchBoards = async () => {
+    const fetchBoards = useCallback(async () => {
         try {
             setLoading(true);
             const res = await apiGet(`/api/whiteboard/student/${year}/${branch}/${section}`);
@@ -23,7 +23,7 @@ const ClassBoards = ({ studentId, year, branch, section, openAiWithPrompt }) => 
         } finally {
             setLoading(false);
         }
-    };
+    }, [year, branch, section]);
 
     useEffect(() => {
         fetchBoards();
@@ -46,7 +46,7 @@ const ClassBoards = ({ studentId, year, branch, section, openAiWithPrompt }) => 
         } catch (e) {
             console.debug('SSE client error in ClassBoards', e);
         }
-    }, [year, branch, section]);
+    }, [year, branch, section, fetchBoards]);
 
     // Get unique subjects
     const subjects = ['all', ...new Set(boards.map(b => b.subject))];

@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { FaPencilAlt, FaEraser, FaTrash, FaSave, FaUndo, FaRedo, FaPaintBrush, FaHighlighter, FaFileUpload, FaImage, FaChevronLeft, FaChevronRight, FaPlus, FaEye } from 'react-icons/fa';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { FaPencilAlt, FaEraser, FaTrash, FaSave, FaUndo, FaRedo, FaPaintBrush, FaHighlighter, FaFileUpload, FaImage, FaPlus, FaEye, FaHistory } from 'react-icons/fa';
 import './Whiteboard.css';
 
 const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOnly = false }) => {
@@ -8,16 +8,21 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
     const fileInputRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
     const [color, setColor] = useState('#000000');
-    const [lineWidth, setLineWidth] = useState(3);
+    const [lineWidth, setLineWidth] = useState(4);
     const [tool, setTool] = useState('pencil');
     const [history, setHistory] = useState([]);
     const [historyStep, setHistoryStep] = useState(-1);
     const [backgroundImage, setBackgroundImage] = useState(null);
     const [uploadedFile, setUploadedFile] = useState(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
     const [showUploadHelp, setShowUploadHelp] = useState(false);
     const [boardNumber, setBoardNumber] = useState(1);
+    
+    // Board History Tracking
+    const [boardHistory, setBoardHistory] = useState([]);
+    const [showBoardHistory, setShowBoardHistory] = useState(false);
+    const [previewBoard, setPreviewBoard] = useState(null);
+    const [previewIndex, setPreviewIndex] = useState(-1);
+    const [showPreviewModalLocal, setShowPreviewModalLocal] = useState(false);
 
     // Expanded professional color palette
     const colorPalette = [
@@ -51,42 +56,19 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
         { label: 'Bold', value: 16 }
     ];
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width * 2;
-        canvas.height = rect.height * 2;
-        canvas.style.width = `${rect.width}px`;
-        canvas.style.height = `${rect.height}px`;
-
-        const context = canvas.getContext('2d');
-        context.scale(2, 2);
-        context.lineCap = 'round';
-        context.lineJoin = 'round';
-        contextRef.current = context;
-
-        redrawCanvas();
-
-        if (initialData) {
-            const img = new Image();
-            img.onload = () => {
-                context.drawImage(img, 0, 0, rect.width, rect.height);
-                saveToHistory();
-            };
-            img.src = initialData;
-        } else {
-            saveToHistory();
-        }
-    }, [initialData, backgroundImage]);
-
-    const redrawCanvas = () => {
+    // Define useCallback functions before useEffect
+    const redrawCanvas = useCallback(() => {
         const canvas = canvasRef.current;
         const context = contextRef.current;
+        if (!canvas || !context) return;
         const rect = canvas.getBoundingClientRect();
 
-        // Fill with white background
+        // Fill with white background in CSS-coordinates
+        context.save();
+        context.setTransform(1, 0, 0, 1, 0, 0);
         context.fillStyle = '#ffffff';
         context.fillRect(0, 0, canvas.width, canvas.height);
+        context.restore();
 
         // Draw background image if exists
         if (backgroundImage) {
@@ -96,7 +78,73 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
             };
             img.src = backgroundImage;
         }
-    };
+    }, [backgroundImage]);
+
+    const saveToHistory = useCallback(() => {
+        const canvas = canvasRef.current;
+        const dataUrl = canvas.toDataURL();
+        const newHistory = history.slice(0, historyStep + 1);
+        newHistory.push(dataUrl);
+        setHistory(newHistory);
+        setHistoryStep(newHistory.length - 1);
+    }, [history, historyStep]);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const setupCanvas = () => {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+            canvas.style.width = `${rect.width}px`;
+            canvas.style.height = `${rect.height}px`;
+
+            const context = canvas.getContext('2d');
+            context.resetTransform && context.resetTransform();
+            context.scale(dpr, dpr);
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            contextRef.current = context;
+
+            // Ensure clear white background then draw background image
+            redrawCanvas();
+
+            if (initialData) {
+                const img = new Image();
+                img.onload = () => {
+                    context.drawImage(img, 0, 0, rect.width, rect.height);
+                    saveToHistory();
+                };
+                img.src = initialData;
+            } else {
+                saveToHistory();
+            }
+        };
+
+        setupCanvas();
+
+        const handleResize = () => {
+            // Preserve current visible image
+            const canvas = canvasRef.current;
+            const context = contextRef.current;
+            if (!canvas || !context) return;
+            const prev = canvas.toDataURL();
+            setupCanvas();
+            // restore previous drawing scaled to new size
+            const img = new Image();
+            img.onload = () => {
+                context.drawImage(img, 0, 0, canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height);
+            };
+            img.src = prev;
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, [initialData, backgroundImage, onSave, redrawCanvas, saveToHistory]);
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -148,7 +196,6 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
                     const imageData = tempCanvas.toDataURL('image/png');
                     setBackgroundImage(imageData);
                     setUploadedFile(file.name + ' (Page 1)');
-                    setTotalPages(pdf.numPages);
 
                     setTimeout(() => {
                         redrawCanvas();
@@ -170,15 +217,6 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
             setShowUploadHelp(true);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
-    };
-
-    const saveToHistory = () => {
-        const canvas = canvasRef.current;
-        const dataUrl = canvas.toDataURL();
-        const newHistory = history.slice(0, historyStep + 1);
-        newHistory.push(dataUrl);
-        setHistory(newHistory);
-        setHistoryStep(newHistory.length - 1);
     };
 
     const undo = () => {
@@ -211,39 +249,60 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
         img.src = dataUrl;
     };
 
-    const startDrawing = ({ nativeEvent }) => {
+    const getPointerPos = (e) => {
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        return { x, y };
+    };
+
+    const startDrawing = (e) => {
         if (isReadOnly) return;
-        const { offsetX, offsetY } = nativeEvent;
-        contextRef.current.beginPath();
-        contextRef.current.moveTo(offsetX, offsetY);
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+        const { x, y } = getPointerPos(e);
+        const ctx = contextRef.current;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
         setIsDrawing(true);
     };
 
-    const draw = ({ nativeEvent }) => {
+    const draw = (e) => {
         if (!isDrawing || isReadOnly) return;
-        const { offsetX, offsetY } = nativeEvent;
+        const { x, y } = getPointerPos(e);
+        const ctx = contextRef.current;
 
         if (tool === 'eraser') {
-            contextRef.current.strokeStyle = '#ffffff';
-            contextRef.current.lineWidth = lineWidth * 2;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = lineWidth * 2;
+            ctx.globalAlpha = 1;
         } else if (tool === 'highlighter') {
-            contextRef.current.strokeStyle = color;
-            contextRef.current.globalAlpha = 0.3;
-            contextRef.current.lineWidth = lineWidth * 3;
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = 0.25;
+            ctx.lineWidth = Math.max(8, lineWidth * 3);
+        } else if (tool === 'brush') {
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = Math.max(3, lineWidth * 1.5);
         } else {
-            contextRef.current.strokeStyle = color;
-            contextRef.current.globalAlpha = 1;
-            contextRef.current.lineWidth = lineWidth;
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = lineWidth;
         }
 
-        contextRef.current.lineTo(offsetX, offsetY);
-        contextRef.current.stroke();
+        ctx.lineTo(x, y);
+        ctx.stroke();
     };
 
-    const stopDrawing = () => {
+    const stopDrawing = (e) => {
         if (!isDrawing) return;
-        contextRef.current.closePath();
-        contextRef.current.globalAlpha = 1;
+        const canvas = canvasRef.current;
+        canvas.releasePointerCapture && canvas.releasePointerCapture(e?.pointerId);
+        const ctx = contextRef.current;
+        ctx.closePath();
+        ctx.globalAlpha = 1;
         setIsDrawing(false);
         saveToHistory();
     };
@@ -264,6 +323,18 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
         const canvas = canvasRef.current;
         const context = contextRef.current;
 
+        // Save current board to history before creating new one
+        const currentBoard = {
+            boardNumber: boardNumber,
+            timestamp: new Date().toLocaleString(),
+            thumbnail: canvas.toDataURL('image/png'),
+            uploadedFile: uploadedFile,
+            content: history.length > 0 ? 'Content saved' : 'Empty board',
+            createdAt: new Date().toISOString()
+        };
+        
+        setBoardHistory(prev => [...prev, currentBoard]);
+
         // Clear canvas
         context.fillStyle = '#ffffff';
         context.fillRect(0, 0, canvas.width, canvas.height);
@@ -280,6 +351,48 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
 
         // Increment board number
         setBoardNumber(prev => prev + 1);
+    };
+
+    const openPreview = (board, idx) => {
+        setPreviewBoard(board);
+        setPreviewIndex(idx);
+        setShowPreviewModalLocal(true);
+    };
+
+    const closePreview = () => {
+        setShowPreviewModalLocal(false);
+        setPreviewBoard(null);
+        setPreviewIndex(-1);
+    };
+
+    const restoreBoard = (board) => {
+        if (!board) return;
+        const canvas = canvasRef.current;
+        const ctx = contextRef.current;
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            const rect = canvas.getBoundingClientRect();
+            ctx.drawImage(img, 0, 0, rect.width, rect.height);
+            saveToHistory();
+        };
+        img.src = board.thumbnail;
+        setUploadedFile(board.uploadedFile || null);
+        setShowBoardHistory(false);
+        closePreview();
+    };
+
+    // eslint-disable-next-line no-unused-vars
+    const deleteBoard = (idx) => {
+        setBoardHistory(prev => {
+            const copy = [...prev];
+            if (idx >= 0 && idx < copy.length) copy.splice(idx, 1);
+            return copy;
+        });
+        // close preview if deleting the open one
+        if (idx === previewIndex) closePreview();
     };
 
     const handleSave = () => {
@@ -431,6 +544,13 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
                             <button className="action-btn clear" onClick={clearCanvas} title="Clear All">
                                 <FaTrash />
                             </button>
+                            <button 
+                                className="action-btn board-history" 
+                                onClick={() => setShowBoardHistory(!showBoardHistory)} 
+                                title={`Board History (${boardHistory.length} saved)`}
+                            >
+                                <FaHistory /> HISTORY ({boardHistory.length})
+                            </button>
                             <button className="action-btn new-board" onClick={createNewBoard} title="Start New Board">
                                 <FaPlus /> NEW
                             </button>
@@ -447,11 +567,13 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
 
             <div className={`canvas-wrapper ${isReadOnly ? 'read-only' : ''}`}>
                 <canvas
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
+                    onPointerDown={startDrawing}
+                    onPointerMove={draw}
+                    onPointerUp={stopDrawing}
+                    onPointerCancel={stopDrawing}
+                    onLostPointerCapture={stopDrawing}
                     ref={canvasRef}
+                    style={{ touchAction: 'none', cursor: 'crosshair', width: '100%', height: '100%' }}
                 />
                 {!isReadOnly && (
                     <div className="canvas-status">
@@ -466,7 +588,169 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
                 )}
             </div>
 
+            {/* Board History Panel */}
+            {showBoardHistory && (
+                <div className="board-history-panel" style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: 0,
+                    width: '350px',
+                    height: '100%',
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    borderLeft: '2px solid #64748b',
+                    overflowY: 'auto',
+                    zIndex: 100,
+                    padding: '1.5rem',
+                    boxShadow: '-4px 0 12px rgba(0,0,0,0.3)'
+                }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1.5rem'
+                    }}>
+                        <h3 style={{
+                            margin: 0,
+                            color: '#fff',
+                            fontSize: '1.1rem',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                        }}>
+                            <FaHistory /> Board History
+                        </h3>
+                        <button
+                            onClick={() => setShowBoardHistory(false)}
+                            style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#94a3b8',
+                                cursor: 'pointer',
+                                fontSize: '1.2rem'
+                            }}
+                        >✕</button>
+                    </div>
+
+                    <div style={{
+                        background: 'rgba(30,41,59,0.5)',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        marginBottom: '1.5rem',
+                        border: '1px solid #334155'
+                    }}>
+                        <div style={{ color: '#e2e8f0', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                            <strong>Total Boards Created:</strong> {boardHistory.length + 1}
+                        </div>
+                        <div style={{ color: '#cbd5e1', fontSize: '0.85rem' }}>
+                            Current Board: #{boardNumber}
+                        </div>
+                    </div>
+
+                    {boardHistory.length === 0 ? (
+                        <div style={{
+                            textAlign: 'center',
+                            color: '#94a3b8',
+                            padding: '2rem 0'
+                        }}>
+                            <p>No saved boards yet. Create boards to see history here.</p>
+                        </div>
+                    ) : (
+                        <div className="history-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {boardHistory.map((board, index) => (
+                                <div
+                                    key={index}
+                                    onClick={() => openPreview(board, index)}
+                                    role="button"
+                                    tabIndex={0}
+                                    style={{
+                                        background: 'rgba(51,65,85,0.5)',
+                                        border: '1px solid #475569',
+                                        borderRadius: '8px',
+                                        padding: '1rem',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.3s',
+                                        hover: { background: 'rgba(71,85,105,0.7)' }
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(71,85,105,0.7)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(51,65,85,0.5)'}
+                                >
+                                    <div style={{
+                                        fontSize: '0.85rem',
+                                        fontWeight: '600',
+                                        color: '#f1f5f9',
+                                        marginBottom: '0.5rem'
+                                    }}>
+                                        Board #{board.boardNumber}
+                                    </div>
+                                    <div style={{
+                                        width: '100%',
+                                        height: '100px',
+                                        background: '#0f172a',
+                                        borderRadius: '4px',
+                                        marginBottom: '0.5rem',
+                                        overflow: 'hidden',
+                                        border: '1px solid #334155'
+                                    }}>
+                                        <img
+                                            src={board.thumbnail}
+                                            alt={`Board ${board.boardNumber}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.3rem' }}>
+                                        {board.timestamp}
+                                    </div>
+                                    {board.uploadedFile && (
+                                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                                            📄 {board.uploadedFile}
+                                        </div>
+                                    )}
+                                    <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginTop: '0.3rem' }}>
+                                        Status: {board.content}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Upload Help Modal */}
+            {/* Preview / Restore Modal */}
+            {showPreviewModalLocal && previewBoard && (
+                <div
+                    className="preview-overlay"
+                    onClick={closePreview}
+                    style={{
+                        position: 'fixed', inset: 0, background: 'rgba(2,6,23,0.8)', zIndex: 10000,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem'
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ maxWidth: '1000px', width: '100%', background: '#0f172a', borderRadius: '12px', padding: '1rem', boxShadow: '0 20px 50px rgba(2,6,23,0.6)' }}
+                    >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <div style={{ color: '#e2e8f0', fontWeight: 700 }}>Preview — Board #{previewBoard.boardNumber}</div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => { restoreBoard(previewBoard); }} className="action-btn save" style={{ padding: '0.5rem 0.75rem' }}>Restore</button>
+                                <button onClick={() => deleteBoard(previewIndex)} className="action-btn clear" style={{ padding: '0.5rem 0.75rem' }}>Delete</button>
+                                <button onClick={closePreview} className="action-btn" style={{ padding: '0.5rem 0.75rem' }}>Close</button>
+                            </div>
+                        </div>
+
+                        <div style={{ background: '#0b1220', borderRadius: '8px', padding: '0.5rem', border: '1px solid #213241' }}>
+                            <img src={previewBoard.thumbnail} alt={`Preview ${previewBoard.boardNumber}`} style={{ width: '100%', height: '600px', objectFit: 'contain', background: '#fff' }} />
+                        </div>
+                        <div style={{ color: '#94a3b8', marginTop: '0.5rem' }}>{previewBoard.timestamp} {previewBoard.uploadedFile ? `• ${previewBoard.uploadedFile}` : ''}</div>
+                    </div>
+                </div>
+            )}
             {showUploadHelp && (
                 <div
                     className="upload-help-overlay"

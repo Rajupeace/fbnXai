@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { apiGet } from '../../utils/apiClient';
 import sseClient from '../../utils/sseClient';
 import {
-    FaChartBar, FaLayerGroup, FaRobot, FaBriefcase, FaChevronRight
+    FaChartBar, FaLayerGroup, FaRobot, FaBriefcase
 } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import VuAiAgent from '../VuAiAgent/VuAiAgent';
@@ -79,7 +79,6 @@ export default function StudentDashboard({ studentData, onLogout }) {
     const [advancedData, setAdvancedData] = useState(null);
     const [roadmapData, setRoadmapData] = useState(null);
     const [assignedFaculty, setAssignedFaculty] = useState([]);
-    const [loading, setLoading] = useState(true);
 
     // Modals & UI Flags
     const [showAiModal, setShowAiModal] = useState(false);
@@ -242,10 +241,10 @@ export default function StudentDashboard({ studentData, onLogout }) {
             }
 
             // console.debug('✅ StudentDashboard: All data loaded successfully');
-            setLoading(false);
+
         } catch (e) {
             console.error("❌ StudentDashboard: Sync Failed:", e);
-            setLoading(false);
+
         }
     }, [userData.sid, userData.year, userData.section, userData.branch]);
 
