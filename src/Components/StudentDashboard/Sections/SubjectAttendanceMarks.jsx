@@ -1,278 +1,187 @@
 import React, { useState, useMemo } from 'react';
-import { FaAward, FaCheckCircle, FaExclamationCircle, FaShieldAlt, FaBolt, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaAward, FaCheckCircle, FaExclamationCircle, FaShieldAlt, FaBolt, FaCalendarAlt, FaClock, FaChartLine, FaGraduationCap } from 'react-icons/fa';
 import SubjectAttendanceCard from '../SubjectAttendanceCard';
 import './SubjectAttendanceMarks.css';
+import { motion } from 'framer-motion';
 
 /**
- * NEXUS SUBJECT INTEL (Detailed Performance)
+ * Subject Performance & Attendance V4
+ * Professional Academic Dashboard View
  */
 const SubjectAttendanceMarks = ({ overviewData, enrolledSubjects, setView, openAiWithPrompt }) => {
-    const [selectedSubject, setSelectedSubject] = useState(null);
-    // Optimized: Use useMemo for stable derivation instead of useEffect+useState
-    const subjectData = React.useMemo(() => {
-        if (!overviewData) return [];
-        const attDetails = overviewData.attendance?.details || {};
-        const acaDetails = overviewData.academics?.details || {};
-        const subjectMap = new Map();
+    // Process Data
+    const subjectData = useMemo(() => {
+        if (!overviewData || !overviewData.attendance || !overviewData.academics) return [];
 
-        // 1. Initialize from Enrolled Subjects
+        const attDetails = overviewData.attendance.details || {};
+        const acaDetails = overviewData.academics.details || {};
+        const subjects = [];
+
+        // Map from Enrolled Subjects
         if (Array.isArray(enrolledSubjects)) {
             enrolledSubjects.forEach(sub => {
-                subjectMap.set(sub.name, {
-                    code: sub.code || sub.name.substring(0, 5).toUpperCase(),
-                    name: sub.name,
-                    attendance: 0,
-                    marks: 0,
-                    totalMarks: 100,
-                    tests: [
-                        { name: 'Unit Cycle 01', marks: '0.0', total: 20 },
-                        { name: 'Unit Cycle 02', marks: '0.0', total: 20 },
-                        { name: 'Midterm Assessment', marks: '0.0', total: 60 }
+                const subName = sub.name;
+                const attInfo = attDetails[subName] || {};
+                const acaInfo = acaDetails[subName] || {};
+
+                subjects.push({
+                    code: sub.code || subName.substring(0, 5).toUpperCase(),
+                    name: subName,
+                    attendance: attInfo.percentage || 0,
+                    totalClasses: attInfo.totalClasses || 0,
+                    attendedClasses: attInfo.totalPresent || 0,
+                    marks: acaInfo.percentage || 0,
+                    // Simulate breakdown if missing
+                    tests: acaInfo.tests || [
+                        { name: 'Unit Cycle 1', marks: (acaInfo.percentage ? acaInfo.percentage * 0.2 : 0).toFixed(1), total: 20 },
+                        { name: 'Unit Cycle 2', marks: (acaInfo.percentage ? acaInfo.percentage * 0.2 : 0).toFixed(1), total: 20 },
+                        { name: 'Midterm', marks: (acaInfo.percentage ? acaInfo.percentage * 0.6 : 0).toFixed(1), total: 60 }
                     ],
-                    // Use stable ISO string or today's date
                     lastClass: new Date().toISOString()
                 });
             });
         }
-
-        // 2. Merge with Att/Aca Data
-        const dataKeys = new Set([...Object.keys(attDetails), ...Object.keys(acaDetails)]);
-        dataKeys.forEach(key => {
-            if (subjectMap.has(key)) {
-                const existing = subjectMap.get(key);
-
-                const details = attDetails[key] || {};
-                existing.attendance = details.percentage || existing.attendance || 0;
-                existing.totalClasses = details.totalClasses || 0;
-                existing.attendedClasses = details.totalPresent || 0;
-
-                // Academics
-                existing.marks = acaDetails[key]?.percentage || existing.marks || 0;
-                const pct = existing.marks;
-
-                // Simulated test breakdown
-                if (!existing.tests || existing.tests.length === 0) {
-                    existing.tests = [
-                        { name: 'Unit Cycle 01', marks: (pct * 0.2).toFixed(1), total: 20 },
-                        { name: 'Unit Cycle 02', marks: (pct * 0.2).toFixed(1), total: 20 },
-                        { name: 'Midterm Assessment', marks: (pct * 0.6).toFixed(1), total: 60 }
-                    ];
-                }
-
-                subjectMap.set(key, existing);
-            }
-        });
-
-        return Array.from(subjectMap.values());
+        return subjects;
     }, [overviewData, enrolledSubjects]);
 
-    if (!overviewData) return null;
+    if (!overviewData) return <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading Academic Data...</div>;
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    };
 
     return (
-        <div className="nexus-page-container fade-in">
-            <header className="nexus-page-header">
+        <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            style={{ width: '100%', padding: '0 0.5rem' }}
+        >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <div>
-                    <div className="nexus-page-subtitle">
-                        <FaBolt /> NEURAL ACADEMIC SYNC
+                    <h2 style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>
+                        Academic <span style={{ color: '#0ea5e9' }}>Performance</span>
+                    </h2>
+                    <p style={{ margin: '0.5rem 0 0', color: '#64748b', fontSize: '0.95rem', fontWeight: 500 }}>
+                        Track your attendance and grades per subject.
+                    </p>
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <div style={{ background: '#f0f9ff', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #e0f2fe', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0284c7', textTransform: 'uppercase' }}>AGGREGATE</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0369a1' }}>{overviewData.academics?.cgpa || '8.2'}</div>
                     </div>
-                    <h1 className="nexus-page-title">
-                        SUBJECT <span>INTEL</span>
-                    </h1>
+                    <div style={{ background: '#f0fdf4', padding: '0.6rem 1rem', borderRadius: '12px', border: '1px solid #dcfce7', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase' }}>ATTENDANCE</div>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#166534' }}>{overviewData.attendance?.average || '85'}%</div>
+                    </div>
                 </div>
-                <div className="nexus-intel-badge">
-                    <span>LAST PIPELINE SYNC</span>
-                    <span>{new Date().toLocaleTimeString()}</span>
-                    <span>● DB LINKED: VERIFIED</span>
-                </div>
-            </header>
+            </div>
 
-            {/* --- DAILY ATTENDANCE BREAKDOWN (HOUR-WISE) --- */}
+            {/* Daily Activity Log */}
             {overviewData?.attendance?.daily?.length > 0 && (
-                <div className="attendance-daily-breakdown">
-                    <h3 className="matrix-title">
-                        <FaClock /> DAILY ACTIVITY LOG <div className="matrix-line"></div>
-                    </h3>
-                    <div className="daily-cards-grid">
-                        {overviewData.attendance.daily.slice(0, 10).map((day, idx) => (
-                            <div key={idx} className={`daily-card classification-${(day.classification || 'absent').toLowerCase()}`}>
-                                <div className="daily-header">
-                                    <div className="daily-date">
-                                        <FaCalendarAlt style={{ marginRight: '8px', opacity: 0.5, fontSize: '0.9rem' }} />
-                                        {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', weekday: 'short' })}
-                                    </div>
-                                    <span className={`classification-badge ${(day.classification || 'absent').toLowerCase()}`}>
-                                        {day.classification || 'ABSENT'}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ marginBottom: '2.5rem' }}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                        <FaClock /> RECENT ACTIVITY
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                        {overviewData.attendance.daily.slice(0, 4).map((day, idx) => (
+                            <div key={idx} style={{
+                                background: 'white', borderRadius: '16px', padding: '1rem', border: '1px solid #e2e8f0',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', gap: '0.5rem'
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}><FaCalendarAlt size={10} /> {day.date}</span>
+                                    <span style={{
+                                        color: day.classification === 'Present' ? '#10b981' : '#ef4444',
+                                        background: day.classification === 'Present' ? '#dcfce7' : '#fee2e2',
+                                        padding: '0.1rem 0.5rem', borderRadius: '8px', fontSize: '0.7rem'
+                                    }}>
+                                        {day.classification.toUpperCase()}
                                     </span>
                                 </div>
-                                <div className="daily-summary">
-                                    <div className="daily-stat">
-                                        <span className="stat-label">HOURS</span>
-                                        <span className="stat-value">{day.presentHours}/{day.totalHours}</span>
-                                    </div>
-                                    <div className="daily-stat">
-                                        <span className="stat-label">PRESENCE</span>
-                                        <span className="stat-value">{day.percentage}%</span>
-                                    </div>
-                                </div>
-                                <div className="hourly-dots">
-                                    {Object.entries(day.hours || {}).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([hour, detail]) => (
-                                        <div
-                                            key={hour}
-                                            className={`hour-dot ${detail.status === 'Present' ? 'present' : 'absent'}`}
-                                            title={`Hour ${hour}: ${detail.subject} - ${detail.status}`}
-                                        >
-                                            {hour}
-                                        </div>
-                                    ))}
+                                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                                    {day.sessions ? `${day.sessions.length} Sessions Logged` : 'Activity Recorded'}
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             )}
 
-            <div className="matrix-title" style={{ marginTop: '2rem' }}>
-                <FaBolt /> SUBJECT PERFORMANCE <div className="matrix-line"></div>
-            </div>
-
-            <div className="intel-grid">
-                {subjectData.length > 0 ? (
-                    subjectData.map(subject => (
-                        <SubjectAttendanceCard
-                            key={subject.code}
-                            subjectName={subject.name}
-                            attendancePercentage={subject.attendance}
-                            attendedClasses={subject.attendedClasses}
-                            totalClasses={subject.totalClasses}
-                            marksObtained={subject.marks}
-                            marksTotal={subject.totalMarks}
-                            status={subject.attendance < 75 ? 'Critical Warning' : 'Optimal Path'}
-                            isActive={selectedSubject?.code === subject.code}
-                            onClick={() => setSelectedSubject(subject)}
-                        />
-                    ))
-                ) : (
-                    <div className="no-intel">
-                        <FaExclamationCircle size={48} />
-                        <h3>No Academic Records</h3>
-                        <p>Subject data has not been synced for this semester yet.</p>
-                    </div>
-                )}
-            </div>
-
-            {selectedSubject && (
-                <div className="intel-modal-overlay" onClick={() => setSelectedSubject(null)}>
-                    <div className="intel-modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="intel-modal-header">
-                            <div>
-                                <h2>{selectedSubject.name}</h2>
-                                <span>{selectedSubject.code} • NEURAL DATA DECRYPTED</span>
-                            </div>
-                            <button className="close-intel" onClick={() => setSelectedSubject(null)}>×</button>
-                        </div>
-
-                        <div className="modal-stats-row">
-                            <div className="m-stat-box">
-                                <FaShieldAlt className="icon" />
-                                <div className="val">{selectedSubject.attendance}%</div>
-                                <div className="lab">NET ATTENDANCE</div>
-                            </div>
-                            <div className="m-stat-box">
-                                <FaAward className="icon" style={{ color: '#f59e0b' }} />
-                                <div className="val">{selectedSubject.marks}%</div>
-                                <div className="lab">MASTERY SCORE</div>
-                            </div>
-                            <div className="m-stat-box">
-                                <FaBolt className="icon" style={{ color: '#10b981' }} />
-                                <div className="val">{selectedSubject.attendedClasses} / {selectedSubject.totalClasses}</div>
-                                <div className="lab">SESSIONS</div>
-                            </div>
-                        </div>
-
-                        <div className="intel-insight-grid">
-                            <div className="intel-panel">
-                                <div className="panel-label">
-                                    <FaBolt style={{ color: '#6366f1' }} /> SMART FORECASTER
-                                </div>
-                                <div className="forecaster-content">
-                                    {selectedSubject.attendance < 75 ? (
-                                        <div className="forecaster-item danger">
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ef4444', fontWeight: 900, fontSize: '0.75rem', marginBottom: '1rem' }}>
-                                                <FaExclamationCircle /> CRITICAL GAP
-                                            </div>
-                                            <p>To reach mandatory <strong>75%</strong>:</p>
-                                            <div className="val-box">
-                                                <span style={{ fontSize: '2rem', fontWeight: 950, color: '#ef4444' }}>
-                                                    {Math.max(0, Math.ceil((0.75 * (selectedSubject.totalClasses || 1) - selectedSubject.attendedClasses) / 0.25))}
-                                                </span>
-                                                <small style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800 }}>UNINTERRUPTED SESSIONS</small>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="forecaster-item success">
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10b981', fontWeight: 900, fontSize: '0.75rem', marginBottom: '1rem' }}>
-                                                <FaCheckCircle /> OPTIMAL MARGIN
-                                            </div>
-                                            <p>Buffer sessions:</p>
-                                            <div className="val-box">
-                                                <span style={{ fontSize: '2rem', fontWeight: 950, color: '#10b981' }}>
-                                                    {selectedSubject.totalClasses > 0 && selectedSubject.attendedClasses >= 0.75 * selectedSubject.totalClasses
-                                                        ? Math.floor((selectedSubject.attendedClasses - 0.75 * selectedSubject.totalClasses) / 0.75)
-                                                        : 0}
-                                                </span>
-                                                <small style={{ display: 'block', fontSize: '0.7rem', fontWeight: 800 }}>SAFE ENTRIES</small>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="intel-panel">
-                                <div className="panel-label">
-                                    <FaAward style={{ color: '#f59e0b' }} /> ACADEMIC INTEL
-                                </div>
-                                <div className="intel-academic-content">
-                                    <div className="status-indicator" style={{ marginBottom: '1rem' }}>
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: selectedSubject.marks >= 80 ? '#10b981' : '#f59e0b', display: 'inline-block', marginRight: '8px' }}></div>
-                                        <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>Potential: <strong>{selectedSubject.marks >= 80 ? 'EXCEPTIONAL' : 'STANDARD'}</strong></span>
-                                    </div>
-                                    <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: 1.6 }}>
-                                        Current mastery: <strong>{selectedSubject.marks}%</strong>. Insights generated via AI analysis.
-                                    </p>
-                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                                        <button className="intel-action-btn" onClick={() => { setView('semester'); setSelectedSubject(null); }}>
-                                            VIEW MATERIALS
-                                        </button>
-                                        <button
-                                            className="intel-action-btn secondary"
-                                            style={{ background: 'var(--v-primary)', color: 'white' }}
-                                            onClick={() => {
-                                                const prompt = `I need advice for ${selectedSubject.name} (${selectedSubject.code}). My attendance is ${selectedSubject.attendance}% and marks are ${selectedSubject.marks}%. How can I improve my performance?`;
-                                                openAiWithPrompt(prompt);
-                                            }}
-                                        >
-                                            ASK AI COUNSELOR
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="assessment-chain">
-                            <h3>ASSESSMENT HISTORY</h3>
-                            <div className="assessment-rows">
-                                {selectedSubject.tests.map((test, idx) => (
-                                    <div key={idx} className="assessment-row">
-                                        <span className="test-name">{test.name}</span>
-                                        <span className="test-marks">{test.marks} / {test.total}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+            {/* Subjects Grid */}
+            <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#64748b', fontSize: '0.9rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                    <FaGraduationCap /> SUBJECT BREAKDOWN
                 </div>
-            )}
-        </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
+                    {subjectData.map((sub, idx) => (
+                        <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                        >
+                            <div className="attendance-card-v4" style={{
+                                background: 'white', borderRadius: '24px', padding: '1.5rem', border: '1px solid #f1f5f9',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.03)', position: 'relative', overflow: 'hidden'
+                            }}>
+                                {/* Progress Ring Background Effect (Simplified as border top/gradient) */}
+                                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '6px', background: sub.attendance >= 75 ? '#10b981' : '#f59e0b' }}></div>
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>{sub.code}</div>
+                                        <h3 style={{ margin: '0.2rem 0 0', fontSize: '1.2rem', fontWeight: 800, color: '#1e293b', lineHeight: 1.3 }}>{sub.name}</h3>
+                                        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.3rem' }}>
+                                            {sub.attendedClasses}/{sub.totalClasses} Classes Attended
+                                        </div>
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ width: '60px', height: '60px', borderRadius: '50%', border: `4px solid ${sub.attendance >= 75 ? '#dcfce7' : '#fef3c7'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 800, color: sub.attendance >= 75 ? '#15803d' : '#b45309' }}>
+                                            {sub.attendance}%
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '16px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#64748b' }}>ACADEMIC SCORE</span>
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b82f6' }}>{sub.marks}%</span>
+                                    </div>
+                                    <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                                        <div style={{ width: `${sub.marks}%`, height: '100%', background: '#3b82f6', borderRadius: '3px' }}></div>
+                                    </div>
+                                    <div style={{ marginTop: '0.8rem', display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.2rem' }}>
+                                        {sub.tests.map((t, i) => (
+                                            <div key={i} style={{ flex: '0 0 auto', background: 'white', border: '1px solid #e2e8f0', padding: '0.4rem 0.6rem', borderRadius: '8px', minWidth: '80px' }}>
+                                                <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap' }}>{t.name}</div>
+                                                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#334155' }}>{t.marks}/{t.total}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                                    <button
+                                        onClick={() => openAiWithPrompt(`Analyze my performance in ${sub.name} (Attendance: ${sub.attendance}%, Marks: ${sub.marks}%) and suggest improvements.`)}
+                                        style={{ border: 'none', background: 'transparent', color: '#6366f1', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
+                                    >
+                                        <FaBolt size={10} /> AI Insights
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+        </motion.div>
     );
 };
 
