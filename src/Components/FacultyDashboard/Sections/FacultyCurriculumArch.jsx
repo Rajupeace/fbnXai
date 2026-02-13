@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { FaEdit, FaLayerGroup, FaCheckCircle, FaBookOpen, FaTimes, FaFilter, FaEye } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FaEdit, FaCheckCircle, FaBookOpen, FaTimes, FaFilter, FaEye, FaLayerGroup, FaFileAlt, FaVideo, FaClipboardList, FaExclamationTriangle, FaCloudUploadAlt } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 import '../FacultyDashboard.css';
 
 /**
  * FACULTY CURRICULUM MANAGEMENT SECTION
- * Updated to be Subject-Centric based on teaching assignments
+ * Professional V4 Upgrade: Gap Analysis & Resource Tracking
  */
 const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFaculty = {}, getFileUrl = (url) => url }) => {
-  // Use first assigned subject or fallback to 'General'
+  // Use first assigned subject or fallback
   const initialSubject = myClasses.length > 0 ? myClasses[0].subject : 'General';
   const [activeSubject, setActiveSubject] = useState(initialSubject);
   const [activeSection, setActiveSection] = useState('UNIT 1');
@@ -15,9 +16,9 @@ const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFacu
 
   // Initialize data structure from localStorage or defaults
   const [curriculumData, setCurriculumData] = useState(() => {
-    const stored = localStorage.getItem('curriculumArch_v2');
+    const stored = localStorage.getItem('curriculumArch_v3');
     if (stored) return JSON.parse(stored);
-    return {}; // Start with empty, will populate on demand
+    return {};
   });
 
   // Ensure current subject exists in data
@@ -58,22 +59,56 @@ const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFacu
   };
 
   const handleSave = () => {
-    localStorage.setItem('curriculumArch_v2', JSON.stringify(curriculumData));
+    localStorage.setItem('curriculumArch_v3', JSON.stringify(curriculumData));
     setEditMode(false);
   };
 
   const currentSubjectData = curriculumData[activeSubject] || {};
   const units = Object.keys(currentSubjectData).sort();
 
+  // --- GAP ANALYSIS LOGIC ---
+  const currentUnitNum = activeSection.replace(/\D/g, '');
+
+  // Filter materials for the current Subject and Unit
+  const unitMaterials = useMemo(() => {
+    return materialsList.filter(m => {
+      const subMatch = (m.subject || '').toLowerCase() === activeSubject.toLowerCase();
+      // Loose unit matching
+      const unitMatch = String(m.unit) === String(currentUnitNum);
+      return subMatch && unitMatch;
+    });
+  }, [materialsList, activeSubject, currentUnitNum]);
+
+  // Function to check coverage for a specific topic title
+  const getTopicCoverage = (topicTitle) => {
+    if (!topicTitle || topicTitle.includes('Topic')) return { notes: false, video: false, paper: false }; // Ignore default placeholders
+
+    // Fuzzy Search: Check if material title contains topic keywords (simplified)
+    const matches = unitMaterials.filter(m => {
+      const mTitle = (m.title || '').toLowerCase();
+      const tTitle = topicTitle.toLowerCase();
+      // Match if material title contains topic title OR topic title contains material title (overlap)
+      return mTitle.includes(tTitle) || tTitle.includes(mTitle);
+    });
+
+    return {
+      notes: matches.some(m => m.type === 'notes'),
+      video: matches.some(m => m.type === 'videos'),
+      paper: matches.some(m => ['modelPapers', 'previousQuestions'].includes(m.type))
+    };
+  };
+
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in dashboard-glass-panel">
       <header className="f-view-header">
         <div>
-          <h2>CURRICULUM <span>PLANNER</span></h2>
-          <p className="nexus-subtitle">Managing syllabus for: <strong>{activeSubject}</strong></p>
+          <h2>CURRICULUM <span>ARCHITECT</span></h2>
+          <p className="nexus-subtitle">
+            Planning & Content Gap Analysis for: <strong>{activeSubject}</strong>
+          </p>
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div className="f-pill-control" style={{ minWidth: '200px' }}>
+          <div className="f-pill-control" style={{ minWidth: '220px', background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
             <FaFilter style={{ color: 'var(--nexus-primary)' }} />
             <select
               value={activeSubject}
@@ -82,7 +117,7 @@ const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFacu
                 setActiveSection('UNIT 1');
                 setEditMode(false);
               }}
-              style={{ padding: '0.4rem', fontWeight: 900 }}
+              style={{ padding: '0.4rem', fontWeight: 800, color: '#334155' }}
             >
               {myClasses.length > 0 ? (
                 myClasses.map(c => (
@@ -102,176 +137,198 @@ const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFacu
                 <button className="f-logout-btn" style={{ background: '#fef2f2', color: '#dc2626' }} onClick={() => setEditMode(false)}>
                   <FaTimes /> CANCEL
                 </button>
-                <button className="f-logout-btn" style={{ background: '#ecfdf5', color: '#059669' }} onClick={handleSave}>
-                  <FaCheckCircle /> SAVE
+                <button className="f-logout-btn" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #10b981' }} onClick={handleSave}>
+                  <FaCheckCircle /> SAVE PLAN
                 </button>
               </>
             ) : (
-              <button className="f-logout-btn" style={{ background: 'white', color: 'var(--nexus-primary)' }} onClick={() => setEditMode(true)}>
-                <FaEdit /> MODIFY
+              <button className="f-logout-btn" style={{ background: 'var(--nexus-primary)', color: 'white', boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)' }} onClick={() => setEditMode(true)}>
+                <FaEdit /> PLAN TOPICS
               </button>
             )}
           </div>
         </div>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '2rem' }}>
-        <div className="f-node-card" style={{ padding: '1.5rem', height: 'fit-content' }}>
-          <div className="f-node-head" style={{ marginBottom: '1.5rem' }}>
-            <h4 className="f-node-title" style={{ fontSize: '0.9rem' }}><FaLayerGroup /> CHAPTERS</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '2rem' }}>
+        {/* SIDEBAR: CHAPTERS */}
+        <div className="f-node-card" style={{ padding: '0', overflow: 'hidden', height: 'fit-content' }}>
+          <div className="f-node-head" style={{ padding: '1.5rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <h4 className="f-node-title" style={{ fontSize: '0.95rem', letterSpacing: '0.05em' }}><FaLayerGroup /> CHAPTERS</h4>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
             {units.map(unit => (
-              <button
+              <motion.button
                 key={unit}
+                whileHover={{ x: 4 }}
                 onClick={() => setActiveSection(unit)}
                 className={`f-segment-btn ${activeSection === unit ? 'active' : ''}`}
                 style={{
                   padding: '1rem',
                   borderRadius: '12px',
-                  border: '1px solid ' + (activeSection === unit ? 'var(--nexus-primary)' : '#e2e8f0'),
-                  background: activeSection === unit ? 'var(--nexus-primary)' : 'white',
+                  border: '1px solid ' + (activeSection === unit ? 'var(--nexus-primary)' : '#f1f5f9'),
+                  background: activeSection === unit ? 'linear-gradient(135deg, var(--nexus-primary) 0%, var(--nexus-secondary) 100%)' : 'white',
                   color: activeSection === unit ? 'white' : '#64748b',
-                  fontSize: '0.8rem',
-                  fontWeight: 900,
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
                   textAlign: 'left',
                   cursor: 'pointer',
-                  transition: '0.2s'
+                  boxShadow: activeSection === unit ? '0 8px 16px rgba(79, 70, 229, 0.2)' : 'none',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
                 }}
               >
                 {unit}
-              </button>
+                {activeSection === unit && <FaCheckCircle style={{ opacity: 0.5 }} />}
+              </motion.button>
             ))}
           </div>
         </div>
 
-        <div className="animate-slide-up">
-          <div className="f-node-card" style={{ padding: '2rem', minHeight: '500px' }}>
-            <div style={{ marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 950, color: 'var(--text-main)', margin: '0 0 0.5rem' }}>
-                {activeSection} - Details
+        {/* MAIN CONTENT: DETAILS & COVERAGE */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="f-node-card"
+            style={{ padding: '2rem', minHeight: '600px', display: 'flex', flexDirection: 'column' }}
+          >
+            <div style={{ marginBottom: '2.5rem' }}>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: 950, color: '#1e293b', margin: '0 0 0.5rem' }}>
+                {activeSection} <span style={{ fontWeight: 400, color: '#94a3b8' }}>Planner</span>
               </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '600px' }}>
+              <p style={{ color: '#64748b', fontSize: '1rem' }}>
                 {currentSubjectData[activeSection]?.description}
               </p>
             </div>
 
-            <div className="f-roster-wrap">
+            {/* TOPIC PLANNER TABLE */}
+            <div className="f-roster-wrap" style={{ flex: 1, boxShadow: 'none', border: '1px solid #e2e8f0', borderRadius: '16px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead className="f-roster-head">
+                <thead className="f-roster-head" style={{ background: '#f8fafc' }}>
                   <tr>
-                    <th style={{ textAlign: 'left', padding: '1rem' }}>ID</th>
-                    <th style={{ textAlign: 'left', padding: '1rem' }}>TOPIC</th>
-                    <th style={{ textAlign: 'left', padding: '1rem' }}>DESCRIPTION</th>
-                    <th style={{ textAlign: 'center', padding: '1rem' }}>CREDITS</th>
-                    <th style={{ textAlign: 'right', padding: '1rem' }}>DURATION</th>
+                    <th style={{ textAlign: 'left', padding: '1.25rem' }}>TOPIC TITLE</th>
+                    <th style={{ textAlign: 'left', padding: '1.25rem', width: '30%' }}>LEARNING OBJECTIVE</th>
+                    <th style={{ textAlign: 'center', padding: '1.25rem' }}>RESOURCES (GAP ANALYSIS)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {currentSubjectData[activeSection]?.subsections.map((topic, index) => (
-                    <tr key={topic.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '1rem' }}>
-                        <span className="f-student-index" style={{ width: '24px', height: '24px', fontSize: '0.7rem' }}>{topic.id}</span>
-                      </td>
-                      <td style={{ padding: '1rem', fontWeight: 800 }}>
-                        {editMode ? (
-                          <input
-                            className="f-form-select"
-                            style={{ padding: '0.5rem', marginBottom: 0 }}
-                            value={topic.title}
-                            onChange={(e) => updateSubsection(activeSubject, activeSection, topic.id, 'title', e.target.value)}
-                          />
-                        ) : topic.title}
-                      </td>
-                      <td style={{ padding: '1rem', color: '#64748b', fontSize: '0.85rem' }}>
-                        {editMode ? (
-                          <input
-                            className="f-form-select"
-                            style={{ padding: '0.5rem', marginBottom: 0 }}
-                            value={topic.content}
-                            onChange={(e) => updateSubsection(activeSubject, activeSection, topic.id, 'content', e.target.value)}
-                          />
-                        ) : (topic.content || 'N/A')}
-                      </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        {editMode ? (
-                          <input
-                            type="number"
-                            className="f-form-select"
-                            style={{ padding: '0.5rem', marginBottom: 0, width: '60px' }}
-                            value={topic.credits}
-                            onChange={(e) => updateSubsection(activeSubject, activeSection, topic.id, 'credits', e.target.value)}
-                          />
-                        ) : <span className="f-meta-badge unit">{topic.credits} CR</span>}
-                      </td>
-                      <td style={{ padding: '1rem', textAlign: 'right' }}>
-                        {editMode ? (
-                          <input
-                            className="f-form-select"
-                            style={{ padding: '0.5rem', marginBottom: 0, width: '100px' }}
-                            value={topic.duration}
-                            onChange={(e) => updateSubsection(activeSubject, activeSection, topic.id, 'duration', e.target.value)}
-                          />
-                        ) : topic.duration}
-                      </td>
-                    </tr>
-                  ))}
+                  {currentSubjectData[activeSection]?.subsections.map((topic) => {
+                    const coverage = getTopicCoverage(topic.title);
+                    const isMissing = !coverage.notes && !coverage.video && !coverage.paper;
+                    const isDefault = topic.title.includes('Topic');
+
+                    return (
+                      <tr key={topic.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '1.25rem', fontWeight: 800, color: '#334155' }}>
+                          {editMode ? (
+                            <input
+                              className="f-form-select"
+                              style={{ padding: '0.6rem', marginBottom: 0, fontWeight: 700 }}
+                              value={topic.title}
+                              onChange={(e) => updateSubsection(activeSubject, activeSection, topic.id, 'title', e.target.value)}
+                              placeholder="Enter Topic Name..."
+                            />
+                          ) : (
+                            <span style={{ fontSize: '0.95rem' }}>{topic.title}</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '1.25rem', color: '#64748b', fontSize: '0.9rem' }}>
+                          {editMode ? (
+                            <input
+                              className="f-form-select"
+                              style={{ padding: '0.6rem', marginBottom: 0 }}
+                              value={topic.content}
+                              onChange={(e) => updateSubsection(activeSubject, activeSection, topic.id, 'content', e.target.value)}
+                              placeholder="Brief description..."
+                            />
+                          ) : (topic.content || <em style={{ opacity: 0.5 }}>No objective defined</em>)}
+                        </td>
+                        <td style={{ padding: '1.25rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.8rem' }}>
+                            {/* Resource Indicators */}
+                            <div title={coverage.notes ? "Notes Uploaded" : "Notes Missing"} style={{ opacity: coverage.notes ? 1 : 0.2, color: coverage.notes ? '#10b981' : '#cbd5e1', fontSize: '1.2rem' }}>
+                              <FaFileAlt />
+                            </div>
+                            <div title={coverage.video ? "Video Uploaded" : "Video Missing"} style={{ opacity: coverage.video ? 1 : 0.2, color: coverage.video ? '#f59e0b' : '#cbd5e1', fontSize: '1.2rem' }}>
+                              <FaVideo />
+                            </div>
+                            <div title={coverage.paper ? "Model Paper Uploaded" : "Paper Missing"} style={{ opacity: coverage.paper ? 1 : 0.2, color: coverage.paper ? '#ec4899' : '#cbd5e1', fontSize: '1.2rem' }}>
+                              <FaClipboardList />
+                            </div>
+
+                            {/* Upload Prompt for Missing */}
+                            {!editMode && !isDefault && isMissing && (
+                              <span style={{ marginLeft: '1rem', fontSize: '0.7rem', color: '#ef4444', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#fef2f2', padding: '0.2rem 0.6rem', borderRadius: '10px' }}>
+                                <FaExclamationTriangle /> MISSING
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
 
-            {/* Live Resources from Database matching this Subject/Unit */}
-            <div style={{ marginTop: '3rem', borderTop: '2px dashed #e2e8f0', paddingTop: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 950, color: 'var(--nexus-primary)', letterSpacing: '0.05em' }}>LIVE RESOURCES FOR THIS UNIT</h4>
-                <span className="f-meta-badge unit" style={{ fontSize: '0.65rem' }}>MATCHED FROM SYSTEM</span>
+            {/* MATCHED RESOURCES FOOTER */}
+            <div style={{ marginTop: '3rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 900, color: '#64748b' }}>
+                  SYSTEM DETECTED RESOURCES ({unitMaterials.length})
+                </h4>
               </div>
 
-              {(() => {
-                const unitNum = activeSection.replace(/\D/g, '');
-                const filtered = materialsList.filter(m => {
-                  const subMatch = (m.subject || '').toLowerCase() === activeSubject.toLowerCase();
-                  const unitMatch = String(m.unit) === String(unitNum);
-                  return subMatch && unitMatch;
-                });
-
-                if (filtered.length === 0) {
-                  return (
-                    <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                      <p style={{ margin: 0, color: '#94a3b8', fontSize: '0.85rem', fontWeight: 700 }}>No live materials found for {activeSubject} {activeSection}</p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-                    {filtered.map((m, i) => (
-                      <div key={i} className="f-roster-item" style={{ padding: '1rem', background: 'white', border: '1px solid #f1f5f9', borderRadius: '12px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{ padding: '0.6rem', background: 'rgba(99, 102, 241, 0.1)', color: 'var(--nexus-primary)', borderRadius: '10px' }}>
-                            <FaBookOpen />
-                          </div>
-                          <div style={{ flex: 1, overflow: 'hidden' }}>
-                            <div style={{ fontWeight: 850, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
-                            <div style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>{m.type?.toUpperCase()} • By {m.uploadedBy?.name || m.uploadedBy || 'Instructor'}</div>
-                          </div>
-                          <button
-                            onClick={() => window.open(getFileUrl(m.url), '_blank')}
-                            className="f-node-btn view"
-                            style={{ width: '32px', height: '32px' }}
-                            title="Quick View"
-                          >
-                            <FaEye size={14} />
-                          </button>
+              {unitMaterials.length > 0 ? (
+                <div className="f-materials-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+                  {unitMaterials.map((m, i) => (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      key={i}
+                      className="f-node-card"
+                      style={{ padding: '1rem', border: '1px solid #e2e8f0' }}
+                    >
+                      <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'flex-start' }}>
+                        <div style={{
+                          padding: '0.6rem',
+                          borderRadius: '8px',
+                          background: m.type === 'videos' ? '#fffbeb' : '#f0fdf4',
+                          color: m.type === 'videos' ? '#f59e0b' : '#10b981',
+                          fontSize: '1.1rem'
+                        }}>
+                          {m.type === 'videos' ? <FaVideo /> : <FaBookOpen />}
                         </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '0.9rem', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={m.title}>
+                            {m.title}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                            Match: Subject + Unit {m.unit}
+                          </div>
+                        </div>
+                        <button onClick={() => window.open(getFileUrl(m.url), '_blank')} className="f-node-btn view" style={{ width: '28px', height: '28px' }}>
+                          <FaEye />
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                );
-              })()}
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1' }}>
+                  <FaCloudUploadAlt style={{ fontSize: '2rem', color: '#cbd5e1', marginBottom: '0.5rem' }} />
+                  <p style={{ margin: 0, color: '#94a3b8', fontWeight: 600 }}>No materials found linked to {activeSubject} {activeSection}</p>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -27,7 +27,7 @@ const ClassBoards = ({ studentId, year, branch, section, openAiWithPrompt }) => 
 
     useEffect(() => {
         fetchBoards();
-    }, [year, branch, section]);
+    }, [year, branch, section, fetchBoards]);
 
     // Real-time updates via SSE
     useEffect(() => {

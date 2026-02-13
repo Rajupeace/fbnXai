@@ -685,7 +685,7 @@ export default function StudentDashboard({ studentData, onLogout }) {
                                 transition={{ delay: 0.2 }}
                                 style={{ marginTop: '2.5rem', fontWeight: 950, color: 'var(--v-primary)', letterSpacing: '0.1em' }}
                             >
-                                TRANSMITTING TO {navTarget.toUpperCase()}...
+                                ACCESSING {navTarget.toUpperCase()}...
                             </motion.h2>
                         </motion.div>
                     )}

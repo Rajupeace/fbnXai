@@ -1,13 +1,15 @@
 import React from 'react';
 import {
-    FaUserGraduate, FaLayerGroup, FaFileAlt, FaEye, FaHistory,
-    FaBullhorn, FaBookReader, FaChalkboardTeacher, FaCalendarAlt, FaRobot, FaVideo
+    FaUserGraduate, FaFileAlt, FaEye, FaHistory,
+    FaBullhorn, FaBookReader, FaChalkboardTeacher, FaCalendarAlt, FaRobot, FaVideo, FaClock, FaCheckCircle
 } from 'react-icons/fa';
 import FacultyTeachingStats from '../FacultyTeachingStats';
 import './FacultyHome.css';
+import { motion } from 'framer-motion';
 
 /**
- * FACULTY DASHBOARD (OVERVIEW)
+ * FACULTY DASHBOARD (OVERVIEW) V4
+ * Professional Glassmorphism Dashboard
  */
 const FacultyHome = ({
     studentsList = [],
@@ -47,181 +49,191 @@ const FacultyHome = ({
         return todayClasses.find(c => {
             const [h, m] = c.startTime.split(':').map(Number);
             return (h * 60 + m) > currentTime;
-        }) || todayClasses[0]; // If none left today, show first of today or null
+        }) || todayClasses[0];
     }, [schedule]);
 
     const studentCount = studentsList.length;
     const courseCount = myClasses.length;
-    const resourceCount = materialsList.length;
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+    };
+
     return (
-        <div className="faculty-home-viewport">
-            <div className="faculty-bento-grid">
+        <motion.div
+            className="faculty-home-viewport"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            style={{ padding: '2rem' }}
+        >
+            <div className="faculty-bento-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', gridAutoRows: 'minmax(140px, auto)' }}>
                 {/* 🚀 Welcome Hero */}
-                <div className="f-bento-card f-bento-hero animate-bento">
-                    <div className="hero-faculty-greeting">
-                        <div className="f-tag-badge" style={{ marginBottom: '1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none' }}>
-                            {getGreeting()} • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                <motion.div
+                    variants={itemVariants}
+                    className="f-bento-card f-bento-hero"
+                    style={{
+                        gridColumn: 'span 2', gridRow: 'span 2',
+                        background: 'linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)',
+                        borderRadius: '24px', padding: '2rem', color: 'white', position: 'relative', overflow: 'hidden',
+                        boxShadow: '0 20px 40px rgba(59, 130, 246, 0.3)'
+                    }}
+                >
+                    <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(40px)' }}></div>
+                    <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.9, fontSize: '0.9rem', fontWeight: 600, marginBottom: '1rem' }}>
+                                <FaClock /> {getGreeting()}
+                            </div>
+                            <h2 style={{ fontSize: '2rem', fontWeight: 800, margin: '0 0 1rem 0', lineHeight: 1.2 }}>
+                                Prof. {(facultyData.facultyName || 'Faculty').split(' ')[0]}
+                            </h2>
+                            <p style={{ opacity: 0.9, fontSize: '1rem', lineHeight: 1.6, maxWidth: '90%' }}>
+                                Supervising <strong>{studentCount} students</strong> across {courseCount} active courses.
+                                Your academic dashboard is ready.
+                            </p>
                         </div>
-                        <h2>Welcome, <span>Prof. {(facultyData.facultyName || 'Faculty').split(' ')[0]}</span></h2>
-                        <p>
-                            You have <strong>{courseCount} active courses</strong> this semester.
-                            Currently supervising <strong>{studentCount} students</strong> across {courseCount} sections.
-                        </p>
-                        <div className="hero-quick-actions">
-                            <button className="nexus-btn-primary" onClick={() => setView('attendance')} style={{ padding: '0.9rem 2rem' }}>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: 'auto' }}>
+                            <button
+                                onClick={() => setView('attendance')}
+                                style={{ background: 'white', color: '#4f46e5', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                            >
                                 Take Attendance
                             </button>
-                            <button className="f-quick-btn outline" onClick={() => setView('broadcast')}>
-                                <FaBullhorn /> Broadcast
-                            </button>
                             <button
-                                className="f-quick-btn outline"
-                                onClick={() => {
-                                    const classList = myClasses.map(c => `${c.subject} (Year ${c.year})`).join(', ');
-                                    const prompt = `I am Prof. ${facultyData.facultyName}. I am teaching ${classList}. I have ${studentCount} students under my supervision. Can you give me some insights on how to optimize my teaching schedule and resource distribution?`;
-                                    openAiWithPrompt(prompt);
-                                }}
+                                onClick={() => setView('broadcast')}
+                                style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '0.8rem 1.5rem', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                             >
-                                <FaRobot /> AI Insights
+                                <FaBullhorn /> Broadcast
                             </button>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 📊 Total Students Stat */}
-                <div className="f-bento-card f-bento-stat animate-bento" style={{ animationDelay: '0.1s' }}>
-                    <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }}>
+                {/* 📊 Stat Cards */}
+                <motion.div variants={itemVariants} className="f-bento-stat" style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#ecfeff', color: '#06b6d4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
                         <FaUserGraduate />
                     </div>
                     <div>
-                        <div className="stat-val">{studentsList.length}</div>
-                        <div className="stat-label">Students</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b' }}>{studentsList.length}</div>
+                        <div style={{ color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>Total Students</div>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 📚 Materials Stat */}
-                <div className="f-bento-card f-bento-stat animate-bento" style={{ animationDelay: '0.2s' }}>
-                    <div className="stat-icon" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                <motion.div variants={itemVariants} className="f-bento-stat" style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#f0fdf4', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
                         <FaFileAlt />
                     </div>
                     <div>
-                        <div className="stat-val">{materialsList.length}</div>
-                        <div className="stat-label">Resources</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b' }}>{materialsList.length}</div>
+                        <div style={{ color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>Resources</div>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 🗓️ Courses Stat */}
-                <div className="f-bento-card f-bento-stat animate-bento" style={{ animationDelay: '0.3s' }}>
-                    <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' }}>
+                <motion.div variants={itemVariants} className="f-bento-stat" style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#fffbeb', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
                         <FaChalkboardTeacher />
                     </div>
                     <div>
-                        <div className="stat-val">{myClasses.length}</div>
-                        <div className="stat-label">Courses</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b' }}>{myClasses.length}</div>
+                        <div style={{ color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>Active Courses</div>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 📨 Messages Stat */}
-                <div className="f-bento-card f-bento-stat animate-bento" style={{ animationDelay: '0.4s' }}>
-                    <div className="stat-icon" style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
+                <motion.div variants={itemVariants} className="f-bento-stat" style={{ background: 'white', borderRadius: '24px', padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#eef2ff', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
                         <FaBullhorn />
                     </div>
                     <div>
-                        <div className="stat-val">{messages.length}</div>
-                        <div className="stat-label">Messages</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: '#1e293b' }}>{messages.length}</div>
+                        <div style={{ color: '#64748b', fontWeight: 600, fontSize: '0.9rem' }}>Announcements</div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* ⚡ Live Session Tracker */}
-                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.45s', background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', border: '1px solid #bae6fd' }}>
-                    <div className="card-header-row">
-                        <h3><FaCalendarAlt style={{ color: '#0284c7' }} /> Session Pulse</h3>
-                        <span className="f-tag-badge" style={{ background: '#0284c7', color: 'white' }}>LIVE NOW</span>
+                <motion.div
+                    variants={itemVariants}
+                    style={{ gridColumn: 'span 2', background: 'white', borderRadius: '24px', padding: '1.5rem', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column' }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', color: '#1e293b' }}>
+                            <FaCalendarAlt style={{ color: '#3b82f6' }} /> Upcoming Session
+                        </h3>
+                        {nextClass && <span style={{ background: '#f0fdf4', color: '#15803d', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700 }}>ON SCHEDULE</span>}
                     </div>
                     {nextClass ? (
-                        <div className="live-session-info">
-                            <div style={{ fontSize: '1.4rem', fontWeight: 950, color: '#0c4a6e' }}>{nextClass.subject}</div>
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.85rem', fontWeight: 800, color: '#0369a1' }}>
-                                <span>{nextClass.startTime} - {nextClass.endTime}</span>
-                                <span>•</span>
-                                <span>Sec {nextClass.section} (Year {nextClass.year})</span>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.5rem' }}>{nextClass.subject}</div>
+                            <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>
+                                <span><FaClock style={{ marginRight: '0.3rem' }} /> {nextClass.startTime} - {nextClass.endTime}</span>
+                                <span>|</span>
+                                <span>Sec {nextClass.section} ({nextClass.year})</span>
                             </div>
-                            <button
-                                className="nexus-btn-primary"
-                                style={{ marginTop: '1.5rem', background: '#0284c7', padding: '0.6rem 1.2rem', fontSize: '0.75rem' }}
-                                onClick={() => setView('attendance')}
-                            >
-                                Open Roster
-                            </button>
                         </div>
                     ) : (
-                        <div className="no-content" style={{ padding: '2rem 0' }}>No active classes detected</div>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontStyle: 'italic' }}>
+                            No active classes scheduled for today.
+                        </div>
                     )}
-                </div>
+                </motion.div>
 
-                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.5s' }}>
-                    <div className="card-header-row">
-                        <h3><FaRobot style={{ color: '#6366f1' }} /> AI Strategy</h3>
-                        <button className="view-all-btn" onClick={() => openAiWithPrompt("Analyze my curriculum and suggest engagement improvements.")}>Ask Agent</button>
+                {/* AI Strategy */}
+                <motion.div
+                    variants={itemVariants}
+                    style={{ gridColumn: 'span 2', background: 'white', borderRadius: '24px', padding: '1.5rem', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column' }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', color: '#1e293b' }}>
+                            <FaRobot style={{ color: '#8b5cf6' }} /> AI Assistant
+                        </h3>
+                        <button onClick={() => openAiWithPrompt("Analyze my teaching/resource stats.")} style={{ border: 'none', background: '#f3f4f6', color: '#4b5563', padding: '0.4rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.8rem' }}>Ask Agent</button>
                     </div>
-                    <p style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 700, lineHeight: 1.5, margin: 0 }}>
-                        Your current curriculum coverage for <strong>{myClasses[0]?.subject || 'your courses'}</strong> is at 65%.
-                        The AI suggests deploying more visual resources for UNIT 4.
+                    <p style={{ fontSize: '0.9rem', color: '#64748b', lineHeight: 1.6, margin: 0 }}>
+                        Your curriculum coverage is <strong>65%</strong>. AI suggests adding more video content for Unit 3.
                     </p>
-                </div>
+                </motion.div>
 
-                {/* 📅 Teaching Analytics (Expansion) */}
-                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.55s', gridColumn: 'span 4' }}>
+                {/* 📅 Teaching Analytics */}
+                <motion.div variants={itemVariants} style={{ gridColumn: 'span 4', background: 'white', borderRadius: '24px', padding: '1.5rem', border: '1px solid #f1f5f9' }}>
                     <FacultyTeachingStats facultyId={facultyData.facultyId} />
-                </div>
+                </motion.div>
 
                 {/* 🕒 Recent Activities */}
-                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.6s' }}>
-                    <div className="card-header-row">
-                        <h3><FaHistory /> Resource Feed</h3>
-                        <button className="view-all-btn" onClick={() => setView('materials')}>Manage All</button>
+                <motion.div
+                    variants={itemVariants}
+                    style={{ gridColumn: 'span 4', background: 'white', borderRadius: '24px', padding: '1.5rem', border: '1px solid #f1f5f9' }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', color: '#1e293b' }}>
+                            <FaHistory style={{ color: '#64748b' }} /> Recent Resources
+                        </h3>
+                        <button onClick={() => setView('materials')} style={{ border: 'none', background: 'none', color: '#3b82f6', fontWeight: 600, cursor: 'pointer' }}>View All</button>
                     </div>
-                    <div className="f-mini-feed">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                         {materialsList.slice(0, 4).map((m, i) => (
-                            <div key={m.id || m._id} className="f-feed-node" onClick={() => window.open(getFileUrl(m.url), '_blank')}>
-                                <div className="node-icon-wrap">
+                            <div key={m.id || m._id} onClick={() => window.open(getFileUrl(m.url), '_blank')} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', background: '#f8fafc', borderRadius: '12px', cursor: 'pointer', border: '1px solid #e2e8f0' }}>
+                                <div style={{ width: '40px', height: '40px', background: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: m.type === 'videos' ? '#f59e0b' : '#3b82f6', border: '1px solid #f1f5f9' }}>
                                     {m.type === 'videos' ? <FaVideo /> : <FaFileAlt />}
                                 </div>
-                                <div className="node-main-info">
-                                    <div className="node-title">{m.title}</div>
-                                    <div className="node-meta">{m.subject} • {new Date(m.createdAt || m.uploadedAt).toLocaleDateString()}</div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{m.subject}</div>
                                 </div>
-                                <FaEye style={{ color: '#cbd5e1' }} />
                             </div>
                         ))}
-                        {materialsList.length === 0 && <div className="no-content">No recent resources</div>}
+                        {materialsList.length === 0 && <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#94a3b8', padding: '2rem' }}>No recent uploads.</div>}
                     </div>
-                </div>
+                </motion.div>
 
-                {/* 👥 Top Students / Roster Snippet */}
-                <div className="f-bento-card f-bento-wide animate-bento" style={{ animationDelay: '0.7s' }}>
-                    <div className="card-header-row">
-                        <h3><FaBookReader /> Student Hub</h3>
-                        <button className="view-all-btn" onClick={() => setView('students')}>Roster</button>
-                    </div>
-                    <div className="f-mini-feed">
-                        {studentsList.slice(0, 4).map((student, i) => (
-                            <div key={student.sid || i} className="f-feed-node">
-                                <div className="node-icon-wrap" style={{ color: '#10b981', background: 'rgba(16, 185, 129, 0.1)' }}>
-                                    <FaUserGraduate />
-                                </div>
-                                <div className="node-main-info">
-                                    <div className="node-title">{student.studentName}</div>
-                                    <div className="node-meta">{student.sid} • Year {student.year} - {student.section}</div>
-                                </div>
-                                <div style={{ fontSize: '0.7rem', fontWeight: 900, color: '#94a3b8' }}>ACTIVE</div>
-                            </div>
-                        ))}
-                        {studentsList.length === 0 && <div className="no-content">No students assigned</div>}
-                    </div>
-                </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
 

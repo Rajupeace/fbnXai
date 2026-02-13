@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FaEdit, FaSave, FaTimes, FaCheck, FaFilter, FaFileDownload, FaFileUpload, FaCalculator } from 'react-icons/fa';
 import { apiGet, apiPost } from '../../utils/apiClient';
 import './FacultyMarks.css';
@@ -17,7 +17,7 @@ const FacultyMarks = ({ facultyData }) => {
     const fileInputRef = useRef(null);
 
     // Assessment structure with max marks
-    const assessmentStructure = {
+    const assessmentStructure = useMemo(() => ({
         cla: [
             { id: 'cla1', label: 'CLA 1', max: 20 },
             { id: 'cla2', label: 'CLA 2', max: 20 },
@@ -39,7 +39,7 @@ const FacultyMarks = ({ facultyData }) => {
             { id: 'm2t3', label: 'T3', max: 10 },
             { id: 'm2t4', label: 'T4', max: 10 }
         ]
-    };
+    }), []);
 
     const fetchStudents = useCallback(async () => {
         if (!facultyData?.facultyId) return [];

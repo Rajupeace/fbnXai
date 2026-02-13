@@ -56,7 +56,7 @@ const FacultySidebar = ({
                     {!collapsed && (
                         <div className="brand-text">
                             <h1>FACULTY</h1>
-                            <span>SENTINEL NODE</span>
+                            <span>ACADEMIC PORTAL</span>
                         </div>
                     )}
                 </div>

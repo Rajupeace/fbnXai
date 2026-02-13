@@ -113,15 +113,6 @@ const FacultyStudentSearch = ({ facultyData }) => {
         });
     };
 
-    const getStatusBadgeClass = (status) => {
-        switch (status) {
-            case 'Pending': return 'status-pending';
-            case 'Approved': return 'status-approved';
-            case 'Rejected': return 'status-rejected';
-            default: return '';
-        }
-    };
-
     return (
         <div className="student-search-container">
             <h2>🔍 Student Achievement Search</h2>

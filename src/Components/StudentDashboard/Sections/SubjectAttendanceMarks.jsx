@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { FaAward, FaCheckCircle, FaExclamationCircle, FaShieldAlt, FaBolt, FaCalendarAlt, FaClock } from 'react-icons/fa';
 import SubjectAttendanceCard from '../SubjectAttendanceCard';
 import './SubjectAttendanceMarks.css';

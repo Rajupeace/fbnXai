@@ -16,7 +16,7 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
     const [uploadedFile, setUploadedFile] = useState(null);
     const [showUploadHelp, setShowUploadHelp] = useState(false);
     const [boardNumber, setBoardNumber] = useState(1);
-    
+
     // Board History Tracking
     const [boardHistory, setBoardHistory] = useState([]);
     const [showBoardHistory, setShowBoardHistory] = useState(false);
@@ -144,7 +144,7 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
         return () => {
             window.removeEventListener('resize', handleResize);
         };
-    }, [initialData, backgroundImage, onSave, redrawCanvas, saveToHistory]);
+    }, [initialData, backgroundImage, redrawCanvas]);
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -332,7 +332,7 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
             content: history.length > 0 ? 'Content saved' : 'Empty board',
             createdAt: new Date().toISOString()
         };
-        
+
         setBoardHistory(prev => [...prev, currentBoard]);
 
         // Clear canvas
@@ -544,9 +544,9 @@ const Whiteboard = ({ onSave, onPreview, historyCount = 0, initialData, isReadOn
                             <button className="action-btn clear" onClick={clearCanvas} title="Clear All">
                                 <FaTrash />
                             </button>
-                            <button 
-                                className="action-btn board-history" 
-                                onClick={() => setShowBoardHistory(!showBoardHistory)} 
+                            <button
+                                className="action-btn board-history"
+                                onClick={() => setShowBoardHistory(!showBoardHistory)}
                                 title={`Board History (${boardHistory.length} saved)`}
                             >
                                 <FaHistory /> HISTORY ({boardHistory.length})
