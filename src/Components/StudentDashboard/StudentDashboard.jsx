@@ -148,27 +148,37 @@ export default function StudentDashboard({ studentData, onLogout }) {
     // --- Data Fetching ---
     const fetchData = useCallback(async () => {
         try {
-            // console.debug('📊 StudentDashboard: Fetching data from database...');
-
-            const ovData = await apiGet(`/api/students/${userData.sid}/overview`);
-            if (ovData) {
-                // console.debug('   ✅ Overview data fetched');
-                setOverviewData(ovData);
-                // Always sync name and core fields from server when available to avoid stale/demo fallbacks
-                if (ovData.student) {
-                    setUserData(prev => ({
+            // Try aggregated dashboard endpoint first (fast single request)
+            try {
+                const agg = await apiGet(`/api/student-data/${userData.sid}/dashboard`);
+                if (agg) {
+                    if (agg.overview) setOverviewData(agg.overview);
+                    if (agg.student) setUserData(prev => ({
                         ...prev,
-                        _id: ovData.student._id || prev._id,
-                        studentName: ovData.student.name || prev.studentName,
-                        sid: ovData.student.sid || prev.sid,
-                        branch: ovData.student.branch || prev.branch,
-                        year: ovData.student.year || prev.year,
-                        section: ovData.student.section || prev.section,
-                        profilePic: ovData.student.profilePic || ovData.student.profileImage || prev.profilePic,
-                        avatar: ovData.student.avatar || prev.avatar,
-                        stats: ovData.student.stats || prev.stats
+                        _id: agg.student._id || prev._id,
+                        studentName: agg.student.name || prev.studentName,
+                        sid: agg.student.sid || prev.sid,
+                        branch: agg.student.branch || prev.branch,
+                        year: agg.student.year || prev.year,
+                        section: agg.student.section || prev.section,
+                        profilePic: agg.student.profilePic || agg.student.profileImage || prev.profilePic,
+                        avatar: agg.student.avatar || prev.avatar,
+                        stats: agg.student.stats || prev.stats
                     }));
+
+                    if (Array.isArray(agg.courses)) setExtraCourses(agg.courses);
+                    if (Array.isArray(agg.materials)) setServerMaterials(agg.materials);
+                    if (Array.isArray(agg.todos)) setTasks(agg.todos);
+                    if (Array.isArray(agg.messages)) setMessages(agg.messages);
+                    if (Array.isArray(agg.schedule)) setScheduleData(agg.schedule);
+                    if (Array.isArray(agg.marks)) setMarksData(agg.marks);
+                    if (Array.isArray(agg.exams)) setExamsData(agg.exams);
+
+                    // aggregated fetch succeeded; skip individual calls
+                    return;
                 }
+            } catch (e) {
+                // aggregator not available or failed — fall back to existing per-endpoint fetching
             }
 
             const courseData = await apiGet(`/api/students/${userData.sid}/courses`);
@@ -405,8 +415,15 @@ export default function StudentDashboard({ studentData, onLogout }) {
     }, [extraCourses, serverMaterials, branch, selectedYear, userData.section]);
 
     const enrolledSubjects = useMemo(() => {
-        return (yearData.semesters || []).flatMap(s => s.subjects || []);
-    }, [yearData]);
+        // Enforce strict semester filtering: Only show subjects for the current academic year's semesters
+        const currentYear = Number(userData.year) || 1;
+        const minSem = (currentYear * 2) - 1; // e.g., Year 3 -> Sem 5
+        const maxSem = currentYear * 2;       // e.g., Year 3 -> Sem 6
+
+        return (yearData.semesters || [])
+            .filter(s => s.sem >= minSem && s.sem <= maxSem)
+            .flatMap(s => s.subjects || []);
+    }, [yearData, userData.year]);
 
     const filteredSchedule = useMemo(() => {
         if (!scheduleData || !enrolledSubjects) return [];

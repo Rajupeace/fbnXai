@@ -7,23 +7,68 @@ import '../FacultyDashboard.css';
  * FACULTY CURRICULUM MANAGEMENT SECTION
  * Professional V4 Upgrade: Gap Analysis & Resource Tracking
  */
+import { apiGet, apiPut } from '../../../utils/apiClient';
+
+/**
+ * FACULTY CURRICULUM MANAGEMENT SECTION
+ * Professional V4 Upgrade: Gap Analysis & Resource Tracking
+ */
 const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFaculty = {}, getFileUrl = (url) => url }) => {
   // Use first assigned subject or fallback
   const initialSubject = myClasses.length > 0 ? myClasses[0].subject : 'General';
   const [activeSubject, setActiveSubject] = useState(initialSubject);
   const [activeSection, setActiveSection] = useState('UNIT 1');
   const [editMode, setEditMode] = useState(false);
+  const [allCourses, setAllCourses] = useState([]);
 
-  // Initialize data structure from localStorage or defaults
-  const [curriculumData, setCurriculumData] = useState(() => {
-    const stored = localStorage.getItem('curriculumArch_v3');
-    if (stored) return JSON.parse(stored);
-    return {};
-  });
+  // Initialize data structure
+  const [curriculumData, setCurriculumData] = useState({});
 
-  // Ensure current subject exists in data
+  // Fetch Courses from Backend
   useEffect(() => {
-    if (!curriculumData[activeSubject]) {
+    const fetchCourses = async () => {
+      try {
+        const data = await apiGet('/api/courses');
+        if (Array.isArray(data)) {
+          setAllCourses(data);
+        }
+      } catch (e) {
+        console.error("Failed to fetch courses for curriculum:", e);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // Sync activeSubject with Backend Data
+  useEffect(() => {
+    if (!activeSubject) return;
+
+    // Find the course object for this subject
+    const courseObj = allCourses.find(c =>
+      (c.name === activeSubject) ||
+      (c.subject === activeSubject) ||
+      (c.code && c.code.includes(activeSubject))
+    );
+
+    if (courseObj && courseObj.modules && courseObj.modules.length > 0) {
+      // Transform Backend Modules to UI Structure
+      const mappedData = {};
+      courseObj.modules.forEach(mod => {
+        mappedData[mod.name] = {
+          name: mod.name,
+          description: mod.description || `Educational modules for ${activeSubject} - ${mod.name}`,
+          subsections: mod.units || Array.from({ length: 5 }, (_, i) => ({
+            id: i + 1,
+            title: `Topic ${i + 1}`,
+            content: '',
+            credits: 2,
+            duration: '1 week'
+          }))
+        };
+      });
+      setCurriculumData(prev => ({ ...prev, [activeSubject]: mappedData }));
+    } else if (!curriculumData[activeSubject]) {
+      // Fallback to Default Structure if no API data exists
       const initial = {};
       const units = ['UNIT 1', 'UNIT 2', 'UNIT 3', 'UNIT 4', 'UNIT 5'];
       units.forEach(unit => {
@@ -41,7 +86,7 @@ const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFacu
       });
       setCurriculumData(prev => ({ ...prev, [activeSubject]: initial }));
     }
-  }, [activeSubject, curriculumData]);
+  }, [activeSubject, allCourses, curriculumData]);
 
   const updateSubsection = (subj, unit, subsectionId, field, value) => {
     setCurriculumData(prev => ({
@@ -58,9 +103,40 @@ const FacultyCurriculumArch = ({ myClasses = [], materialsList = [], currentFacu
     }));
   };
 
-  const handleSave = () => {
-    localStorage.setItem('curriculumArch_v3', JSON.stringify(curriculumData));
-    setEditMode(false);
+  const handleSave = async () => {
+    // 1. Find Course ID
+    const courseObj = allCourses.find(c =>
+      (c.name === activeSubject) ||
+      (c.subject === activeSubject) ||
+      (c.code && c.code.includes(activeSubject))
+    );
+
+    if (!courseObj) {
+      alert("Error: Course not found in database. Cannot save.");
+      return;
+    }
+
+    const currentSubjectData = curriculumData[activeSubject];
+    if (!currentSubjectData) return;
+
+    // 2. Transform UI Structure back to Backend Modules
+    const modulesPayload = Object.keys(currentSubjectData).map(unitKey => ({
+      name: unitKey, // 'UNIT 1'
+      description: currentSubjectData[unitKey].description,
+      units: currentSubjectData[unitKey].subsections // Save topics as 'units' array
+    }));
+
+    try {
+      await apiPut(`/api/courses/${courseObj.id || courseObj._id}`, { modules: modulesPayload });
+      alert("Curriculum Plan Saved to Database!");
+      setEditMode(false);
+      // Refresh local course list to keep sync
+      const refreshed = await apiGet('/api/courses');
+      if (Array.isArray(refreshed)) setAllCourses(refreshed);
+    } catch (e) {
+      console.error("Save failed:", e);
+      alert("Failed to save curriculum: " + e.message);
+    }
   };
 
   const currentSubjectData = curriculumData[activeSubject] || {};

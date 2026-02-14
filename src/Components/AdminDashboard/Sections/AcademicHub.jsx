@@ -89,6 +89,23 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
         return merged.filter(c => c.code !== 'EMPTY__OVERRIDE').sort((a, b) => a.semester - b.semester);
     };
 
+    // Helper: Find active override for a semester
+    const getOverrideForSemester = (year, semester) => {
+        return courses.find(c =>
+            c.code === 'EMPTY__OVERRIDE' &&
+            String(c.year) === String(year) &&
+            String(c.semester) === String(semester) &&
+            (c.branch === selectedBranchFilter || c.branch === 'All')
+        );
+    };
+
+    // Helper: Restore default subjects (Delete Override)
+    const handleRestoreDefaults = async (overrideId) => {
+        if (window.confirm('Restore default subjects for this semester?')) {
+            await handleDeleteCourse(overrideId);
+        }
+    };
+
     // Helper for Management View (All Years)
     const getAllMergedCourses = () => {
         let all = [];
@@ -338,7 +355,31 @@ const AcademicHub = ({ courses, students, materials, openModal, handleDeleteCour
                                     })}
                                     {semCourses.length === 0 && (
                                         <div style={{ textAlign: 'center', padding: '2rem', border: '2px dashed #e2e8f0', borderRadius: '16px', color: '#94a3b8' }}>
-                                            <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem' }}>No subjects active.</p>
+                                            <p style={{ margin: '0 0 1rem 0', fontWeight: 600, fontSize: '0.9rem' }}>No subjects active.</p>
+
+                                            {/* Check if this is empty because of an override */}
+                                            {getOverrideForSemester(year, sem) && (
+                                                <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+                                                    <p style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                                                        <FaExclamationCircle /> SYSTEM DEFAULTS HIDDEN
+                                                    </p>
+                                                    <button
+                                                        onClick={() => handleRestoreDefaults(getOverrideForSemester(year, sem)._id || getOverrideForSemester(year, sem).id)}
+                                                        style={{
+                                                            padding: '0.5rem 1rem',
+                                                            background: 'white',
+                                                            border: '1px solid #fecaca',
+                                                            color: '#dc2626',
+                                                            borderRadius: '8px',
+                                                            fontWeight: 700,
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.8rem'
+                                                        }}
+                                                    >
+                                                        RESTORE DEFAULTS
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>

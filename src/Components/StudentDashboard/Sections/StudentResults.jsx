@@ -9,19 +9,42 @@ const StudentResults = ({ studentData, preloadedData, enrolledSubjects = [] }) =
     const [overallStats, setOverallStats] = useState({ total: 0, max: 0, percentage: 0 });
 
     useEffect(() => {
-        if (preloadedData) {
-            let filtered = preloadedData;
-            if (enrolledSubjects && enrolledSubjects.length > 0) {
-                filtered = preloadedData.filter(item =>
-                    enrolledSubjects.some(sub =>
-                        (sub.name && item.subject && String(sub.name).toLowerCase() === String(item.subject).toLowerCase()) ||
-                        (sub.code && item.courseCode && String(sub.code).toLowerCase() === String(item.courseCode).toLowerCase()) ||
-                        (sub.code && item.subject && String(sub.code).toLowerCase() === String(item.subject).toLowerCase())
-                    )
-                );
+        const processData = (data) => {
+            const safeData = Array.isArray(data) ? data : [];
+
+            if (!enrolledSubjects || enrolledSubjects.length === 0) {
+                setResultsBySubject(safeData);
+                calculateStats(safeData);
+                return;
             }
-            setResultsBySubject(filtered);
-            calculateStats(filtered);
+
+            // Map enrolled subjects to results, filling gaps with empty data so new subjects appear
+            const merged = enrolledSubjects.map(sub => {
+                // Find matching result by code or name
+                const match = safeData.find(item =>
+                    (sub.code && item.courseCode && String(sub.code).toLowerCase() === String(item.courseCode).toLowerCase()) ||
+                    (sub.name && item.subject && String(sub.name).toLowerCase() === String(item.subject).toLowerCase())
+                );
+
+                if (match) return match;
+
+                // Default empty structure for new subjects
+                return {
+                    subject: sub.name,
+                    courseCode: sub.code,
+                    overall: { total: 0, max: 100, percentage: 0 },
+                    cla: [],
+                    module1: [],
+                    module2: []
+                };
+            });
+
+            setResultsBySubject(merged);
+            calculateStats(merged);
+        };
+
+        if (preloadedData) {
+            processData(preloadedData);
             setLoading(false);
             return;
         }
@@ -32,21 +55,11 @@ const StudentResults = ({ studentData, preloadedData, enrolledSubjects = [] }) =
             try {
                 setLoading(true);
                 const data = await apiGet(`/api/students/${studentData.sid}/marks-by-subject`);
-                let filtered = data;
-                if (enrolledSubjects && enrolledSubjects.length > 0 && Array.isArray(data)) {
-                    filtered = data.filter(item =>
-                        enrolledSubjects.some(sub =>
-                            (sub.name && item.subject && String(sub.name).toLowerCase() === String(item.subject).toLowerCase()) ||
-                            (sub.code && item.courseCode && String(sub.code).toLowerCase() === String(item.courseCode).toLowerCase()) ||
-                            (sub.code && item.subject && String(sub.code).toLowerCase() === String(item.subject).toLowerCase())
-                        )
-                    );
-                }
-                setResultsBySubject(filtered);
-                calculateStats(filtered);
+                processData(data);
             } catch (error) {
                 console.error('Error fetching results:', error);
-                setResultsBySubject([]);
+                // Fallback: show empty subjects if fetch fails
+                processData([]);
             } finally {
                 setLoading(false);
             }

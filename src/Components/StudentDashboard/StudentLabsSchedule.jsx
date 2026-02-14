@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaFlask, FaClock, FaMapMarkerAlt, FaChalkboardTeacher, FaMicrochip, FaCubes, FaArrowRight, FaTools, FaCalendarCheck } from 'react-icons/fa';
+import { FaFlask, FaClock, FaMapMarkerAlt, FaChalkboardTeacher, FaCubes, FaArrowRight, FaTools } from 'react-icons/fa';
 import { apiGet } from '../../utils/apiClient';
 import './StudentLabsSchedule.css';
 import { motion } from 'framer-motion';

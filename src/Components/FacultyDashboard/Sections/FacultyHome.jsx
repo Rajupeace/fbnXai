@@ -1,7 +1,7 @@
 import React from 'react';
 import {
-    FaUserGraduate, FaFileAlt, FaEye, FaHistory,
-    FaBullhorn, FaBookReader, FaChalkboardTeacher, FaCalendarAlt, FaRobot, FaVideo, FaClock, FaCheckCircle
+    FaUserGraduate, FaFileAlt, FaHistory,
+    FaBullhorn, FaChalkboardTeacher, FaCalendarAlt, FaRobot, FaVideo, FaClock
 } from 'react-icons/fa';
 import FacultyTeachingStats from '../FacultyTeachingStats';
 import './FacultyHome.css';

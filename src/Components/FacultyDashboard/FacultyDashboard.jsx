@@ -61,6 +61,21 @@ const FacultyDashboard = ({ facultyData, setIsAuthenticated, setIsFaculty }) => 
 
   const refreshAll = async () => {
     try {
+      // Try aggregated dashboard endpoint for faculty first
+      try {
+        const agg = await apiGet(`/api/faculty-data/${facultyData.facultyId}/dashboard`);
+        if (agg) {
+          if (agg.faculty) setCurrentFaculty(agg.faculty);
+          if (Array.isArray(agg.materials)) setMaterialsList(agg.materials);
+          if (Array.isArray(agg.students)) setStudentsList(agg.students);
+          if (Array.isArray(agg.schedule)) setSchedule(agg.schedule);
+          if (Array.isArray(agg.messages)) setMessages(agg.messages);
+          return;
+        }
+      } catch (e) {
+        // aggregator missing or failed - fall back
+      }
+
       const freshFac = await apiGet(`/api/faculty/${facultyData.facultyId}`);
       if (freshFac) setCurrentFaculty(freshFac);
     } catch (e) { console.warn('Fac profile refresh failed', e); }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaUserCircle, FaIdBadge, FaUniversity, FaLayerGroup, FaPen } from 'react-icons/fa';
+import { FaUserCircle, FaIdBadge, FaPen } from 'react-icons/fa';
 import './StudentProfileCard.css';
 import { motion } from 'framer-motion';
 
@@ -59,7 +59,7 @@ const StudentProfileCard = ({ userData, setView }) => {
 
             <div className="profile-info" style={{ width: '100%' }}>
                 <h3 style={{ margin: '0 0 0.2rem 0', fontSize: '1.2rem', fontWeight: 800, color: '#1e293b' }}>{userData?.studentName || 'Student'}</h3>
-                <div className="profile-id" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, background: '#f8fafc', padding: '0.2rem 0.6rem', borderRadius: '12px', display: 'inline-flex', marginBottom: '1rem' }}>
+                <div className="profile-id" style={{ alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.85rem', color: '#64748b', fontWeight: 600, background: '#f8fafc', padding: '0.2rem 0.6rem', borderRadius: '12px', display: 'inline-flex', marginBottom: '1rem' }}>
                     <FaIdBadge /> {userData?.sid ? userData.sid.toUpperCase() : 'ID'}
                 </div>
             </div>

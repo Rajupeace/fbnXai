@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FaMapMarkerAlt, FaChalkboardTeacher, FaBook, FaBolt, FaHistory, FaChevronRight, FaPlayCircle, FaCheckCircle, FaFlask, FaCalendarAlt, FaClock } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaChalkboardTeacher, FaBook, FaChevronRight, FaFlask, FaCalendarAlt } from 'react-icons/fa';
 import { apiGet } from '../../utils/apiClient';
 import StudentLabsSchedule from './StudentLabsSchedule';
 import './StudentSchedule.css';

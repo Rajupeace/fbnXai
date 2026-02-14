@@ -623,7 +623,24 @@ export default function AdminDashboard({ setIsAuthenticated, setIsAdmin, setStud
             }
           } else {
             // Normal DB Update
-            await api.apiPut(`/api/courses/${idToUpdate}`, data);
+            let targetId = idToUpdate;
+
+            // Fix: Detect undefined ID and attempt recovery
+            if (!targetId || targetId === 'undefined') {
+              console.warn('[handleSaveCourse] ID is undefined, attempting to find course by code...');
+              const existing = courses.find(c => c.code === data.code && String(c.year) === String(data.year));
+              if (existing && (existing._id || existing.id)) {
+                targetId = existing._id || existing.id;
+              } else {
+                targetId = data.code; // Fallback to code for backend lookup
+              }
+            }
+
+            if (!targetId || targetId === 'undefined') {
+              throw new Error('Cannot save: Missing Course ID and Code.');
+            }
+
+            await api.apiPut(`/api/courses/${targetId}`, data);
           }
         } else {
           // Local storage fallback logic...

@@ -1,6 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { FaAward, FaCheckCircle, FaExclamationCircle, FaShieldAlt, FaBolt, FaCalendarAlt, FaClock, FaChartLine, FaGraduationCap } from 'react-icons/fa';
-import SubjectAttendanceCard from '../SubjectAttendanceCard';
+import React, { useMemo } from 'react';
+import { FaBolt, FaCalendarAlt, FaClock, FaGraduationCap } from 'react-icons/fa';
 import './SubjectAttendanceMarks.css';
 import { motion } from 'framer-motion';
 
